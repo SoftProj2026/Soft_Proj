@@ -1,6 +1,4 @@
 package Service;
-
-
 import domain.Appointment;
 
 public class SlotAvailabilityRule implements BookingRuleStrategy {

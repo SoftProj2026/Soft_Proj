@@ -1,4 +1,5 @@
 package domain;
+
 import java.time.LocalDateTime;
 
 public class TimeSlot {
@@ -7,14 +8,14 @@ public class TimeSlot {
     private LocalDateTime endDateTime;
     private boolean isBooked;
 
-    public TimeSlot(LocalDateTime startDateTime) {
+    public TimeSlot(LocalDateTime startDateTime, int durationInMinutes) {
         this.startDateTime = startDateTime;
-        this.endDateTime = startDateTime.plusHours(1); //  (بنقدر نغيرها حسب طلب الدكتورة )مدة افتراضية ساعة
+        this.endDateTime = startDateTime.plusMinutes(durationInMinutes);
         this.isBooked = false;
     }
 
     public boolean isAvailable() {
-        return !isBooked;
+        return !isBooked; 
     }
 
     public void book() {

@@ -2,6 +2,9 @@ package Service;
 
 import domain.Appointment;
 
+
+ // US2.3 - Prevent booking if participants exceed allowed limit
+ 
 public class ParticipantLimitRule implements BookingRuleStrategy {
 
     private int maxParticipants;

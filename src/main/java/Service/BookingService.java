@@ -6,8 +6,6 @@ import persistence.DataRepository;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
 public class BookingService {
 
     private DataRepository repo;
@@ -16,22 +14,24 @@ public class BookingService {
     public BookingService(DataRepository repo) {
         this.repo = repo;
 
-        rules.add(new DurationRule(60));        // أقصى مدة 60 دقيقة
-        rules.add(new ParticipantLimitRule(5)); // أقصى عدد مشاركين 5
-        rules.add(new SlotAvailabilityRule());
+        rules.add(new DurationRule(60));
+        rules.add(new ParticipantLimitRule(5));
+        rules.add(new OverlapRule(repo)); // منع التعارض
     }
 
     public BookingResult book(Appointment appointment) {
 
         for (BookingRuleStrategy rule : rules) {
             if (!rule.isValid(appointment)) {
-                return new BookingResult(false, rule.getErrorMessage());
+                return new BookingResult(false,
+                        rule.getErrorMessage());
             }
         }
 
         appointment.confirm();
         repo.addAppointment(appointment);
 
-        return new BookingResult(true, "Appointment booked successfully.");
+        return new BookingResult(true,
+                "Appointment booked successfully.");
     }
 }

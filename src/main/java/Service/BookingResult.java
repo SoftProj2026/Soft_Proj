@@ -1,5 +1,7 @@
 package Service;
 
+
+ // Represents result of booking attempt
  
 public class BookingResult {
 
@@ -11,6 +13,11 @@ public class BookingResult {
         this.message = message;
     }
 
-    public boolean isSuccess() { return success; }
-    public String getMessage() { return message; }
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public String getMessage() {
+        return message;
+    }
 }

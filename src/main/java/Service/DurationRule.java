@@ -2,6 +2,9 @@ package Service;
 
 import domain.Appointment;
 
+
+ // US2.2 - Prevent booking if duration exceeds allowed limit
+ 
 public class DurationRule implements BookingRuleStrategy {
 
     private int maxDuration;

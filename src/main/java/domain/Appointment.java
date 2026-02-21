@@ -1,4 +1,5 @@
-package domain; 
+package domain;
+
 public class Appointment {
 
     private static int counter = 1;
@@ -10,7 +11,9 @@ public class Appointment {
     private int participants;
     private AppointmentStatus status;
 
-    public Appointment(User user, TimeSlot slot, int durationInMinutes, int participants) {
+    public Appointment(User user, TimeSlot slot,
+                       int durationInMinutes, int participants) {
+
         this.id = counter++;
         this.user = user;
         this.slot = slot;
@@ -26,11 +29,15 @@ public class Appointment {
     public int getParticipants() { return participants; }
     public AppointmentStatus getStatus() { return status; }
 
+    
+     //US2.1 - Confirm booking and mark slot as unavailable
+     
     public void confirm() {
         this.status = AppointmentStatus.CONFIRMED;
         slot.book();
     }
 
+     
     public void cancel() {
         this.status = AppointmentStatus.CANCELLED;
         slot.cancel();
