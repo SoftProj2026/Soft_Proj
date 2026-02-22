@@ -1,6 +1,7 @@
 package presentation;
 
 import domain.Appointment;
+import domain.AppointmentStatus;
 import domain.TimeSlot;
 import Service.AuthService;
 import Service.BookingService;
@@ -13,6 +14,7 @@ import java.awt.*;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainDashboardFrame extends JFrame {
@@ -29,6 +31,9 @@ public class MainDashboardFrame extends JFrame {
     private BookingService booking;
     private DataRepository repo;
 
+    // Tracks which Appointment object corresponds to each visible table row
+    private List<Appointment> displayedAppointments = new ArrayList<>();
+
     public MainDashboardFrame(AuthService auth,
                               BookingService booking,
                               DataRepository repo) {
@@ -43,7 +48,7 @@ public class MainDashboardFrame extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-        JPanel form = new JPanel(new GridLayout(5,2));
+        JPanel form = new JPanel(new GridLayout(6,2));
 
         form.add(new JLabel("Date (YYYY-MM-DD):"));
         form.add(dateField);
@@ -59,14 +64,18 @@ public class MainDashboardFrame extends JFrame {
 
         JButton bookBtn = new JButton("Book");
         JButton saveBtn = new JButton("Export to CSV");
+        JButton cancelBtn = new JButton("Cancel Selected");
+        JButton logoutBtn = new JButton("Logout");
 
         form.add(bookBtn);
         form.add(saveBtn);
+        form.add(cancelBtn);
+        form.add(logoutBtn);
 
         add(form, BorderLayout.NORTH);
 
         tableModel = new DefaultTableModel(
-                new String[]{"User", "Date", "Time", "Duration", "Participants"}, 0);
+                new String[]{"User", "Date", "Time", "Duration", "Participants", "Status"}, 0);
 
         table = new JTable(tableModel);
         add(new JScrollPane(table), BorderLayout.CENTER);
@@ -75,6 +84,11 @@ public class MainDashboardFrame extends JFrame {
 
         bookBtn.addActionListener(e -> bookAppointment());
         saveBtn.addActionListener(e -> exportCSV());
+        cancelBtn.addActionListener(e -> cancelAppointment());
+        logoutBtn.addActionListener(e -> {
+            auth.logout();
+            this.dispose();
+        });
     }
 
     private void bookAppointment() {
@@ -112,20 +126,46 @@ public class MainDashboardFrame extends JFrame {
         }
     }
 
+    private void cancelAppointment() {
+        int row = table.getSelectedRow();
+        if (row < 0 || row >= displayedAppointments.size()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please select an appointment to cancel.");
+            return;
+        }
+        Appointment a = displayedAppointments.get(row);
+        if (a.getStatus() != AppointmentStatus.CONFIRMED) {
+            JOptionPane.showMessageDialog(this,
+                    "Only confirmed appointments can be cancelled.");
+            return;
+        }
+        a.cancel();
+        refreshTable();
+        JOptionPane.showMessageDialog(this, "Appointment cancelled.");
+    }
+
     private void refreshTable() {
 
         tableModel.setRowCount(0);
+        displayedAppointments.clear();
 
-        List<Appointment> list = repo.getAppointments();
+        String currentUser = auth.getCurrentUser().getUsername();
 
-        for (Appointment a : list) {
+        for (Appointment a : repo.getAppointments()) {
+
+            if (!a.getUser().getUsername().equals(currentUser)) {
+                continue;
+            }
+
+            displayedAppointments.add(a);
 
             tableModel.addRow(new Object[]{
                     a.getUser().getUsername(),
                     a.getSlot().getStartDateTime().toLocalDate(),
                     a.getSlot().getStartDateTime().toLocalTime(),
                     a.getDurationInMinutes(),
-                    a.getParticipants()
+                    a.getParticipants(),
+                    a.getStatus()
             });
         }
     }
