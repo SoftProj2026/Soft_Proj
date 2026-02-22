@@ -5,84 +5,165 @@ import domain.TimeSlot;
 import Service.AuthService;
 import Service.BookingService;
 import Service.BookingResult;
+import persistence.DataRepository;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.time.LocalDate;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.util.List;
 
-class MainDashboardFrame extends JFrame {
+public class MainDashboardFrame extends JFrame {
 
-    private JTextField dateField;
-    private JTextField timeField;
-    private JTextField durationField;
-    private JTextField participantsField;
+    private JTextField dateField = new JTextField(10);
+    private JTextField timeField = new JTextField(5);
+    private JTextField durationField = new JTextField(5);
+    private JTextField participantsField = new JTextField(5);
+
+    private DefaultTableModel tableModel;
+    private JTable table;
+
+    private AuthService auth;
+    private BookingService booking;
+    private DataRepository repo;
 
     public MainDashboardFrame(AuthService auth,
-                              BookingService booking) {
+                              BookingService booking,
+                              DataRepository repo) {
 
-        setTitle("Dynamic Booking System");
-        setSize(500, 350);
-        setLayout(new GridLayout(6, 2));
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.auth = auth;
+        this.booking = booking;
+        this.repo = repo;
+
+        setTitle("Booking Dashboard");
+        setSize(700, 500);
+        setLayout(new BorderLayout());
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-        add(new JLabel("Date (YYYY-MM-DD):"));
-        dateField = new JTextField();
-        add(dateField);
+        JPanel form = new JPanel(new GridLayout(5,2));
 
-        add(new JLabel("Time (HH:MM):"));
-        timeField = new JTextField();
-        add(timeField);
+        form.add(new JLabel("Date (YYYY-MM-DD):"));
+        form.add(dateField);
 
-        add(new JLabel("Duration (minutes):"));
-        durationField = new JTextField();
-        add(durationField);
+        form.add(new JLabel("Time (HH:MM):"));
+        form.add(timeField);
 
-        add(new JLabel("Participants:"));
-        participantsField = new JTextField();
-        add(participantsField);
+        form.add(new JLabel("Duration (minutes):"));
+        form.add(durationField);
 
-        JButton bookBtn = new JButton("Book Appointment");
-        add(bookBtn);
+        form.add(new JLabel("Participants:"));
+        form.add(participantsField);
 
-        JButton logoutBtn = new JButton("Logout");
-        add(logoutBtn);
+        JButton bookBtn = new JButton("Book");
+        JButton saveBtn = new JButton("Export to CSV");
 
-        bookBtn.addActionListener(e -> {
+        form.add(bookBtn);
+        form.add(saveBtn);
 
-            try {
+        add(form, BorderLayout.NORTH);
 
-                LocalDate date = LocalDate.parse(dateField.getText());
-                LocalTime time = LocalTime.parse(timeField.getText());
-                LocalDateTime start = LocalDateTime.of(date, time);
+        tableModel = new DefaultTableModel(
+                new String[]{"User", "Date", "Time", "Duration", "Participants"}, 0);
 
-                int duration = Integer.parseInt(durationField.getText());
-                int participants = Integer.parseInt(participantsField.getText());
+        table = new JTable(tableModel);
+        add(new JScrollPane(table), BorderLayout.CENTER);
 
-                TimeSlot slot = new TimeSlot(start, duration);
+        refreshTable();
 
-                Appointment appointment =
-                        new Appointment(auth.getCurrentUser(),
-                                slot,
-                                duration,
-                                participants);
+        bookBtn.addActionListener(e -> bookAppointment());
+        saveBtn.addActionListener(e -> exportCSV());
+    }
 
-                BookingResult result = booking.book(appointment);
+    private void bookAppointment() {
 
-                JOptionPane.showMessageDialog(this,
-                        result.getMessage());
+        try {
+            LocalDateTime dateTime =
+                    LocalDateTime.parse(dateField.getText()
+                            + "T"
+                            + timeField.getText());
 
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this,
-                        "Invalid input format.");
+            int duration = Integer.parseInt(durationField.getText());
+            int participants = Integer.parseInt(participantsField.getText());
+
+            TimeSlot slot = new TimeSlot(dateTime, duration);
+
+            Appointment appointment =
+                    new Appointment(auth.getCurrentUser(),
+                            slot,
+                            duration,
+                            participants);
+
+            BookingResult result = booking.book(appointment);
+
+            JOptionPane.showMessageDialog(this,
+                    result.getMessage());
+
+            if (result.isSuccess()) {
+                refreshTable();
+                clearForm(); //  بس نفرغ الفورم
             }
-        });
 
-        logoutBtn.addActionListener(e -> {
-            auth.logout();
-            this.dispose();
-        });
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Invalid input format!");
+        }
+    }
+
+    private void refreshTable() {
+
+        tableModel.setRowCount(0);
+
+        List<Appointment> list = repo.getAppointments();
+
+        for (Appointment a : list) {
+
+            tableModel.addRow(new Object[]{
+                    a.getUser().getUsername(),
+                    a.getSlot().getStartDateTime().toLocalDate(),
+                    a.getSlot().getStartDateTime().toLocalTime(),
+                    a.getDurationInMinutes(),
+                    a.getParticipants()
+            });
+        }
+    }
+
+    private void exportCSV() {
+
+        try {
+            PrintWriter writer = new PrintWriter(
+                    new FileWriter("appointments.csv"));
+
+            writer.println("User,Date,Time,Duration,Participants");
+
+            for (Appointment a : repo.getAppointments()) {
+
+                writer.println(
+                        a.getUser().getUsername() + "," +
+                        a.getSlot().getStartDateTime().toLocalDate() + "," +
+                        a.getSlot().getStartDateTime().toLocalTime() + "," +
+                        a.getDurationInMinutes() + "," +
+                        a.getParticipants()
+                );
+            }
+
+            writer.close();
+
+            JOptionPane.showMessageDialog(this,
+                    "Bookings exported successfully (CSV file created).");
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Error saving file.");
+        }
+    }
+
+    private void clearForm() {
+        dateField.setText("");
+        timeField.setText("");
+        durationField.setText("");
+        participantsField.setText("");
     }
 }

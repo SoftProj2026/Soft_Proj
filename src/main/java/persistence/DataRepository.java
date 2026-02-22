@@ -1,16 +1,16 @@
 package persistence;
 
 import domain.User;
-import domain.TimeSlot;
 import domain.Appointment;
+
 import java.util.LinkedList;
 import java.util.List;
 
 public class DataRepository {
 
     private List<User> users = new LinkedList<>();
-    private List<TimeSlot> slots = new LinkedList<>();
     private List<Appointment> appointments = new LinkedList<>();
+
 
     public void addUser(User user) {
         users.add(user);
@@ -20,13 +20,6 @@ public class DataRepository {
         return users;
     }
 
-    public List<TimeSlot> getSlots() {
-        return slots;
-    }
-
-    public void addSlot(TimeSlot slot) {
-        slots.add(slot);
-    }
 
     public void addAppointment(Appointment appointment) {
         appointments.add(appointment);

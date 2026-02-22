@@ -16,7 +16,10 @@ public class BookingService {
 
         rules.add(new DurationRule(60));
         rules.add(new ParticipantLimitRule(5));
-        rules.add(new OverlapRule(repo)); // منع التعارض
+        rules.add(new OverlapRule(repo));
+        rules.add(new WorkingHoursRule());
+        rules.add(new MinimumNoticeRule());
+        rules.add(new DailyBookingLimitRule(repo));
     }
 
     public BookingResult book(Appointment appointment) {

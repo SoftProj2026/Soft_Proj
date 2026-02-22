@@ -2,6 +2,7 @@ package presentation;
 
 import Service.AuthService;
 import Service.BookingService;
+import persistence.DataRepository;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,7 +14,9 @@ public class LoginFrame extends JFrame {
     private JButton logBtn = new JButton("Login");
     private JButton goSignBtn = new JButton("Sign Up");
 
-    public LoginFrame(AuthService auth, BookingService booking) {
+    public LoginFrame(AuthService auth,
+                      BookingService booking,
+                      DataRepository repo) {
 
         setTitle("Login");
         setSize(350, 200);
@@ -35,7 +38,8 @@ public class LoginFrame extends JFrame {
             if (auth.login(userF.getText(),
                     new String(passF.getPassword()))) {
 
-                new MainDashboardFrame(auth, booking)
+                // ✅ نفتح الداشبورد الصح
+                new MainDashboardFrame(auth, booking, repo)
                         .setVisible(true);
 
                 this.dispose();
