@@ -1,7 +1,6 @@
 package Service;
 
 
- // Represents result of booking attempt
  
 public class BookingResult {
 

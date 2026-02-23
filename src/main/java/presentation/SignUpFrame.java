@@ -1,33 +1,50 @@
+
 package presentation;
 
 import Service.AuthService;
+
 import javax.swing.*;
 import java.awt.*;
 
-
 public class SignUpFrame extends JFrame {
-    private JTextField userF = new JTextField(15);
-    private JPasswordField passF = new JPasswordField(15);
-    private JButton regBtn = new JButton("Register");
+
+    private JTextField userField = new JTextField(15);
+    private JPasswordField passField = new JPasswordField(15);
+    private JButton signBtn = new JButton("Create Account");
 
     public SignUpFrame(AuthService auth) {
-        setTitle("Sign Up");
-        setSize(300, 200);
-        setLayout(new FlowLayout());
-        add(new JLabel("Username:")); add(userF);
-        add(new JLabel("Password (8+ chars, symbol, number):")); add(passF);
-        add(regBtn);
 
-        regBtn.addActionListener(e -> {
-            String p = new String(passF.getPassword());
-            if (!auth.isPasswordStrong(p)) {
-                JOptionPane.showMessageDialog(this, "Password is too weak!");
-            } else if (auth.register(userF.getText(), p)) {
-                JOptionPane.showMessageDialog(this, "Account Created!");
-                this.dispose();
+        setTitle("Sign Up");
+        setSize(300, 180);
+        setLayout(new FlowLayout());
+        setLocationRelativeTo(null);
+
+        add(new JLabel("Username:"));
+        add(userField);
+
+        add(new JLabel("Password:"));
+        add(passField);
+
+        add(signBtn);
+
+        signBtn.addActionListener(e -> {
+
+            boolean success = auth.register(
+                    userField.getText(),
+                    new String(passField.getPassword())
+            );
+
+            if (success) {
+                JOptionPane.showMessageDialog(this,
+                        "Account created successfully!");
+                dispose();
             } else {
-                JOptionPane.showMessageDialog(this, "User already exists!");
+                JOptionPane.showMessageDialog(this,
+                        "Username already exists or invalid input!",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
     }
 }
+

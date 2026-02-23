@@ -38,7 +38,6 @@ public class LoginFrame extends JFrame {
             if (auth.login(userF.getText(),
                     new String(passF.getPassword()))) {
 
-                // ✅ نفتح الداشبورد الصح
                 new MainDashboardFrame(auth, booking, repo)
                         .setVisible(true);
 
