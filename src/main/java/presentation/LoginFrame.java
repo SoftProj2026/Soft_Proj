@@ -7,6 +7,14 @@ import persistence.DataRepository;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * The login window of the appointment booking application.
+ *
+ * <p>Presents username and password input fields to the user. On successful
+ * authentication the window is replaced by the {@link MainDashboardFrame};
+ * otherwise an error dialog is shown. A "Sign Up" button opens the
+ * {@link SignUpFrame} for new user registration.</p>
+ */
 public class LoginFrame extends JFrame {
 
     private JTextField userF = new JTextField(15);
@@ -14,6 +22,13 @@ public class LoginFrame extends JFrame {
     private JButton logBtn = new JButton("Login");
     private JButton goSignBtn = new JButton("Sign Up");
 
+    /**
+     * Constructs and configures the login window.
+     *
+     * @param auth    the {@link AuthService} used to authenticate the user
+     * @param booking the {@link BookingService} forwarded to the dashboard after login
+     * @param repo    the {@link DataRepository} forwarded to the dashboard after login
+     */
     public LoginFrame(AuthService auth,
                       BookingService booking,
                       DataRepository repo) {

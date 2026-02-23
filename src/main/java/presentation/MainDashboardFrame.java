@@ -15,6 +15,13 @@ import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * The main dashboard window shown after a successful login.
+ *
+ * <p>Provides a form for creating new appointments (date, time, duration,
+ * participants) and displays all confirmed appointments in a table. Users
+ * can also export the appointments list to a CSV file.</p>
+ */
 public class MainDashboardFrame extends JFrame {
 
     private JTextField dateField = new JTextField(10);
@@ -29,6 +36,13 @@ public class MainDashboardFrame extends JFrame {
     private BookingService booking;
     private DataRepository repo;
 
+    /**
+     * Constructs and initialises the main dashboard window.
+     *
+     * @param auth    the {@link AuthService} that holds the current user session
+     * @param booking the {@link BookingService} used to process new bookings
+     * @param repo    the {@link DataRepository} used to read all appointments for display
+     */
     public MainDashboardFrame(AuthService auth,
                               BookingService booking,
                               DataRepository repo) {
@@ -77,6 +91,11 @@ public class MainDashboardFrame extends JFrame {
         saveBtn.addActionListener(e -> exportCSV());
     }
 
+    /**
+     * Reads the form fields, creates an {@link Appointment}, and submits it
+     * to the {@link BookingService}. Shows a dialog with the booking result
+     * and refreshes the table on success.
+     */
     private void bookAppointment() {
 
         try {
@@ -112,6 +131,10 @@ public class MainDashboardFrame extends JFrame {
         }
     }
 
+    /**
+     * Clears all rows from the appointments table and repopulates it from the
+     * current state of the {@link DataRepository}.
+     */
     private void refreshTable() {
 
         tableModel.setRowCount(0);
@@ -130,6 +153,11 @@ public class MainDashboardFrame extends JFrame {
         }
     }
 
+    /**
+     * Exports all appointments from the repository to a CSV file named
+     * {@code appointments.csv} in the working directory.
+     * Shows a confirmation or error dialog depending on the outcome.
+     */
     private void exportCSV() {
 
         try {
@@ -160,6 +188,9 @@ public class MainDashboardFrame extends JFrame {
         }
     }
 
+    /**
+     * Clears all booking form input fields.
+     */
     private void clearForm() {
         dateField.setText("");
         timeField.setText("");

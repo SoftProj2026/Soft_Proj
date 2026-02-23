@@ -4,12 +4,24 @@ import Service.AuthService;
 import javax.swing.*;
 import java.awt.*;
 
-
+/**
+ * The user registration window of the appointment booking application.
+ *
+ * <p>Allows new users to create an account by entering a username and a
+ * password that meets the strong-password policy (minimum 8 characters,
+ * at least one digit and one special character). Registration is handled
+ * by {@link AuthService#register(String, String)}.</p>
+ */
 public class SignUpFrame extends JFrame {
     private JTextField userF = new JTextField(15);
     private JPasswordField passF = new JPasswordField(15);
     private JButton regBtn = new JButton("Register");
 
+    /**
+     * Constructs and configures the sign-up window.
+     *
+     * @param auth the {@link AuthService} used to validate and register the new user
+     */
     public SignUpFrame(AuthService auth) {
         setTitle("Sign Up");
         setSize(300, 200);
