@@ -1,8 +1,6 @@
 package domain;
 
-/**
- * Represents a booking category (Car, Land, Meeting Room, etc.)
- */
+
 public class Category {
 
     private String name;

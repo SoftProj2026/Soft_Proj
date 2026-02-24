@@ -9,49 +9,96 @@ import java.awt.*;
 
 public class LoginFrame extends JFrame {
 
-    private JTextField userF = new JTextField(15);
-    private JPasswordField passF = new JPasswordField(15);
-    private JButton logBtn = new JButton("Login");
-    private JButton goSignBtn = new JButton("Sign Up");
+    private final AuthService auth;
+    private final BookingService booking;
+    private final DataRepository repo;
 
-    public LoginFrame(AuthService auth,
-                      BookingService booking,
-                      DataRepository repo) {
+    public LoginFrame(AuthService auth, BookingService booking, DataRepository repo) {
 
-        setTitle("Login");
-        setSize(350, 200);
-        setLayout(new FlowLayout());
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.auth = auth;
+        this.booking = booking;
+        this.repo = repo;
+
+        setTitle("Welcome");
+        setSize(360, 200);
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
 
-        add(new JLabel("Username:"));
-        add(userF);
+        JLabel title = new JLabel("Welcome", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        add(title, BorderLayout.CENTER);
 
-        add(new JLabel("Password:"));
-        add(passF);
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
+        JButton signInBtn = new JButton("Sign In");
+        JButton signUpBtn = new JButton("Sign Up");
+        buttons.add(signInBtn);
+        buttons.add(signUpBtn);
 
-        add(logBtn);
-        add(goSignBtn);
+        add(buttons, BorderLayout.SOUTH);
 
-        logBtn.addActionListener(e -> {
-
-            if (auth.login(userF.getText(),
-                    new String(passF.getPassword()))) {
-
-                new MainDashboardFrame(auth, booking, repo)
-                        .setVisible(true);
-
-                this.dispose();
-
-            } else {
-                JOptionPane.showMessageDialog(this,
-                        "Invalid Credentials! Account not found.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
+        signInBtn.addActionListener(e -> {
+            new SignInDialog(this, this.auth, this.booking, this.repo).setVisible(true);
         });
 
-        goSignBtn.addActionListener(e ->
-                new SignUpFrame(auth).setVisible(true));
+        signUpBtn.addActionListener(e -> {
+            new SignUpFrame(this.auth, this.booking, this.repo).setVisible(true);
+            dispose();
+        });
+    }
+
+    private static class SignInDialog extends JDialog {
+
+        private final JTextField usernameField = new JTextField(18);
+        private final JPasswordField passwordField = new JPasswordField(18);
+
+        public SignInDialog(JFrame owner,
+                            AuthService auth,
+                            BookingService booking,
+                            DataRepository repo) {
+
+            super(owner, "Sign In", true);
+
+            setSize(420, 220);
+            setLocationRelativeTo(owner);
+            setLayout(new BorderLayout(10, 10));
+
+            JPanel form = new JPanel(new GridLayout(2, 2, 8, 8));
+            form.add(new JLabel("Username:"));
+            form.add(usernameField);
+            form.add(new JLabel("Password:"));
+            form.add(passwordField);
+
+            JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+            JButton signInBtn = new JButton("Sign In");
+            JButton cancelBtn = new JButton("Cancel");
+            buttons.add(signInBtn);
+            buttons.add(cancelBtn);
+
+            add(form, BorderLayout.CENTER);
+            add(buttons, BorderLayout.SOUTH);
+
+            signInBtn.addActionListener(e -> {
+                String u = usernameField.getText().trim();
+                String p = new String(passwordField.getPassword());
+
+                boolean ok = auth.login(u, p);
+                if (ok) {
+                    new MainDashboardFrame(auth, booking, repo).setVisible(true);
+
+                    owner.dispose();
+
+                    dispose();
+
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Invalid username or password.",
+                            "Sign In Failed",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            cancelBtn.addActionListener(e -> dispose());
+        }
     }
 }

@@ -1,4 +1,3 @@
-
 package MainApp;
 
 import persistence.DataRepository;
@@ -9,7 +8,12 @@ import presentation.LoginFrame;
 import domain.TimeSlot;
 import domain.Category;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
 
@@ -17,17 +21,38 @@ public class Main {
 
         DataRepository repo = new DataRepository();
 
-        Category car = new Category("Car Booking");
-        Category land = new Category("Land Reservation");
-        Category room = new Category("Meeting Room");
+        List<Category> categories = new ArrayList<>();
 
-        repo.addCategory(car);
-        repo.addCategory(land);
-        repo.addCategory(room);
+        categories.add(new Category("Bus Reservation"));
+        categories.add(new Category("Driver Service"));
+        categories.add(new Category("Airport Pickup"));
+        categories.add(new Category("Delivery Vehicle"));
 
-        repo.addSlot(new TimeSlot(LocalDateTime.now().plusHours(2), 60, car));
-        repo.addSlot(new TimeSlot(LocalDateTime.now().plusDays(1), 60, land));
-        repo.addSlot(new TimeSlot(LocalDateTime.now().plusDays(2), 60, room));
+        categories.add(new Category("Conference Hall"));
+        categories.add(new Category("Training Room"));
+        categories.add(new Category("Shared Workspace"));
+        categories.add(new Category("Equipment Rental (Projector, Laptop)"));
+
+        categories.add(new Category("Wedding Hall"));
+        categories.add(new Category("Birthday Venue"));
+        categories.add(new Category("Photography Studio"));
+        categories.add(new Category("Event Planner Meeting"));
+
+        categories.add(new Category("Doctor Appointment"));
+        categories.add(new Category("Legal Consultation"));
+        categories.add(new Category("Private Tutor"));
+        categories.add(new Category("Gym Session"));
+
+        categories.add(new Category("Lab Reservation"));
+        categories.add(new Category("Library Study Room"));
+        categories.add(new Category("Exam Hall"));
+        categories.add(new Category("Academic Advisor Meeting"));
+
+        for (Category c : categories) {
+            repo.addCategory(c);
+        }
+
+        seedTimeSlots(repo, categories, 14);
 
         AuthService authService = new AuthService(repo);
         BookingService bookingService = new BookingService(repo);
@@ -36,5 +61,46 @@ public class Main {
         javax.swing.SwingUtilities.invokeLater(() -> {
             new LoginFrame(authService, bookingService, repo).setVisible(true);
         });
+    }
+
+    private static void seedTimeSlots(DataRepository repo,
+                                      List<Category> categories,
+                                      int daysAhead) {
+
+        int durationMinutes = 60;
+
+        LocalTime start = LocalTime.of(9, 0);
+        LocalTime lastStart = LocalTime.of(16, 0);
+        LocalTime fridayBreakStart = LocalTime.of(13, 0);
+
+        LocalDate today = LocalDate.now();
+
+        for (int d = 0; d < daysAhead; d++) {
+
+            LocalDate date = today.plusDays(d);
+            DayOfWeek dow = date.getDayOfWeek();
+
+            if (dow == DayOfWeek.FRIDAY) {
+                continue;
+            }
+
+            for (Category c : categories) {
+
+                LocalTime t = start;
+
+                while (!t.isAfter(lastStart)) {
+
+                    if (dow == DayOfWeek.FRIDAY && t.equals(fridayBreakStart)) {
+                        t = t.plusHours(1);
+                        continue;
+                    }
+
+                    LocalDateTime dateTime = LocalDateTime.of(date, t);
+                    repo.addSlot(new TimeSlot(dateTime, durationMinutes, c));
+
+                    t = t.plusHours(1);
+                }
+            }
+        }
     }
 }
