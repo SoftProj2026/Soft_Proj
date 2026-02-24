@@ -328,7 +328,7 @@ public class SignUpFrame extends JFrame {
     static class JLabelWhite extends JLabel {
         JLabelWhite(String text) {
             super(text);
-            setForeground(new Color(255, 255, 255, 235));
+            setForeground(new Color(255, 255, 255, 235)); 
         }
     }
 }
