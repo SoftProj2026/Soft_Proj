@@ -69,6 +69,7 @@ public class AuthService {
         return currentUser;
     }
     
+    
 
     public boolean isLoggedIn() {
         return currentUser != null;
