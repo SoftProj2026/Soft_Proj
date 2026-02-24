@@ -8,15 +8,23 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.time.DateTimeException;
+import java.time.LocalDate;
 
 public class SignUpFrame extends JFrame {
+
+    private JTextField firstNameF = new JTextField(22);
+    private JTextField lastNameF = new JTextField(22);
 
     private JTextField userF = new JTextField(22);
     private JPasswordField passF = new JPasswordField(22);
 
     private JCheckBox showPassword = new JCheckBox("Show Password");
 
-    // ✅ 2 lines warning
+    private JComboBox<Integer> dayBox = new JComboBox<>();
+    private JComboBox<Integer> monthBox = new JComboBox<>();
+    private JComboBox<Integer> yearBox = new JComboBox<>();
+
     private JLabel strongHint = new JLabel(
             "<html>Password must be strong:<br/>8+ chars, uppercase, lowercase, number, and symbol.</html>"
     );
@@ -27,17 +35,15 @@ public class SignUpFrame extends JFrame {
     public SignUpFrame(AuthService auth) {
 
         setTitle("Sign Up");
-        setSize(650, 540);
-        setMinimumSize(new Dimension(600, 500));
+        setSize(650, 620);
+        setMinimumSize(new Dimension(600, 560));
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // ✅ Plain background
         JPanel root = new JPanel(new GridBagLayout());
         root.setBackground(new Color(245, 246, 250));
         setContentPane(root);
 
-        // ✅ Card only (light blue)
         JPanel card = buildCard();
 
         JLabel title = new JLabel("Sign Up", SwingConstants.CENTER);
@@ -45,49 +51,62 @@ public class SignUpFrame extends JFrame {
         title.setFont(title.getFont().deriveFont(Font.BOLD, 30f));
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        installPlaceholder(firstNameF, "First Name");
+        installPlaceholder(lastNameF, "Last Name");
         installPlaceholder(userF, "Username");
         installPasswordPlaceholder(passF, "Password");
 
+        styleField(firstNameF);
+        styleField(lastNameF);
         styleField(userF);
         styleField(passF);
 
-        // Hint style
+        initDobCombos();
+        styleCombo(dayBox);
+        styleCombo(monthBox);
+        styleCombo(yearBox);
+
+        JPanel dobRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        dobRow.setOpaque(false);
+
+        // ✅ label جنب خيارات التاريخ (عشان يعرف إنه تاريخ ميلاد/العمر)
+        dobRow.add(new JLabelWhite("Age / Date of Birth:"));
+
+        dobRow.add(new JLabelWhite("Day"));
+        dobRow.add(dayBox);
+
+        dobRow.add(new JLabelWhite("Month"));
+        dobRow.add(monthBox);
+
+        dobRow.add(new JLabelWhite("Year"));
+        dobRow.add(yearBox);
+
         strongHint.setForeground(new Color(255, 255, 255, 235));
         strongHint.setFont(strongHint.getFont().deriveFont(12.5f));
         strongHint.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Show password checkbox
         showPassword.setOpaque(false);
         showPassword.setFocusPainted(false);
         showPassword.setForeground(new Color(255, 255, 255, 235));
         showPassword.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // default echo char when user starts typing
-        char defaultEcho = '•';
-
         showPassword.addActionListener(e -> {
             String text = new String(passF.getPassword());
             boolean isPlaceholder = text.equals("Password") && passF.getEchoChar() == 0;
 
-            if (showPassword.isSelected()) {
-                // show characters
-                passF.setEchoChar((char) 0);
-            } else {
-                // hide characters (but keep placeholder readable)
-                if (isPlaceholder) {
-                    passF.setEchoChar((char) 0);
-                } else {
-                    passF.setEchoChar(defaultEcho);
-                }
-            }
+            if (showPassword.isSelected()) passF.setEchoChar((char) 0);
+            else passF.setEchoChar(isPlaceholder ? (char) 0 : '•');
         });
 
         stylePrimaryButton(signBtn);
         styleLinkButton(backBtn);
 
-        // Layout inside card
         card.add(title);
-        card.add(Box.createVerticalStrut(18));
+        card.add(Box.createVerticalStrut(14));
+        card.add(firstNameF);
+        card.add(Box.createVerticalStrut(10));
+        card.add(lastNameF);
+        card.add(Box.createVerticalStrut(10));
         card.add(userF);
         card.add(Box.createVerticalStrut(10));
         card.add(passF);
@@ -95,9 +114,11 @@ public class SignUpFrame extends JFrame {
         card.add(strongHint);
         card.add(Box.createVerticalStrut(10));
         card.add(showPassword);
+        card.add(Box.createVerticalStrut(12));
+        card.add(dobRow);
         card.add(Box.createVerticalStrut(16));
         card.add(signBtn);
-        card.add(Box.createVerticalStrut(14));
+        card.add(Box.createVerticalStrut(12));
 
         JPanel backWrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         backWrap.setOpaque(false);
@@ -106,49 +127,51 @@ public class SignUpFrame extends JFrame {
 
         root.add(card, new GridBagConstraints());
 
-        // Actions
         signBtn.addActionListener(e -> {
+            String firstName = firstNameF.getText().trim();
+            String lastName = lastNameF.getText().trim();
             String username = userF.getText().trim();
             String password = new String(passF.getPassword());
 
+            if (firstName.equals("First Name")) firstName = "";
+            if (lastName.equals("Last Name")) lastName = "";
             if (username.equals("Username")) username = "";
             if (password.equals("Password")) password = "";
 
+            if (firstName.isEmpty()) { warn("First name is required."); return; }
+            if (lastName.isEmpty())  { warn("Last name is required."); return; }
+            if (username.isEmpty())  { warn("Username is required."); return; }
+
             if (!isStrongPassword(password)) {
-                JOptionPane.showMessageDialog(this,
-                        "Weak password!\nUse 8+ chars with uppercase, lowercase, number, and symbol.",
-                        "Warning",
-                        JOptionPane.WARNING_MESSAGE);
+                warn("Weak password!\nUse 8+ chars with uppercase, lowercase, number, and symbol.");
                 return;
             }
 
-            if (username.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                        "Username is required.",
-                        "Warning",
-                        JOptionPane.WARNING_MESSAGE);
+            LocalDate dob = readDobOrNull();
+            if (dob == null) {
+                warn("Please select a valid date of birth.");
                 return;
             }
 
-            try {
-                // ✅ عدّل اسم الدالة حسب الموجود عندك:
-                // boolean ok = auth.register(username, password);
+            AuthService.RegisterResult result =
+                    auth.register(firstName, lastName, username, password, dob);
 
-                // مؤقتًا:
-                boolean ok = true;
-
-                if (ok) {
-                    JOptionPane.showMessageDialog(this, "Account created successfully!");
-                    dispose();
-                } else {
-                    JOptionPane.showMessageDialog(this,
-                            "Could not create account (username may already exist).",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (Exception ex) {
+            if (result == AuthService.RegisterResult.SUCCESS) {
+                JOptionPane.showMessageDialog(this, "Account created successfully!");
+                dispose();
+            } else if (result == AuthService.RegisterResult.USERNAME_TAKEN) {
                 JOptionPane.showMessageDialog(this,
-                        "Sign up failed: " + ex.getMessage(),
+                        "This username is already taken.\nPlease choose another one.",
+                        "Username exists",
+                        JOptionPane.WARNING_MESSAGE);
+            } else if (result == AuthService.RegisterResult.UNDER_18) {
+                JOptionPane.showMessageDialog(this,
+                        "Registration rejected.\nYou must be at least 18 years old.",
+                        "Under 18",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Invalid input.\nPlease check your data and try again.",
                         "Error",
                         JOptionPane.ERROR_MESSAGE);
             }
@@ -157,16 +180,44 @@ public class SignUpFrame extends JFrame {
         backBtn.addActionListener(e -> dispose());
     }
 
+    private void warn(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Warning", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void initDobCombos() {
+        dayBox.addItem(null);
+        for (int d = 1; d <= 31; d++) dayBox.addItem(d);
+
+        monthBox.addItem(null);
+        for (int m = 1; m <= 12; m++) monthBox.addItem(m);
+
+        int currentYear = LocalDate.now().getYear();
+        yearBox.addItem(null);
+        for (int y = currentYear; y >= currentYear - 100; y--) yearBox.addItem(y);
+    }
+
+    private LocalDate readDobOrNull() {
+        Integer d = (Integer) dayBox.getSelectedItem();
+        Integer m = (Integer) monthBox.getSelectedItem();
+        Integer y = (Integer) yearBox.getSelectedItem();
+        if (d == null || m == null || y == null) return null;
+
+        try {
+            return LocalDate.of(y, m, d);
+        } catch (DateTimeException ex) {
+            return null;
+        }
+    }
+
     private JPanel buildCard() {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(28, 36, 24, 36));
+        card.setBorder(new EmptyBorder(24, 36, 22, 36));
 
-        // ✅ Light blue card
         card.setBackground(new Color(70, 140, 210, 235));
         card.setBorder(new LineBorder(new Color(255, 255, 255, 70), 1, true));
 
-        card.setPreferredSize(new Dimension(520, 360));
+        card.setPreferredSize(new Dimension(540, 470));
         return card;
     }
 
@@ -176,6 +227,12 @@ public class SignUpFrame extends JFrame {
         f.setFont(f.getFont().deriveFont(14.5f));
         f.setBorder(new EmptyBorder(9, 12, 9, 12));
         f.setBackground(new Color(255, 255, 255, 235));
+    }
+
+    private void styleCombo(JComboBox<?> c) {
+        c.setPreferredSize(new Dimension(92, 30));
+        c.setBackground(new Color(255, 255, 255, 235));
+        c.setFont(c.getFont().deriveFont(13.5f));
     }
 
     private void stylePrimaryButton(JButton b) {
@@ -195,10 +252,7 @@ public class SignUpFrame extends JFrame {
 
         b.getModel().addChangeListener(e -> {
             ButtonModel m = b.getModel();
-            if (!b.isEnabled()) {
-                b.setBackground(normal);
-                return;
-            }
+            if (!b.isEnabled()) { b.setBackground(normal); return; }
             if (m.isPressed()) b.setBackground(pressed);
             else if (m.isRollover()) b.setBackground(hover);
             else b.setBackground(normal);
@@ -269,5 +323,12 @@ public class SignUpFrame extends JFrame {
                 }
             }
         });
+    }
+
+    static class JLabelWhite extends JLabel {
+        JLabelWhite(String text) {
+            super(text);
+            setForeground(new Color(255, 255, 255, 235));
+        }
     }
 }

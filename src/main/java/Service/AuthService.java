@@ -3,7 +3,17 @@ package Service;
 import domain.User;
 import persistence.DataRepository;
 
+import java.time.LocalDate;
+import java.time.Period;
+
 public class AuthService {
+
+    public enum RegisterResult {
+        SUCCESS,
+        USERNAME_TAKEN,
+        UNDER_18,
+        INVALID_INPUT
+    }
 
     private final DataRepository repo;
     private User currentUser;
@@ -13,7 +23,6 @@ public class AuthService {
     }
 
     public boolean login(String username, String password) {
-
         if (username == null || password == null) return false;
 
         String u = username.trim();
@@ -22,7 +31,6 @@ public class AuthService {
         for (User user : repo.getUsers()) {
             if (user.getUsername().equalsIgnoreCase(u)
                     && user.getPassword().equals(password)) {
-
                 currentUser = user;
                 return true;
             }
@@ -30,23 +38,31 @@ public class AuthService {
         return false;
     }
 
-    public boolean register(String username, String password) {
+    public RegisterResult register(String firstName,
+                                   String lastName,
+                                   String username,
+                                   String password,
+                                   LocalDate dateOfBirth) {
 
-        if (username == null || username.trim().isEmpty()
-                || password == null || password.trim().isEmpty()) {
-            return false;
-        }
+        if (firstName == null || firstName.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (lastName == null || lastName.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (username == null || username.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (password == null || password.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (dateOfBirth == null) return RegisterResult.INVALID_INPUT;
 
         String u = username.trim();
 
         for (User user : repo.getUsers()) {
             if (user.getUsername().equalsIgnoreCase(u)) {
-                return false;
+                return RegisterResult.USERNAME_TAKEN;
             }
         }
 
-        repo.addUser(new User(u, password));
-        return true;
+        int age = Period.between(dateOfBirth, LocalDate.now()).getYears();
+        if (age < 18) return RegisterResult.UNDER_18;
+
+        repo.addUser(new User(firstName.trim(), lastName.trim(), u, password, dateOfBirth));
+        return RegisterResult.SUCCESS;
     }
 
     public User getCurrentUser() {

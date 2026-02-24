@@ -30,7 +30,6 @@ public class LoginFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // ✅ Background image full page (COVER)
         BackgroundPanel background = new BackgroundPanel("/resources/images/1120.png");
         background.setLayout(new GridBagLayout());
         setContentPane(background);
@@ -48,10 +47,9 @@ public class LoginFrame extends JFrame {
         styleField(userF);
         styleField(passF);
 
-        stylePrimaryButton(logBtn);      // ✅ button color changes on hover/press
+        stylePrimaryButton(logBtn);
         styleLinkButton(signUpBtn);
 
-        // Layout inside card
         card.add(title);
         card.add(Box.createVerticalStrut(18));
         card.add(userF);
@@ -66,12 +64,10 @@ public class LoginFrame extends JFrame {
         signUpWrap.add(signUpBtn);
         card.add(signUpWrap);
 
-        // center card
         GridBagConstraints outer = new GridBagConstraints();
         outer.anchor = GridBagConstraints.CENTER;
         background.add(card, outer);
 
-        // Actions
         logBtn.addActionListener(e -> {
             String username = userF.getText().trim();
             String password = new String(passF.getPassword());
@@ -90,6 +86,7 @@ public class LoginFrame extends JFrame {
             }
         });
 
+        // ✅ مهم: نفس auth object
         signUpBtn.addActionListener(e -> new SignUpFrame(auth).setVisible(true));
     }
 
@@ -113,7 +110,6 @@ public class LoginFrame extends JFrame {
         f.setBackground(new Color(255, 255, 255, 235));
     }
 
-    // ✅ Button with hover + pressed color
     private void stylePrimaryButton(JButton b) {
         Color normal = new Color(55, 90, 160);
         Color hover = new Color(75, 115, 200);
@@ -135,13 +131,9 @@ public class LoginFrame extends JFrame {
                 b.setBackground(normal);
                 return;
             }
-            if (m.isPressed()) {
-                b.setBackground(pressed);
-            } else if (m.isRollover()) {
-                b.setBackground(hover);
-            } else {
-                b.setBackground(normal);
-            }
+            if (m.isPressed()) b.setBackground(pressed);
+            else if (m.isRollover()) b.setBackground(hover);
+            else b.setBackground(normal);
         });
     }
 
@@ -221,7 +213,6 @@ public class LoginFrame extends JFrame {
 
             if (panelW <= 0 || panelH <= 0 || imgW <= 0 || imgH <= 0) return;
 
-            // ✅ COVER scaling (fill whole panel, crop overflow)
             double scale = Math.max((double) panelW / imgW, (double) panelH / imgH);
             int drawW = (int) Math.ceil(imgW * scale);
             int drawH = (int) Math.ceil(imgH * scale);
