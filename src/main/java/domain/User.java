@@ -23,6 +23,7 @@ public class User {
     public User(String username, String password) {
         this("", "", username, password, null);
     }
+    
 
     public String getUsername() { return username; }
     public String getPassword() { return password; }

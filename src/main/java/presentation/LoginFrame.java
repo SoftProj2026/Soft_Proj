@@ -21,7 +21,7 @@ public class LoginFrame extends JFrame {
     private JButton signUpBtn = new JButton("New User? Register");
 
     public LoginFrame(AuthService auth,
-                      BookingService booking,
+                      BookingService booking, 
                       DataRepository repo) {
 
         setTitle("Login");
