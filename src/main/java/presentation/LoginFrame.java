@@ -30,10 +30,8 @@ public class LoginFrame extends JFrame {
     private JButton forgotBtn;
     private JButton registerBtn;
 
-    // NEW
     private JCheckBox keepLoggedIn;
 
-    // Preferences (built-in, no extra files needed)
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
@@ -94,7 +92,6 @@ public class LoginFrame extends JFrame {
         c.gridx = 1; c.gridy = 1; c.weightx = 1;
         form.add(passwordField, c);
 
-        // NEW: Keep Me Logged In row (زي الصورة)
         keepLoggedIn = new JCheckBox("Keep Me Logged In");
         keepLoggedIn.setOpaque(false);
         keepLoggedIn.setForeground(new Color(255, 255, 255, 230));
@@ -169,7 +166,6 @@ public class LoginFrame extends JFrame {
         registerBtn.addActionListener(e -> openSignUp());
         forgotBtn.addActionListener(e -> openForgotPasswordDialog());
 
-        // Save pref instantly when checkbox changes
         keepLoggedIn.addActionListener(e -> {
             boolean remember = keepLoggedIn.isSelected();
             prefs.putBoolean(PREF_REMEMBER, remember);
@@ -200,7 +196,6 @@ public class LoginFrame extends JFrame {
 
         if (authService.login(username, password)) {
 
-            // "Keep me logged in" behavior: remember username
             if (keepLoggedIn.isSelected()) {
                 prefs.putBoolean(PREF_REMEMBER, true);
                 prefs.put(PREF_USERNAME, username.trim());
@@ -209,7 +204,8 @@ public class LoginFrame extends JFrame {
                 prefs.remove(PREF_USERNAME);
             }
 
-            JOptionPane.showMessageDialog(this, "Login successful!");
+            // JOptionPane.showMessageDialog(this, "Login successful!");
+
             new MainDashboardFrame(authService, bookingService, repo).setVisible(true);
             dispose();
         } else {
