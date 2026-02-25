@@ -1,47 +1,43 @@
-
 package domain;
 
 import java.time.LocalDateTime;
 
 public class TimeSlot {
-
     private LocalDateTime startDateTime;
-    private int duration;
-    private boolean available;
-    private Category category;
+    private LocalDateTime endDateTime;
+    private boolean isBooked;
 
-    public TimeSlot(LocalDateTime startDateTime, int duration, Category category) {
+    private Category category; 
+
+    public TimeSlot(LocalDateTime startDateTime, int durationInMinutes, Category category) {
         this.startDateTime = startDateTime;
-        this.duration = duration;
+        this.endDateTime = startDateTime.plusMinutes(durationInMinutes);
+        this.isBooked = false;
         this.category = category;
-        this.available = true;
     }
 
-    public LocalDateTime getStartDateTime() {
-        return startDateTime;
+    public TimeSlot(LocalDateTime startDateTime, int durationInMinutes) {
+        this(startDateTime, durationInMinutes, null);
     }
 
-    public int getDuration() {
-        return duration;
-    }
+    public Category getCategory() { 
+    	return category; 
+    	}
 
     public boolean isAvailable() {
-        return available;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
-    public LocalDateTime getEndDateTime() {
-        return startDateTime.plusMinutes(duration);
-    }
-
+    	return !isBooked;
+    	}
     public void book() {
-        this.available = false;
-    }
+    	this.isBooked = true; 
+    	}
+    public void cancel() { 
+    	this.isBooked = false; 
+    	}
 
-    public void cancel() {
-        this.available = true;
-    }
+    public LocalDateTime getStartDateTime() {
+    	return startDateTime;
+    	}
+    public LocalDateTime getEndDateTime() { 
+    	return endDateTime; 
+    	}
 }

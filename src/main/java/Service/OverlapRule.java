@@ -1,11 +1,12 @@
 package Service;
 
 import domain.Appointment;
+import domain.TimeSlot;
 import persistence.DataRepository;
 
-import java.time.LocalDateTime;
-import java.util.List;
 
+  //US3.1 - Prevent overlapping bookings
+ 
 public class OverlapRule implements BookingRuleStrategy {
 
     private DataRepository repo;
@@ -15,27 +16,18 @@ public class OverlapRule implements BookingRuleStrategy {
     }
 
     @Override
-    public boolean isValid(Appointment appointment) {
+    public boolean isValid(Appointment newAppointment) {
 
-        List<Appointment> existing = repo.getAppointments();
+        for (Appointment existing : repo.getAppointments()) {
 
-        LocalDateTime newStart =
-                appointment.getSlot().getStartDateTime();
-        LocalDateTime newEnd =
-                appointment.getSlot().getEndDateTime();
+            TimeSlot newSlot = newAppointment.getSlot();
+            TimeSlot existingSlot = existing.getSlot();
 
-        for (Appointment a : existing) {
+            boolean overlap =
+                    newSlot.getStartDateTime().isBefore(existingSlot.getEndDateTime()) &&
+                    newSlot.getEndDateTime().isAfter(existingSlot.getStartDateTime());
 
-            if (!a.getStatus().name().equals("CONFIRMED"))
-                continue;
-
-            LocalDateTime existingStart =
-                    a.getSlot().getStartDateTime();
-            LocalDateTime existingEnd =
-                    a.getSlot().getEndDateTime();
-
-            if (newStart.isBefore(existingEnd)
-                    && newEnd.isAfter(existingStart)) {
+            if (overlap) {
                 return false;
             }
         }
@@ -45,6 +37,6 @@ public class OverlapRule implements BookingRuleStrategy {
 
     @Override
     public String getErrorMessage() {
-        return "This time slot overlaps with an existing appointment.";
+        return "Time slot overlaps with an existing booking.";
     }
 }

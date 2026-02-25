@@ -1,12 +1,18 @@
 package presentation;
 
-import domain.*;
-import Service.*;
+import Service.AuthService;
+import Service.BookingResult;
+import Service.BookingService;
+import domain.Appointment;
+import domain.Category;
+import domain.TimeSlot;
 import persistence.DataRepository;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MainDashboardFrame extends JFrame {
@@ -18,10 +24,13 @@ public class MainDashboardFrame extends JFrame {
     private JPanel slotPanel;
     private ButtonGroup slotGroup = new ButtonGroup();
     private TimeSlot selectedSlot;
+    private Category selectedCategory;
 
     private static final Color BG = new Color(245, 248, 255);
     private static final Color BLUE = new Color(33, 120, 255);
     private static final Color BLUE_DARK = new Color(18, 78, 180);
+
+    private final DateTimeFormatter slotFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     public MainDashboardFrame(AuthService auth,
                               BookingService booking,
@@ -39,13 +48,18 @@ public class MainDashboardFrame extends JFrame {
 
         getContentPane().setBackground(BG);
 
+        // LEFT: Categories
         JPanel categoryPanel = new JPanel(new GridLayout(0, 2, 16, 16));
         categoryPanel.setBorder(new EmptyBorder(16, 16, 16, 16));
         categoryPanel.setBackground(BG);
 
-        for (Category c : repo.getCategories()) {
+        List<Category> cats = repo.getCategories();
+        for (Category c : cats) {
             JButton btn = createCategoryButton(c.getName());
-            btn.addActionListener(e -> loadSlots(c));
+            btn.addActionListener(e -> {
+                selectedCategory = c;
+                loadSlots(c);
+            });
             categoryPanel.add(btn);
         }
 
@@ -54,6 +68,7 @@ public class MainDashboardFrame extends JFrame {
         catScroll.getViewport().setBackground(BG);
         add(catScroll, BorderLayout.CENTER);
 
+        // RIGHT: Slots
         slotPanel = new JPanel();
         slotPanel.setLayout(new BoxLayout(slotPanel, BoxLayout.Y_AXIS));
         slotPanel.setBackground(Color.WHITE);
@@ -88,6 +103,11 @@ public class MainDashboardFrame extends JFrame {
         bottom.add(bookBtn);
 
         add(bottom, BorderLayout.SOUTH);
+
+        if (!cats.isEmpty()) {
+            selectedCategory = cats.get(0);
+            loadSlots(selectedCategory);
+        }
     }
 
     private JButton createCategoryButton(String text) {
@@ -106,12 +126,17 @@ public class MainDashboardFrame extends JFrame {
         slotGroup = new ButtonGroup();
         selectedSlot = null;
 
-        List<TimeSlot> slots = repo.getSlots();
+        for (TimeSlot slot : repo.getSlots()) {
 
-        for (TimeSlot slot : slots) {
-            if (slot.getCategory().equals(category) && slot.isAvailable()) {
+            // حماية من null
+            if (slot.getCategory() == null) continue;
 
-                JRadioButton radio = new JRadioButton(slot.getStartDateTime().toString());
+            if (slot.getCategory().getName().equalsIgnoreCase(category.getName())
+                    && slot.isAvailable()) {
+
+                String label = slot.getStartDateTime().format(slotFmt);
+
+                JRadioButton radio = new JRadioButton(label);
                 radio.setBackground(Color.WHITE);
                 radio.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
@@ -122,6 +147,12 @@ public class MainDashboardFrame extends JFrame {
             }
         }
 
+        if (slotPanel.getComponentCount() == 0) {
+            JLabel none = new JLabel("No available slots for this category.");
+            none.setBorder(new EmptyBorder(10, 10, 10, 10));
+            slotPanel.add(none);
+        }
+
         slotPanel.revalidate();
         slotPanel.repaint();
     }
@@ -129,15 +160,10 @@ public class MainDashboardFrame extends JFrame {
     private Integer promptIntInRange(String title, String message, int min, int max) {
         while (true) {
             String input = JOptionPane.showInputDialog(
-                    this,
-                    message,
-                    title,
-                    JOptionPane.QUESTION_MESSAGE
+                    this, message, title, JOptionPane.QUESTION_MESSAGE
             );
 
-            if (input == null) {
-                return null; 
-            }
+            if (input == null) return null;
 
             input = input.trim();
             if (input.isEmpty()) {
@@ -173,37 +199,34 @@ public class MainDashboardFrame extends JFrame {
 
     private void bookSelectedSlot() {
 
-        if (selectedSlot == null) {
-            JOptionPane.showMessageDialog(this, "Please select a slot first!");
-            return;
-        }
-
         if (!auth.isLoggedIn()) {
             JOptionPane.showMessageDialog(this, "You must login first!");
             return;
         }
 
+        if (selectedSlot == null) {
+            JOptionPane.showMessageDialog(this, "Please select a slot first!");
+            return;
+        }
+
         Integer participants = promptIntInRange(
                 "Participants",
-                "Enter participants (1 - 3):",
-                1, 3
+                "Enter participants (1 - 5):",
+                1, 5
         );
         if (participants == null) return;
 
+        int slotMinutes = (int) Duration.between(
+                selectedSlot.getStartDateTime(),
+                selectedSlot.getEndDateTime()
+        ).toMinutes();
+
         Integer duration = promptIntInRange(
                 "Duration",
-                "Enter duration in minutes (1 - 30):",
-                1, 30
+                "Enter duration in minutes (1 - " + slotMinutes + "):",
+                1, slotMinutes
         );
         if (duration == null) return;
-
-        if (duration > selectedSlot.getDuration()) {
-            JOptionPane.showMessageDialog(this,
-                    "Duration cannot exceed the slot duration (" + selectedSlot.getDuration() + " minutes).",
-                    "Invalid Duration",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
 
         Appointment appointment = new Appointment(
                 auth.getCurrentUser(),
@@ -216,9 +239,7 @@ public class MainDashboardFrame extends JFrame {
         JOptionPane.showMessageDialog(this, result.getMessage());
 
         if (result.isSuccess()) {
-            slotPanel.removeAll();
-            slotPanel.revalidate();
-            slotPanel.repaint();
+            if (selectedCategory != null) loadSlots(selectedCategory);
         }
     }
 }

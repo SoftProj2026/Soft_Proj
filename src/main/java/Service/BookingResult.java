@@ -1,6 +1,4 @@
 package Service;
-
-
  
 public class BookingResult {
 

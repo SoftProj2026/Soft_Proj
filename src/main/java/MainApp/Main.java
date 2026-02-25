@@ -1,3 +1,48 @@
+/*package MainApp;
+
+import Service.AuthService;
+import Service.BookingService;
+import domain.Category;
+import domain.TimeSlot;
+import persistence.DataRepository;
+import presentation.LoginFrame;
+
+import java.time.LocalDateTime;
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        DataRepository repo = new DataRepository();
+
+        // Categories
+        Category wedding = new Category("Wedding Hall");
+        Category birthday = new Category("Birthday Venue");
+        Category privateTutor = new Category("Private Tutor");
+
+        repo.addCategory(wedding);
+        repo.addCategory(birthday);
+        repo.addCategory(privateTutor);
+
+        // Slots جاهزة (بكرا من 10 إلى 3 مثلاً)
+        LocalDateTime base = LocalDateTime.now()
+                .plusDays(1)
+                .withHour(10).withMinute(0).withSecond(0).withNano(0);
+
+        for (int i = 0; i < 6; i++) {
+            repo.addSlot(new TimeSlot(base.plusHours(i), 60, wedding));
+            repo.addSlot(new TimeSlot(base.plusHours(i), 60, birthday));
+            repo.addSlot(new TimeSlot(base.plusHours(i), 60, privateTutor));
+        }
+
+        AuthService authService = new AuthService(repo);
+        BookingService bookingService = new BookingService(repo);
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            new LoginFrame(authService, bookingService, repo).setVisible(true);
+        });
+    }
+}*/
 package MainApp;
 
 import persistence.DataRepository;
@@ -21,6 +66,25 @@ public class Main {
 
         DataRepository repo = new DataRepository();
 
+        // 1) Seed categories (كما أرسلت)
+        List<Category> categories = buildCategories();
+        for (Category c : categories) {
+            repo.addCategory(c);
+        }
+
+        // 2) Seed slots (جاهزة للحجز)
+        seedTimeSlots(repo, categories, 14);
+
+        AuthService authService = new AuthService(repo);
+        BookingService bookingService = new BookingService(repo);
+        ScheduleService scheduleService = new ScheduleService(repo, authService); // إذا ستستخدمه لاحقًا
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            new LoginFrame(authService, bookingService, repo).setVisible(true);
+        });
+    }
+
+    private static List<Category> buildCategories() {
         List<Category> categories = new ArrayList<>();
 
         categories.add(new Category("Bus Reservation"));
@@ -48,19 +112,7 @@ public class Main {
         categories.add(new Category("Exam Hall"));
         categories.add(new Category("Academic Advisor Meeting"));
 
-        for (Category c : categories) {
-            repo.addCategory(c);
-        }
-
-        seedTimeSlots(repo, categories, 14);
-
-        AuthService authService = new AuthService(repo);
-        BookingService bookingService = new BookingService(repo);
-        ScheduleService scheduleService = new ScheduleService(repo, authService);
-
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            new LoginFrame(authService, bookingService, repo).setVisible(true);
-        });
+        return categories;
     }
 
     private static void seedTimeSlots(DataRepository repo,
@@ -70,8 +122,7 @@ public class Main {
         int durationMinutes = 60;
 
         LocalTime start = LocalTime.of(9, 0);
-        LocalTime lastStart = LocalTime.of(16, 0);
-        LocalTime fridayBreakStart = LocalTime.of(13, 0);
+        LocalTime lastStart = LocalTime.of(16, 0); // آخر موعد يبدأ 16:00 وينتهي 17:00
 
         LocalDate today = LocalDate.now();
 
@@ -80,6 +131,7 @@ public class Main {
             LocalDate date = today.plusDays(d);
             DayOfWeek dow = date.getDayOfWeek();
 
+            // أنت كاتب بدك تستثني الجمعة بالكامل
             if (dow == DayOfWeek.FRIDAY) {
                 continue;
             }
@@ -89,13 +141,9 @@ public class Main {
                 LocalTime t = start;
 
                 while (!t.isAfter(lastStart)) {
-
-                    if (dow == DayOfWeek.FRIDAY && t.equals(fridayBreakStart)) {
-                        t = t.plusHours(1);
-                        continue;
-                    }
-
                     LocalDateTime dateTime = LocalDateTime.of(date, t);
+
+                    // مهم: هذا يعتمد على TimeSlot constructor (LocalDateTime, int, Category)
                     repo.addSlot(new TimeSlot(dateTime, durationMinutes, c));
 
                     t = t.plusHours(1);

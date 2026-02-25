@@ -4,11 +4,18 @@ import domain.User;
 import persistence.DataRepository;
 
 import java.time.LocalDate;
-import java.util.regex.Pattern;
+import java.time.Period;
 
 public class AuthService {
 
-    private DataRepository repo;
+    public enum RegisterResult {
+        SUCCESS,
+        USERNAME_TAKEN,
+        UNDER_18,
+        INVALID_INPUT
+    }
+
+    private final DataRepository repo;
     private User currentUser;
 
     public AuthService(DataRepository repo) {
@@ -16,11 +23,14 @@ public class AuthService {
     }
 
     public boolean login(String username, String password) {
+        if (username == null || password == null) return false;
+
+        String u = username.trim();
+        if (u.isEmpty()) return false;
 
         for (User user : repo.getUsers()) {
-            if (user.getUsername().equalsIgnoreCase(username)
+            if (user.getUsername().equalsIgnoreCase(u)
                     && user.getPassword().equals(password)) {
-
                 currentUser = user;
                 return true;
             }
@@ -28,51 +38,31 @@ public class AuthService {
         return false;
     }
 
-    public boolean register(String firstName,
-                            String lastName,
-                            LocalDate dateOfBirth,
-                            String residence,
-                            String password) {
+    public RegisterResult register(String firstName,
+                                   String lastName,
+                                   String username,
+                                   String password,
+                                   LocalDate dateOfBirth) {
 
-        if (isBlank(firstName) || isBlank(lastName) || dateOfBirth == null || isBlank(residence) || isBlank(password)) {
-            return false;
-        }
+        if (firstName == null || firstName.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (lastName == null || lastName.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (username == null || username.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (password == null || password.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+        if (dateOfBirth == null) return RegisterResult.INVALID_INPUT;
 
-        if (!isAdult(dateOfBirth)) {
-            return false;
-        }
-
-        if (!isStrongPassword(password)) {
-            return false;
-        }
-
-        String usernameBase = buildUsernameWithSpace(firstName, lastName);
-        String username = usernameBase;
-
-        int suffix = 1;
-        while (usernameExists(username)) {
-            suffix++;
-            username = usernameBase + " " + suffix; // مثال: "Ahmad Ali 2"
-        }
-
-        repo.addUser(new User(username, password, normalizeName(firstName), normalizeName(lastName), dateOfBirth, residence));
-        return true;
-    }
-
-    public boolean register(String username, String password) {
-        if (username == null || username.trim().isEmpty()
-                || password == null || password.trim().isEmpty()) {
-            return false;
-        }
+        String u = username.trim();
 
         for (User user : repo.getUsers()) {
-            if (user.getUsername().equalsIgnoreCase(username)) {
-                return false;
+            if (user.getUsername().equalsIgnoreCase(u)) {
+                return RegisterResult.USERNAME_TAKEN;
             }
         }
 
-        repo.addUser(new User(username, password));
-        return true;
+        int age = Period.between(dateOfBirth, LocalDate.now()).getYears();
+        if (age < 18) return RegisterResult.UNDER_18;
+
+        repo.addUser(new User(firstName.trim(), lastName.trim(), u, password, dateOfBirth));
+        return RegisterResult.SUCCESS;
     }
 
     public User getCurrentUser() {
@@ -85,44 +75,5 @@ public class AuthService {
 
     public void logout() {
         currentUser = null;
-    }
-
-
-    private boolean usernameExists(String username) {
-        for (User u : repo.getUsers()) {
-            if (u.getUsername().equalsIgnoreCase(username)) return true;
-        }
-        return false;
-    }
-
-    private String buildUsernameWithSpace(String firstName, String lastName) {
-        String f = normalizeName(firstName);
-        String l = normalizeName(lastName);
-        return f + " " + l;
-    }
-
-    private String normalizeName(String s) {
-        if (s == null) return "";
-        return s.trim().replaceAll("\\s+", " ");
-    }
-
-    private boolean isAdult(LocalDate dob) {
-        LocalDate today = LocalDate.now();
-        return !today.isBefore(dob.plusYears(18));
-    }
-
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
-
-    private boolean isStrongPassword(String password) {
-        if (password == null) return false;
-        if (password.length() < 8) return false;
-
-        boolean hasLetter = Pattern.compile("[A-Za-z]").matcher(password).find();
-        boolean hasDigit = Pattern.compile("[0-9]").matcher(password).find();
-        boolean hasSpecial = Pattern.compile("[^A-Za-z0-9]").matcher(password).find();
-
-        return hasLetter && hasDigit && hasSpecial;
     }
 }
