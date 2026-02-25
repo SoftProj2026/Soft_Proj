@@ -23,11 +23,21 @@ public class User {
     }
     
 
-    public String getUsername() { return username; }
-    public String getPassword() { return password; }
+    public String getUsername() {
+    	return username; 
+    	}
+    public String getPassword() {
+    	return password; 
+    	}
 
-    public String getFirstName() { return firstName; }
-    public String getLastName() { return lastName; }
+    public String getFirstName() { 
+    	return firstName; 
+    	}
+    public String getLastName() { 
+    	return lastName; 
+    	}
 
-    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public LocalDate getDateOfBirth() { 
+    	return dateOfBirth; 
+    	}
 }

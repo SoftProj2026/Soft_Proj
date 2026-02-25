@@ -36,16 +36,8 @@ public class LoginFrame extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // ✅ Because the file is: src/main/resources/1120.png
         URL imgUrl = getClass().getResource("/1120.png");
-
-        Image bg = null;
-        if (imgUrl != null) {
-            bg = new ImageIcon(imgUrl).getImage();
-        } else {
-            // helpful debug
-            System.out.println("ERROR: Background image not found. Expected: /1120.png inside src/main/resources");
-        }
+        Image bg = (imgUrl != null) ? new ImageIcon(imgUrl).getImage() : null;
 
         BackgroundPanel root = new BackgroundPanel(bg);
         root.setBorder(new EmptyBorder(22, 22, 22, 22));
@@ -92,14 +84,10 @@ public class LoginFrame extends JFrame {
         loginButton = new JButton("Log In");
         signUpButton = new JButton("Sign Up");
 
-        stylePrimary(loginButton);
-        styleSecondary(signUpButton);
-
         buttons.add(loginButton);
         buttons.add(signUpButton);
 
         card.add(buttons, BorderLayout.SOUTH);
-
         root.add(card);
     }
 
@@ -115,22 +103,6 @@ public class LoginFrame extends JFrame {
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
-    private void stylePrimary(JButton b) {
-        b.setFocusPainted(false);
-        b.setBackground(new Color(33, 120, 255));
-        b.setForeground(Color.WHITE);
-        b.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-    }
-
-    private void styleSecondary(JButton b) {
-        b.setFocusPainted(false);
-        b.setBackground(Color.WHITE);
-        b.setForeground(new Color(33, 120, 255));
-        b.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-    }
-
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
@@ -143,7 +115,9 @@ public class LoginFrame extends JFrame {
 
         if (authService.login(username, password)) {
             JOptionPane.showMessageDialog(this, "Login successful!");
+
             new MainDashboardFrame(authService, bookingService, repo).setVisible(true);
+
             dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Invalid credentials.");

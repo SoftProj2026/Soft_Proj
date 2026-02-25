@@ -48,7 +48,7 @@ public class MainDashboardFrame extends JFrame {
 
         getContentPane().setBackground(BG);
 
-        // LEFT: Categories
+        // LEFT: Categories grid (from Main seed)
         JPanel categoryPanel = new JPanel(new GridLayout(0, 2, 16, 16));
         categoryPanel.setBorder(new EmptyBorder(16, 16, 16, 16));
         categoryPanel.setBackground(BG);
@@ -68,7 +68,7 @@ public class MainDashboardFrame extends JFrame {
         catScroll.getViewport().setBackground(BG);
         add(catScroll, BorderLayout.CENTER);
 
-        // RIGHT: Slots
+        // RIGHT: Slots list
         slotPanel = new JPanel();
         slotPanel.setLayout(new BoxLayout(slotPanel, BoxLayout.Y_AXIS));
         slotPanel.setBackground(Color.WHITE);
@@ -78,6 +78,7 @@ public class MainDashboardFrame extends JFrame {
         slotScroll.setBorder(BorderFactory.createTitledBorder("Available Slots"));
         add(slotScroll, BorderLayout.EAST);
 
+        // BOTTOM: actions
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         bottom.setBackground(BG);
 
@@ -104,6 +105,7 @@ public class MainDashboardFrame extends JFrame {
 
         add(bottom, BorderLayout.SOUTH);
 
+        // Auto select first category
         if (!cats.isEmpty()) {
             selectedCategory = cats.get(0);
             loadSlots(selectedCategory);
@@ -127,8 +129,6 @@ public class MainDashboardFrame extends JFrame {
         selectedSlot = null;
 
         for (TimeSlot slot : repo.getSlots()) {
-
-            // حماية من null
             if (slot.getCategory() == null) continue;
 
             if (slot.getCategory().getName().equalsIgnoreCase(category.getName())
@@ -198,7 +198,6 @@ public class MainDashboardFrame extends JFrame {
     }
 
     private void bookSelectedSlot() {
-
         if (!auth.isLoggedIn()) {
             JOptionPane.showMessageDialog(this, "You must login first!");
             return;
@@ -239,7 +238,9 @@ public class MainDashboardFrame extends JFrame {
         JOptionPane.showMessageDialog(this, result.getMessage());
 
         if (result.isSuccess()) {
-            if (selectedCategory != null) loadSlots(selectedCategory);
+            if (selectedCategory != null) {
+                loadSlots(selectedCategory);
+            }
         }
     }
 }
