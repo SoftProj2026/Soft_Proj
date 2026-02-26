@@ -7,7 +7,8 @@ import domain.User;
 
 import java.util.LinkedList;
 import java.util.List;
-
+import java.util.Map;
+import java.util.HashMap;
 /**
  * In-memory repository that stores users, slots, appointments, and categories.
  * <p>
@@ -20,12 +21,18 @@ public class DataRepository {
     private List<TimeSlot> slots = new LinkedList<>();
     private List<Appointment> appointments = new LinkedList<>();
     private List<Category> categories = new LinkedList<>();
+    private final Map<String, Boolean> cancelUsedByUserCategory = new HashMap<>();
 
     /**
      * Adds a new user to the repository.
      *
      * @param user the user to add
      */
+    private String cancelKey(String username, String categoryName) {
+        return (username == null ? "" : username.toLowerCase().trim())
+                + "|"
+                + (categoryName == null ? "" : categoryName.toLowerCase().trim());
+    }
     public void addUser(User user) { users.add(user); }
 
     /**
@@ -87,7 +94,29 @@ public class DataRepository {
         if (appointment == null) return "Invalid booking.";
         if (!appointments.contains(appointment)) return "Booking not found.";
 
+        if (appointment.getStatus() != domain.AppointmentStatus.CONFIRMED) {
+            return "Only CONFIRMED bookings can be cancelled.";
+        }
+
+        String username = appointment.getUser() != null ? appointment.getUser().getUsername() : null;
+        String categoryName = null;
+        if (appointment.getSlot() != null && appointment.getSlot().getCategory() != null) {
+            categoryName = appointment.getSlot().getCategory().getName();
+        }
+
+        if (username == null || categoryName == null) {
+            return "Cannot cancel booking (missing user or category).";
+        }
+
+        String key = cancelKey(username, categoryName);
+
+        boolean alreadyUsed = cancelUsedByUserCategory.getOrDefault(key, false);
+        if (alreadyUsed) {
+            return "Cancellation not allowed. You can only cancel ONE booking in category \"" + categoryName + "\".";
+        }
+
+        cancelUsedByUserCategory.put(key, true);
         appointment.cancel();
-        return "Booking cancelled successfully.";
+        return "Booking cancelled successfully (one cancellation used for category \"" + categoryName + "\").";
     }
 }
