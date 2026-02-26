@@ -6,8 +6,14 @@ import persistence.DataRepository;
 import java.time.LocalDate;
 import java.time.Period;
 
+/**
+ * Provides authentication and registration operations.
+ */
 public class AuthService {
 
+    /**
+     * Registration outcomes.
+     */
     public enum RegisterResult {
         SUCCESS,
         USERNAME_TAKEN,
@@ -18,10 +24,22 @@ public class AuthService {
     private final DataRepository repo;
     private User currentUser;
 
+    /**
+     * Creates a new AuthService.
+     *
+     * @param repo the repository used to store and retrieve users
+     */
     public AuthService(DataRepository repo) {
         this.repo = repo;
     }
 
+    /**
+     * Attempts to login using username and password.
+     *
+     * @param username the entered username
+     * @param password the entered password
+     * @return true if credentials are valid; false otherwise
+     */
     public boolean login(String username, String password) {
         if (username == null || password == null) return false;
 
@@ -38,6 +56,16 @@ public class AuthService {
         return false;
     }
 
+    /**
+     * Registers a new user after validating input, unique username, and age (18+).
+     *
+     * @param firstName   first name (required)
+     * @param lastName    last name (required)
+     * @param username    username (required, must be unique)
+     * @param password    password (required)
+     * @param dateOfBirth date of birth (required, must be 18+)
+     * @return the registration result status
+     */
     public RegisterResult register(String firstName,
                                    String lastName,
                                    String username,
@@ -65,14 +93,27 @@ public class AuthService {
         return RegisterResult.SUCCESS;
     }
 
+    /**
+     * Gets the currently logged-in user.
+     *
+     * @return current user, or null if not logged in
+     */
     public User getCurrentUser() {
         return currentUser;
     }
 
+    /**
+     * Checks whether a user is currently logged in.
+     *
+     * @return true if logged in; false otherwise
+     */
     public boolean isLoggedIn() {
         return currentUser != null;
     }
 
+    /**
+     * Logs out the current user.
+     */
     public void logout() {
         currentUser = null;
     }

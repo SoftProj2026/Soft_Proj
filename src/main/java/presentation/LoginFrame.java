@@ -11,6 +11,14 @@ import java.awt.*;
 import java.net.URL;
 import java.util.prefs.Preferences;
 
+/**
+ * Login window.
+ * <p>
+ * Allows user to login, open sign-up screen, and recover password
+ * from the in-memory repository. Also supports "Keep Me Logged In"
+ * by remembering username using {@link Preferences}.
+ * </p>
+ */
 public class LoginFrame extends JFrame {
 
     private static final String PREF_NODE = "Soft_Proj";
@@ -34,6 +42,13 @@ public class LoginFrame extends JFrame {
 
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
+    /**
+     * Creates the login frame.
+     *
+     * @param authService    authentication service
+     * @param bookingService booking service (passed to next screens)
+     * @param repo           data repository for users and appointments
+     */
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
         this.authService = authService;
         this.bookingService = bookingService;
@@ -44,6 +59,9 @@ public class LoginFrame extends JFrame {
         attachHandlers();
     }
 
+    /**
+     * Initializes UI components and layout.
+     */
     private void initUI() {
         setTitle("Login");
         setSize(900, 520);
@@ -101,7 +119,6 @@ public class LoginFrame extends JFrame {
         c.anchor = GridBagConstraints.WEST;
         form.add(keepLoggedIn, c);
 
-        // SOUTH area: buttons + links
         JPanel south = new JPanel();
         south.setOpaque(false);
         south.setLayout(new BoxLayout(south, BoxLayout.Y_AXIS));
@@ -135,18 +152,35 @@ public class LoginFrame extends JFrame {
         root.add(card);
     }
 
+    /**
+     * Creates a white colored label for dark backgrounds.
+     *
+     * @param text label text
+     * @return configured JLabel
+     */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
         l.setForeground(Color.WHITE);
         return l;
     }
 
+    /**
+     * Applies consistent style to input fields.
+     *
+     * @param field text field component
+     */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
         field.setBackground(new Color(255, 255, 255, 235));
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
+    /**
+     * Creates a link-like button (transparent background, underlined behavior handled by UI).
+     *
+     * @param text link text
+     * @return styled JButton
+     */
     private JButton linkButton(String text) {
         JButton b = new JButton(text);
         b.setOpaque(false);
@@ -159,6 +193,9 @@ public class LoginFrame extends JFrame {
         return b;
     }
 
+    /**
+     * Attaches UI event handlers (login, navigation, remember-me).
+     */
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
@@ -177,6 +214,9 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
+    /**
+     * Loads remembered username if "Keep Me Logged In" was enabled previously.
+     */
     private void loadRememberedUser() {
         boolean remember = prefs.getBoolean(PREF_REMEMBER, false);
         keepLoggedIn.setSelected(remember);
@@ -190,6 +230,9 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    /**
+     * Performs login and navigates to the main dashboard upon success.
+     */
     private void login() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
@@ -204,8 +247,6 @@ public class LoginFrame extends JFrame {
                 prefs.remove(PREF_USERNAME);
             }
 
-            // JOptionPane.showMessageDialog(this, "Login successful!");
-
             new MainDashboardFrame(authService, bookingService, repo).setVisible(true);
             dispose();
         } else {
@@ -213,10 +254,16 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    /**
+     * Opens the sign-up screen.
+     */
     private void openSignUp() {
         new SignUpFrame(authService).setVisible(true);
     }
 
+    /**
+     * Shows a password recovery dialog by searching username in the repository.
+     */
     private void openForgotPasswordDialog() {
         String u = JOptionPane.showInputDialog(
                 this,

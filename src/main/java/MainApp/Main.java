@@ -14,8 +14,20 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Application entry point.
+ * <p>
+ * Initializes the in-memory repository, seeds categories and time slots,
+ * then launches the login UI.
+ * </p>
+ */
 public class Main {
 
+    /**
+     * Starts the application.
+     *
+     * @param args command-line arguments (not used)
+     */
     public static void main(String[] args) {
 
         DataRepository repo = new DataRepository();
@@ -35,6 +47,11 @@ public class Main {
         });
     }
 
+    /**
+     * Builds the list of categories available for booking.
+     *
+     * @return list of booking categories
+     */
     private static List<Category> buildCategories() {
         List<Category> categories = new ArrayList<>();
 
@@ -66,6 +83,21 @@ public class Main {
         return categories;
     }
 
+    /**
+     * Seeds time slots for each category for a number of days ahead.
+     * <p>
+     * Notes:
+     * <ul>
+     *   <li>Creates 1-hour slots from 09:00 to 16:00.</li>
+     *   <li>Skips Fridays.</li>
+     *   <li>Each category gets its own slots per day.</li>
+     * </ul>
+     * </p>
+     *
+     * @param repo       data repository to store generated slots
+     * @param categories categories to associate with slots
+     * @param daysAhead  number of days to generate starting from today
+     */
     private static void seedTimeSlots(DataRepository repo,
                                       List<Category> categories,
                                       int daysAhead) {

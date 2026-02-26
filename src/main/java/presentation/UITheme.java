@@ -3,6 +3,12 @@ package presentation;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Central place for UI theme constants and helpers.
+ * <p>
+ * Provides default colors, fonts, and methods to apply consistent Look & Feel.
+ * </p>
+ */
 public final class UITheme {
 
     private UITheme() {}
@@ -14,6 +20,9 @@ public final class UITheme {
     public static final Color TEXT = new Color(25, 35, 45);
     public static final Color MUTED = new Color(110, 120, 135);
 
+    /**
+     * Applies UI defaults (Nimbus L&F if available, fonts, table styles, etc.).
+     */
     public static void apply() {
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
@@ -34,6 +43,12 @@ public final class UITheme {
         UIManager.put("TableHeader.font", new Font("Segoe UI", Font.BOLD, 13));
     }
 
+    /**
+     * Creates a primary-styled button.
+     *
+     * @param text button label
+     * @return configured JButton
+     */
     public static JButton primaryButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -45,6 +60,12 @@ public final class UITheme {
         return b;
     }
 
+    /**
+     * Creates a secondary-styled button.
+     *
+     * @param text button label
+     * @return configured JButton
+     */
     public static JButton secondaryButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("Segoe UI", Font.BOLD, 14));

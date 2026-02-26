@@ -11,6 +11,13 @@ import java.awt.event.FocusEvent;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 
+/**
+ * Sign-up window used to create a new user account.
+ * <p>
+ * Collects first/last name, username, strong password, and date of birth,
+ * then calls {@link AuthService#register(String, String, String, String, LocalDate)}.
+ * </p>
+ */
 public class SignUpFrame extends JFrame {
 
     private JTextField firstNameF = new JTextField(22);
@@ -32,6 +39,11 @@ public class SignUpFrame extends JFrame {
     private JButton signBtn = new JButton("Sign Up");
     private JButton backBtn = new JButton("Back to Login");
 
+    /**
+     * Creates the sign-up frame.
+     *
+     * @param auth authentication service used for registration
+     */
     public SignUpFrame(AuthService auth) {
 
         setTitle("Sign Up");
@@ -179,10 +191,18 @@ public class SignUpFrame extends JFrame {
         backBtn.addActionListener(e -> dispose());
     }
 
+    /**
+     * Shows a warning dialog.
+     *
+     * @param msg warning message
+     */
     private void warn(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Warning", JOptionPane.WARNING_MESSAGE);
     }
 
+    /**
+     * Initializes date-of-birth combos (day, month, year) with ranges.
+     */
     private void initDobCombos() {
         dayBox.addItem(null);
         for (int d = 1; d <= 31; d++) dayBox.addItem(d);
@@ -195,6 +215,11 @@ public class SignUpFrame extends JFrame {
         for (int y = currentYear; y >= currentYear - 100; y--) yearBox.addItem(y);
     }
 
+    /**
+     * Reads the selected DOB from combos and validates the date.
+     *
+     * @return LocalDate if valid; otherwise null
+     */
     private LocalDate readDobOrNull() {
         Integer d = (Integer) dayBox.getSelectedItem();
         Integer m = (Integer) monthBox.getSelectedItem();
@@ -208,6 +233,11 @@ public class SignUpFrame extends JFrame {
         }
     }
 
+    /**
+     * Builds the main sign-up card UI container.
+     *
+     * @return configured JPanel
+     */
     private JPanel buildCard() {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -220,6 +250,11 @@ public class SignUpFrame extends JFrame {
         return card;
     }
 
+    /**
+     * Styles a field for consistent UI look.
+     *
+     * @param f component to style
+     */
     private void styleField(JComponent f) {
         f.setMaximumSize(new Dimension(420, 38));
         f.setPreferredSize(new Dimension(420, 38));
@@ -228,12 +263,22 @@ public class SignUpFrame extends JFrame {
         f.setBackground(new Color(255, 255, 255, 235));
     }
 
+    /**
+     * Styles a combo box for consistent UI look.
+     *
+     * @param c combo box
+     */
     private void styleCombo(JComboBox<?> c) {
         c.setPreferredSize(new Dimension(92, 30));
         c.setBackground(new Color(255, 255, 255, 235));
         c.setFont(c.getFont().deriveFont(13.5f));
     }
 
+    /**
+     * Styles the primary sign-up button with hover/pressed states.
+     *
+     * @param b button to style
+     */
     private void stylePrimaryButton(JButton b) {
         Color normal = new Color(40, 95, 170);
         Color hover = new Color(55, 120, 205);
@@ -258,6 +303,11 @@ public class SignUpFrame extends JFrame {
         });
     }
 
+    /**
+     * Styles a link-like button.
+     *
+     * @param b button to style
+     */
     private void styleLinkButton(JButton b) {
         b.setOpaque(false);
         b.setContentAreaFilled(false);
@@ -267,6 +317,13 @@ public class SignUpFrame extends JFrame {
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
+    /**
+     * Checks if a password is strong:
+     * 8+ chars, uppercase, lowercase, digit, and symbol.
+     *
+     * @param p password text
+     * @return true if strong; false otherwise
+     */
     private boolean isStrongPassword(String p) {
         if (p == null) return false;
         if (p.length() < 8) return false;
@@ -279,6 +336,12 @@ public class SignUpFrame extends JFrame {
         return hasUpper && hasLower && hasDigit && hasSymbol;
     }
 
+    /**
+     * Installs placeholder behavior on a text field.
+     *
+     * @param field       target field
+     * @param placeholder placeholder text
+     */
     private void installPlaceholder(JTextField field, String placeholder) {
         field.setForeground(new Color(120, 120, 120));
         field.setText(placeholder);
@@ -299,6 +362,13 @@ public class SignUpFrame extends JFrame {
         });
     }
 
+    /**
+     * Installs placeholder behavior on a password field,
+     * including controlling echo char based on show/hide setting.
+     *
+     * @param field       target password field
+     * @param placeholder placeholder text
+     */
     private void installPasswordPlaceholder(JPasswordField field, String placeholder) {
         field.setForeground(new Color(120, 120, 120));
         field.setEchoChar((char) 0);
@@ -324,10 +394,18 @@ public class SignUpFrame extends JFrame {
         });
     }
 
+    /**
+     * A white label used on colored backgrounds.
+     */
     static class JLabelWhite extends JLabel {
+        /**
+         * Creates a white label.
+         *
+         * @param text label text
+         */
         JLabelWhite(String text) {
             super(text);
-            setForeground(new Color(255, 255, 255, 235));  
+            setForeground(new Color(255, 255, 255, 235));
         }
     }
 }

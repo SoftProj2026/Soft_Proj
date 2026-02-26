@@ -3,16 +3,30 @@ package presentation;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * A custom JPanel that paints a rounded rectangle background.
+ */
 public class RoundedPanel extends JPanel {
     private final int radius;
     private final Color fill;
 
+    /**
+     * Creates a rounded panel.
+     *
+     * @param radius corner radius in pixels
+     * @param fill   fill/background color
+     */
     public RoundedPanel(int radius, Color fill) {
         this.radius = radius;
         this.fill = fill;
-        setOpaque(false);  
+        setOpaque(false);
     }
 
+    /**
+     * Paints the rounded background and a subtle border.
+     *
+     * @param g graphics context
+     */
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();

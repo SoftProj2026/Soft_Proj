@@ -5,15 +5,29 @@ import persistence.DataRepository;
 
 import java.time.LocalDateTime;
 
+/**
+ * Prevents two confirmed appointments from having the exact same start time.
+ */
 public class UniqueStartTimeRule implements BookingRuleStrategy {
 
     private final DataRepository repo;
     private String errorMessage = "This time is not available.";
 
+    /**
+     * Creates a rule that checks unique start times.
+     *
+     * @param repo repository used to search for existing appointments
+     */
     public UniqueStartTimeRule(DataRepository repo) {
         this.repo = repo;
     }
 
+    /**
+     * Validates that the start time is not already used by a confirmed appointment.
+     *
+     * @param appointment appointment to validate
+     * @return true if start time is unique; false otherwise
+     */
     @Override
     public boolean isValid(Appointment appointment) {
 
@@ -31,6 +45,11 @@ public class UniqueStartTimeRule implements BookingRuleStrategy {
         return true;
     }
 
+    /**
+     * Error message when the start time is not unique.
+     *
+     * @return error message
+     */
     @Override
     public String getErrorMessage() {
         return errorMessage;

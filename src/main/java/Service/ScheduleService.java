@@ -6,23 +6,38 @@ import persistence.DataRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
- //Sprint 1 - Viewing Available Time Slots
- 
+/**
+ * Provides scheduling operations (e.g., listing available slots).
+ */
 public class ScheduleService {
 
     private DataRepository repo;
     private AuthService auth;
 
+    /**
+     * Creates a ScheduleService.
+     *
+     * @param repo data repository
+     * @param auth authentication service used to check login status
+     */
     public ScheduleService(DataRepository repo, AuthService auth) {
         this.repo = repo;
         this.auth = auth;
     }
 
-    
-     //US1.5 - Logged-in user can view available time slots only
-     //Booked slots must not appear in the list
-     
+    /**
+     * Returns all available time slots for booking.
+     * <p>
+     * (US1.5) Logged-in user can view available time slots only.
+     * Booked slots must not appear in the list.
+     * </p>
+     *
+     * @return list of available slots
+     * @throws IllegalStateException if the user is not logged in
+     */
+  //US1.5 - Logged-in user can view available time slots only
+  //Booked slots must not appear in the list
+
     public List<TimeSlot> getAvailableSlots() {
 
         if (!auth.isLoggedIn()) {

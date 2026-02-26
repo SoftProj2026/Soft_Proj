@@ -12,6 +12,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Displays the logged-in user's bookings in a table.
+ * <p>
+ * Allows refreshing and cancelling confirmed bookings.
+ * </p>
+ */
 public class MyBookingsFrame extends JFrame {
 
     private final AuthService auth;
@@ -22,6 +28,12 @@ public class MyBookingsFrame extends JFrame {
 
     private List<Appointment> visibleAppointments = new ArrayList<>();
 
+    /**
+     * Creates the MyBookings window.
+     *
+     * @param auth authentication service
+     * @param repo data repository
+     */
     public MyBookingsFrame(AuthService auth, DataRepository repo) {
         this.auth = auth;
         this.repo = repo;
@@ -57,14 +69,15 @@ public class MyBookingsFrame extends JFrame {
         add(actions, BorderLayout.SOUTH);
 
         refreshBtn.addActionListener(e -> loadMyBookings());
-
         cancelBtn.addActionListener(e -> cancelSelected());
-
         closeBtn.addActionListener(e -> dispose());
 
         loadMyBookings();
     }
 
+    /**
+     * Loads appointments belonging to the current logged-in user into the table.
+     */
     private void loadMyBookings() {
         model.setRowCount(0);
         visibleAppointments.clear();
@@ -94,6 +107,9 @@ public class MyBookingsFrame extends JFrame {
         }
     }
 
+    /**
+     * Cancels the selected appointment if it is confirmed.
+     */
     private void cancelSelected() {
         int row = table.getSelectedRow();
         if (row < 0) {
