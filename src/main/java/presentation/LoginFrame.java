@@ -2,6 +2,7 @@ package presentation;
 
 import Service.AuthService;
 import Service.BookingService;
+import Service.ReminderService;
 import persistence.DataRepository;
 import domain.User;
 
@@ -35,20 +36,10 @@ public class LoginFrame extends JFrame {
     private JButton loginButton;
     private JButton signUpButton;
 
-    private JButton forgotBtn;
-    private JButton registerBtn;
-
     private JCheckBox keepLoggedIn;
 
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
-    /**
-     * Creates the login frame.
-     *
-     * @param authService    authentication service
-     * @param bookingService booking service (passed to next screens)
-     * @param repo           data repository for users and appointments
-     */
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
         this.authService = authService;
         this.bookingService = bookingService;
@@ -59,9 +50,6 @@ public class LoginFrame extends JFrame {
         attachHandlers();
     }
 
-    /**
-     * Initializes UI components and layout.
-     */
     private void initUI() {
         setTitle("Login");
         setSize(900, 520);
@@ -132,76 +120,27 @@ public class LoginFrame extends JFrame {
         buttons.add(loginButton);
         buttons.add(signUpButton);
 
-        JPanel linksRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
-        linksRow.setOpaque(false);
-
-        forgotBtn = linkButton("Forgot Password?");
-        registerBtn = linkButton("New User? Register");
-        JLabel sep = new JLabel("|");
-        sep.setForeground(new Color(255, 255, 255, 200));
-
-        linksRow.add(forgotBtn);
-        linksRow.add(sep);
-        linksRow.add(registerBtn);
-
         south.add(buttons);
-        south.add(Box.createVerticalStrut(10));
-        south.add(linksRow);
 
         card.add(south, BorderLayout.SOUTH);
         root.add(card);
     }
 
-    /**
-     * Creates a white colored label for dark backgrounds.
-     *
-     * @param text label text
-     * @return configured JLabel
-     */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
         l.setForeground(Color.WHITE);
         return l;
     }
 
-    /**
-     * Applies consistent style to input fields.
-     *
-     * @param field text field component
-     */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
         field.setBackground(new Color(255, 255, 255, 235));
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
-    /**
-     * Creates a link-like button (transparent background, underlined behavior handled by UI).
-     *
-     * @param text link text
-     * @return styled JButton
-     */
-    private JButton linkButton(String text) {
-        JButton b = new JButton(text);
-        b.setOpaque(false);
-        b.setContentAreaFilled(false);
-        b.setBorderPainted(false);
-        b.setFocusPainted(false);
-        b.setForeground(new Color(255, 255, 255, 230));
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setFont(b.getFont().deriveFont(Font.PLAIN, 12.5f));
-        return b;
-    }
-
-    /**
-     * Attaches UI event handlers (login, navigation, remember-me).
-     */
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
-
-        registerBtn.addActionListener(e -> openSignUp());
-        forgotBtn.addActionListener(e -> openForgotPasswordDialog());
 
         keepLoggedIn.addActionListener(e -> {
             boolean remember = keepLoggedIn.isSelected();
@@ -214,9 +153,6 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
-    /**
-     * Loads remembered username if "Keep Me Logged In" was enabled previously.
-     */
     private void loadRememberedUser() {
         boolean remember = prefs.getBoolean(PREF_REMEMBER, false);
         keepLoggedIn.setSelected(remember);
@@ -230,9 +166,6 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    /**
-     * Performs login and navigates to the main dashboard upon success.
-     */
     private void login() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
@@ -247,23 +180,21 @@ public class LoginFrame extends JFrame {
                 prefs.remove(PREF_USERNAME);
             }
 
-            new MainDashboardFrame(authService, bookingService, repo).setVisible(true);
+            // Sprint 3: Start reminder service (60 minutes before)
+            ReminderService reminder = new ReminderService(repo, authService, 60);
+            reminder.start();
+
+            new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
             dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Invalid credentials.");
         }
     }
 
-    /**
-     * Opens the sign-up screen.
-     */
     private void openSignUp() {
         new SignUpFrame(authService).setVisible(true);
     }
 
-    /**
-     * Shows a password recovery dialog by searching username in the repository.
-     */
     private void openForgotPasswordDialog() {
         String u = JOptionPane.showInputDialog(
                 this,

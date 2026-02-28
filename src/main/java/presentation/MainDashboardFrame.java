@@ -2,6 +2,7 @@ package presentation;
 
 import Service.AuthService;
 import Service.BookingService;
+import Service.ReminderService;
 import domain.Category;
 import persistence.DataRepository;
 
@@ -28,23 +29,21 @@ public class MainDashboardFrame extends JFrame {
     private final BookingService booking;
     private final DataRepository repo;
 
+    // Sprint 3
+    private final ReminderService reminder;
+
     private static final Color BG = new Color(245, 248, 255);
     private static final Color BLUE = new Color(33, 120, 255);
 
-    /**
-     * Creates the main dashboard frame.
-     *
-     * @param auth    authentication service
-     * @param booking booking service
-     * @param repo    data repository
-     */
     public MainDashboardFrame(AuthService auth,
                               BookingService booking,
-                              DataRepository repo) {
+                              DataRepository repo,
+                              ReminderService reminder) {
 
         this.auth = auth;
         this.booking = booking;
         this.repo = repo;
+        this.reminder = reminder;
 
         setTitle("Booking Dashboard");
         setSize(1100, 650);
@@ -66,9 +65,9 @@ public class MainDashboardFrame extends JFrame {
                 MyFreeSlotsFrame f2 = new MyFreeSlotsFrame(auth, repo, c);
                 MutualBookingFrame f3 = new MutualBookingFrame(auth, booking, repo, c, f1, f2);
 
-                int w = 520;   
-                int h = 640;   
-                int gap = 20;  
+                int w = 520;
+                int h = 640;
+                int gap = 20;
 
                 Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
                 int totalW = (w * 3) + (gap * 2);
@@ -100,10 +99,15 @@ public class MainDashboardFrame extends JFrame {
         bottom.setBackground(BG);
 
         JButton myBookingsBtn = new JButton("My Bookings");
-        myBookingsBtn.addActionListener(e -> new MyBookingsFrame(auth, repo).setVisible(true));
+        myBookingsBtn.addActionListener(e ->
+                new MyBookingsFrame(auth, repo, reminder).setVisible(true)
+        );
 
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> {
+            // Stop reminders first to prevent any popup after logout
+            if (reminder != null) reminder.stop();
+
             auth.logout();
             new LoginFrame(auth, booking, repo).setVisible(true);
             dispose();
@@ -115,12 +119,6 @@ public class MainDashboardFrame extends JFrame {
         add(bottom, BorderLayout.SOUTH);
     }
 
-    /**
-     * Creates a styled button for a category item.
-     *
-     * @param text category name
-     * @return styled JButton
-     */
     private JButton createCategoryButton(String text) {
         JButton btn = new JButton(text);
         btn.setFocusPainted(false);
