@@ -4,6 +4,7 @@ import persistence.DataRepository;
 import Service.AuthService;
 import Service.BookingService;
 import presentation.LoginFrame;
+import domain.Administrator;
 import domain.TimeSlot;
 import domain.Category;
 
@@ -38,6 +39,9 @@ public class Main {
         }
 
         seedTimeSlots(repo, categories, 14);
+
+        // Seed built-in admin account
+        repo.addUser(new Administrator("admin", "Admin@123"));
 
         AuthService authService = new AuthService(repo);
         BookingService bookingService = new BookingService(repo);

@@ -1,5 +1,6 @@
 package Service;
 
+import domain.Administrator;
 import domain.User;
 import persistence.DataRepository;
 
@@ -10,6 +11,9 @@ import java.time.Period;
  * Provides authentication and registration operations.
  */
 public class AuthService {
+
+    /** Shared secret required to log in as an Administrator. */
+    public static final String ADMIN_SECRET = "Admin#Secret2024";
 
     /**
      * Registration outcomes.
@@ -109,6 +113,15 @@ public class AuthService {
      */
     public boolean isLoggedIn() {
         return currentUser != null;
+    }
+
+    /**
+     * Returns true if the currently logged-in user is an Administrator.
+     *
+     * @return true if current user is an {@link Administrator}; false otherwise
+     */
+    public boolean isCurrentUserAdmin() {
+        return currentUser instanceof Administrator;
     }
 
     /**

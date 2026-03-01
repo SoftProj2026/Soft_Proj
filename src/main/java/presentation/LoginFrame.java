@@ -10,6 +10,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.prefs.Preferences;
 
 /**
@@ -18,6 +20,8 @@ import java.util.prefs.Preferences;
  * Allows user to login, open sign-up screen, and recover password
  * from the in-memory repository. Also supports "Keep Me Logged In"
  * by remembering username using {@link Preferences}.
+ * Optionally allows admin login via an "Login as Admin" checkbox and
+ * a shared admin secret.
  * </p>
  */
 public class LoginFrame extends JFrame {
@@ -32,6 +36,10 @@ public class LoginFrame extends JFrame {
 
     private JTextField usernameField;
     private JPasswordField passwordField;
+
+    private JCheckBox adminLoginCheckBox;
+    private JLabel adminSecretLabel;
+    private JPasswordField adminSecretField;
 
     private JButton loginButton;
     private JButton signUpButton;
@@ -52,7 +60,7 @@ public class LoginFrame extends JFrame {
 
     private void initUI() {
         setTitle("Login");
-        setSize(900, 520);
+        setSize(900, 560);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -67,7 +75,7 @@ public class LoginFrame extends JFrame {
         card.setOpaque(true);
         card.setBackground(new Color(0, 0, 0, 140));
         card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setPreferredSize(new Dimension(420, 300));
+        card.setPreferredSize(new Dimension(420, 360));
 
         JLabel title = new JLabel("Login", SwingConstants.CENTER);
         title.setForeground(Color.WHITE);
@@ -84,9 +92,11 @@ public class LoginFrame extends JFrame {
 
         usernameField = new JTextField(18);
         passwordField = new JPasswordField(18);
+        adminSecretField = new JPasswordField(18);
 
         styleField(usernameField);
         styleField(passwordField);
+        styleField(adminSecretField);
 
         c.gridx = 0; c.gridy = 0; c.weightx = 0;
         form.add(labelWhite("Username:"), c);
@@ -98,12 +108,33 @@ public class LoginFrame extends JFrame {
         c.gridx = 1; c.gridy = 1; c.weightx = 1;
         form.add(passwordField, c);
 
+        // Admin toggle
+        adminLoginCheckBox = new JCheckBox("Login as Admin");
+        adminLoginCheckBox.setOpaque(false);
+        adminLoginCheckBox.setForeground(new Color(255, 255, 255, 230));
+        adminLoginCheckBox.setFocusPainted(false);
+
+        c.gridx = 1; c.gridy = 2; c.weightx = 1;
+        c.anchor = GridBagConstraints.WEST;
+        form.add(adminLoginCheckBox, c);
+
+        // Admin secret row (hidden by default)
+        adminSecretLabel = labelWhite("Admin Secret:");
+        c.gridx = 0; c.gridy = 3; c.weightx = 0;
+        c.anchor = GridBagConstraints.CENTER;
+        form.add(adminSecretLabel, c);
+        c.gridx = 1; c.gridy = 3; c.weightx = 1;
+        form.add(adminSecretField, c);
+
+        adminSecretLabel.setVisible(false);
+        adminSecretField.setVisible(false);
+
         keepLoggedIn = new JCheckBox("Keep Me Logged In");
         keepLoggedIn.setOpaque(false);
         keepLoggedIn.setForeground(new Color(255, 255, 255, 230));
         keepLoggedIn.setFocusPainted(false);
 
-        c.gridx = 1; c.gridy = 2; c.weightx = 1;
+        c.gridx = 1; c.gridy = 4; c.weightx = 1;
         c.anchor = GridBagConstraints.WEST;
         form.add(keepLoggedIn, c);
 
@@ -142,6 +173,17 @@ public class LoginFrame extends JFrame {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
 
+        adminLoginCheckBox.addActionListener(e -> {
+            boolean adminMode = adminLoginCheckBox.isSelected();
+            adminSecretLabel.setVisible(adminMode);
+            adminSecretField.setVisible(adminMode);
+            if (!adminMode) {
+                adminSecretField.setText("");
+            }
+            revalidate();
+            repaint();
+        });
+
         keepLoggedIn.addActionListener(e -> {
             boolean remember = keepLoggedIn.isSelected();
             prefs.putBoolean(PREF_REMEMBER, remember);
@@ -170,25 +212,64 @@ public class LoginFrame extends JFrame {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
 
-        if (authService.login(username, password)) {
-
-            if (keepLoggedIn.isSelected()) {
-                prefs.putBoolean(PREF_REMEMBER, true);
-                prefs.put(PREF_USERNAME, username.trim());
-            } else {
-                prefs.putBoolean(PREF_REMEMBER, false);
-                prefs.remove(PREF_USERNAME);
+        if (adminLoginCheckBox.isSelected()) {
+            // ── Admin login path ──────────────────────────────────────────
+            String secret = new String(adminSecretField.getPassword());
+            if (secret.isEmpty()) {
+                DialogUtil.show(this, "Admin Login Failed",
+                        "Please enter the Admin Secret.", DialogUtil.Type.ERROR);
+                return;
             }
-
-            // Sprint 3: Start reminder service (60 minutes before)
-            ReminderService reminder = new ReminderService(repo, authService, 60);
-            reminder.start();
-
-            new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
+            if (!secretMatches(secret, AuthService.ADMIN_SECRET)) {
+                DialogUtil.show(this, "Admin Login Failed",
+                        "Incorrect Admin Secret.", DialogUtil.Type.ERROR);
+                return;
+            }
+            if (!authService.login(username, password)) {
+                DialogUtil.show(this, "Admin Login Failed",
+                        "Invalid username or password.", DialogUtil.Type.ERROR);
+                return;
+            }
+            if (!authService.isCurrentUserAdmin()) {
+                authService.logout();
+                DialogUtil.show(this, "Admin Login Failed",
+                        "This account does not have administrator privileges.",
+                        DialogUtil.Type.ERROR);
+                return;
+            }
+            // Success – open admin dashboard (no ReminderService for admin)
+            new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
             dispose();
+
         } else {
-            JOptionPane.showMessageDialog(this, "Invalid credentials.");
+            // ── Normal login path (unchanged) ─────────────────────────────
+            if (authService.login(username, password)) {
+
+                if (keepLoggedIn.isSelected()) {
+                    prefs.putBoolean(PREF_REMEMBER, true);
+                    prefs.put(PREF_USERNAME, username.trim());
+                } else {
+                    prefs.putBoolean(PREF_REMEMBER, false);
+                    prefs.remove(PREF_USERNAME);
+                }
+
+                // Sprint 3: Start reminder service (60 minutes before)
+                ReminderService reminder = new ReminderService(repo, authService, 60);
+                reminder.start();
+
+                new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid credentials.");
+            }
         }
+    }
+
+    /** Compares two strings in constant time to prevent timing attacks. */
+    private static boolean secretMatches(String provided, String expected) {
+        byte[] a = provided.getBytes(StandardCharsets.UTF_8);
+        byte[] b = expected.getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(a, b);
     }
 
     private void openSignUp() {
