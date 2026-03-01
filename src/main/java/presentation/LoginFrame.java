@@ -26,6 +26,9 @@ public class LoginFrame extends JFrame {
     private static final String PREF_REMEMBER = "remember_me";
     private static final String PREF_USERNAME = "remembered_username";
 
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_KEY = "ADMIN2026"; 
+
     private final AuthService authService;
     private final BookingService bookingService;
     private final DataRepository repo;
@@ -37,6 +40,12 @@ public class LoginFrame extends JFrame {
     private JButton signUpButton;
 
     private JCheckBox keepLoggedIn;
+
+    // Admin UI
+    private JCheckBox loginAsAdmin;
+    private JPasswordField adminKeyField;
+    private JLabel adminKeyLabel;
+    private JPanel adminPanel;
 
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
@@ -67,7 +76,7 @@ public class LoginFrame extends JFrame {
         card.setOpaque(true);
         card.setBackground(new Color(0, 0, 0, 140));
         card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setPreferredSize(new Dimension(420, 300));
+        card.setPreferredSize(new Dimension(520, 360));
 
         JLabel title = new JLabel("Login", SwingConstants.CENTER);
         title.setForeground(Color.WHITE);
@@ -88,7 +97,7 @@ public class LoginFrame extends JFrame {
         styleField(usernameField);
         styleField(passwordField);
 
-        c.gridx = 0; c.gridy = 0; c.weightx = 0;
+        c.gridx = 0; c.gridy = 0; c.weightx = 0; c.anchor = GridBagConstraints.WEST;
         form.add(labelWhite("Username:"), c);
         c.gridx = 1; c.gridy = 0; c.weightx = 1;
         form.add(usernameField, c);
@@ -106,6 +115,39 @@ public class LoginFrame extends JFrame {
         c.gridx = 1; c.gridy = 2; c.weightx = 1;
         c.anchor = GridBagConstraints.WEST;
         form.add(keepLoggedIn, c);
+
+        loginAsAdmin = new JCheckBox("Login as Admin");
+        loginAsAdmin.setOpaque(false);
+        loginAsAdmin.setForeground(new Color(255, 255, 255, 230));
+        loginAsAdmin.setFocusPainted(false);
+
+        c.gridx = 1; c.gridy = 3; c.weightx = 1;
+        c.anchor = GridBagConstraints.WEST;
+        form.add(loginAsAdmin, c);
+
+        adminPanel = new JPanel(new GridBagLayout());
+        adminPanel.setOpaque(false);
+
+        GridBagConstraints a = new GridBagConstraints();
+        a.insets = new Insets(8, 8, 8, 8);
+        a.fill = GridBagConstraints.HORIZONTAL;
+
+        adminKeyLabel = labelWhite("Admin Key:");
+        adminKeyField = new JPasswordField(18);
+        styleField(adminKeyField);
+
+        a.gridx = 0; a.gridy = 0; a.weightx = 0; a.anchor = GridBagConstraints.WEST;
+        adminPanel.add(adminKeyLabel, a);
+        a.gridx = 1; a.gridy = 0; a.weightx = 1;
+        adminPanel.add(adminKeyField, a);
+
+        adminPanel.setVisible(false);
+
+        c.gridx = 0; c.gridy = 4; c.weightx = 1;
+        c.gridwidth = 2;
+        c.anchor = GridBagConstraints.WEST;
+        form.add(adminPanel, c);
+        c.gridwidth = 1;
 
         JPanel south = new JPanel();
         south.setOpaque(false);
@@ -150,6 +192,20 @@ public class LoginFrame extends JFrame {
             }
         });
 
+        loginAsAdmin.addActionListener(e -> {
+            boolean show = loginAsAdmin.isSelected();
+            adminPanel.setVisible(show);
+
+            if (!show) {
+                adminKeyField.setText("");
+            }
+
+            adminPanel.getParent().revalidate();
+            adminPanel.getParent().repaint();
+            this.revalidate();
+            this.repaint();
+        });
+
         getRootPane().setDefaultButton(loginButton);
     }
 
@@ -170,7 +226,29 @@ public class LoginFrame extends JFrame {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
 
+        boolean wantsAdmin = (loginAsAdmin != null && loginAsAdmin.isSelected());
+
+        if (wantsAdmin) {
+            String key = new String(adminKeyField.getPassword()).trim();
+
+            if (!ADMIN_KEY.equals(key)) {
+                JOptionPane.showMessageDialog(this, "Invalid Admin Key.");
+                return;
+            }
+
+            if (username == null || !username.trim().equalsIgnoreCase(ADMIN_USERNAME)) {
+                JOptionPane.showMessageDialog(this, "Only the admin account can use Admin login.");
+                return;
+            }
+        }
+
         if (authService.login(username, password)) {
+
+            if (wantsAdmin) {
+                new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+                dispose();
+                return;
+            }
 
             if (keepLoggedIn.isSelected()) {
                 prefs.putBoolean(PREF_REMEMBER, true);
@@ -180,12 +258,12 @@ public class LoginFrame extends JFrame {
                 prefs.remove(PREF_USERNAME);
             }
 
-            // Sprint 3: Start reminder service (60 minutes before)
             ReminderService reminder = new ReminderService(repo, authService, 60);
             reminder.start();
 
             new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
             dispose();
+
         } else {
             JOptionPane.showMessageDialog(this, "Invalid credentials.");
         }

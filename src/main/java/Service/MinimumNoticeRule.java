@@ -10,16 +10,23 @@ public class MinimumNoticeRule implements BookingRuleStrategy {
 
     /**
      * Validates that the appointment starts at least 1 hour from now.
+     * (>= 60 minutes is allowed)
      *
      * @param appointment appointment to validate
-     * @return true if appointment is 1+ hour in advance; false otherwise
+     * @return true if appointment is 60+ minutes in advance; false otherwise
      */
     @Override
     public boolean isValid(Appointment appointment) {
+        if (appointment == null
+                || appointment.getSlot() == null
+                || appointment.getSlot().getStartDateTime() == null) {
+            return false;
+        }
 
-        return appointment.getSlot()
-                .getStartDateTime()
-                .isAfter(LocalDateTime.now().plusHours(1));
+        LocalDateTime start = appointment.getSlot().getStartDateTime();
+        LocalDateTime minAllowed = LocalDateTime.now().plusHours(1);
+
+        return !start.isBefore(minAllowed);
     }
 
     /**

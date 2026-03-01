@@ -31,7 +31,7 @@ public class Main {
     public static void main(String[] args) {
 
         DataRepository repo = new DataRepository();
-
+        repo.addUser(new domain.Administrator("admin", "Admin@123"));
         List<Category> categories = buildCategories();
         for (Category c : categories) {
             repo.addCategory(c);

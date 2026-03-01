@@ -23,6 +23,10 @@ public class BookingService {
         this.repo = repo;
 
         rules.add(new SlotAvailabilityRule());
+
+        rules.add(new NotInPastRule());
+        rules.add(new MinimumNoticeRule());
+
         rules.add(new BlockedSlotsRule());
         rules.add(new DurationRule(60));
         rules.add(new ParticipantLimitRule(5));
