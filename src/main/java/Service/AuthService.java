@@ -8,6 +8,10 @@ import java.time.Period;
 
 /**
  * Provides authentication and registration operations.
+ * <p>
+ * This service validates login credentials against users stored in the
+ * {@link DataRepository} and tracks the currently logged-in user.
+ * </p>
  */
 public class AuthService {
 
@@ -15,9 +19,13 @@ public class AuthService {
      * Registration outcomes.
      */
     public enum RegisterResult {
+        /** Registration succeeded. */
         SUCCESS,
+        /** Username is already taken. */
         USERNAME_TAKEN,
+        /** User is under 18 years old. */
         UNDER_18,
+        /** Input data is missing/invalid. */
         INVALID_INPUT
     }
 
@@ -25,7 +33,7 @@ public class AuthService {
     private User currentUser;
 
     /**
-     * Creates a new AuthService.
+     * Creates a new {@code AuthService}.
      *
      * @param repo the repository used to store and retrieve users
      */
@@ -35,10 +43,14 @@ public class AuthService {
 
     /**
      * Attempts to login using username and password.
+     * <p>
+     * A login succeeds if a user exists in the repository whose username matches
+     * (case-insensitive) and password matches exactly.
+     * </p>
      *
      * @param username the entered username
      * @param password the entered password
-     * @return true if credentials are valid; false otherwise
+     * @return {@code true} if credentials are valid; {@code false} otherwise
      */
     public boolean login(String username, String password) {
         if (username == null || password == null) return false;
@@ -57,7 +69,8 @@ public class AuthService {
     }
 
     /**
-     * Registers a new user after validating input, unique username, and age (18+).
+     * Registers a new user after validating input, ensuring unique username,
+     * and verifying age (18+).
      *
      * @param firstName   first name (required)
      * @param lastName    last name (required)
@@ -94,18 +107,18 @@ public class AuthService {
     }
 
     /**
-     * Gets the currently logged-in user.
+     * Returns the currently logged-in user.
      *
-     * @return current user, or null if not logged in
+     * @return current user, or {@code null} if not logged in
      */
     public User getCurrentUser() {
         return currentUser;
     }
 
     /**
-     * Checks whether a user is currently logged in.
+     * Indicates whether a user is currently logged in.
      *
-     * @return true if logged in; false otherwise
+     * @return {@code true} if logged in; {@code false} otherwise
      */
     public boolean isLoggedIn() {
         return currentUser != null;
@@ -113,6 +126,9 @@ public class AuthService {
 
     /**
      * Logs out the current user.
+     * <p>
+     * After logout, {@link #isLoggedIn()} will return {@code false}.
+     * </p>
      */
     public void logout() {
         currentUser = null;

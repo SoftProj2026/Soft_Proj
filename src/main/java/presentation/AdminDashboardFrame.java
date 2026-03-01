@@ -10,10 +10,19 @@ import java.awt.*;
 
 /**
  * Minimal admin-only dashboard.
- * Shows basic system counts and provides logout back to LoginFrame.
+ * <p>
+ * Displays basic system counts and provides a logout action back to {@link LoginFrame}.
+ * </p>
  */
 public class AdminDashboardFrame extends JFrame {
 
+    /**
+     * Creates the admin dashboard window.
+     *
+     * @param auth    authentication service (used for logout)
+     * @param booking booking service (passed through to {@link LoginFrame} on logout)
+     * @param repo    repository used to read system statistics
+     */
     public AdminDashboardFrame(AuthService auth, BookingService booking, DataRepository repo) {
 
         setTitle("Admin Dashboard");

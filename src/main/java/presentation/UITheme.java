@@ -7,21 +7,38 @@ import java.awt.*;
  * Central place for UI theme constants and helpers.
  * <p>
  * Provides default colors, fonts, and methods to apply consistent Look & Feel.
+ * Call {@link #apply()} once early in application startup to set the preferred
+ * Look & Feel and shared UI defaults.
  * </p>
  */
 public final class UITheme {
 
     private UITheme() {}
 
+    /** Default application background color. */
     public static final Color BG = new Color(245, 248, 255);
+
+    /** Default card background color. */
     public static final Color CARD = Color.WHITE;
+
+    /** Primary accent color. */
     public static final Color PRIMARY = new Color(33, 120, 255);
+
+    /** Darker primary color used for buttons and emphasis. */
     public static final Color PRIMARY_DARK = new Color(18, 78, 180);
+
+    /** Default text color. */
     public static final Color TEXT = new Color(25, 35, 45);
+
+    /** Muted/secondary text color. */
     public static final Color MUTED = new Color(110, 120, 135);
 
     /**
-     * Applies UI defaults (Nimbus L&F if available, fonts, table styles, etc.).
+     * Applies UI defaults (Nimbus Look & Feel if available, fonts, table styles, etc.).
+     * <p>
+     * This method is safe to call multiple times. If Nimbus is not available,
+     * the platform default Look & Feel will remain active.
+     * </p>
      */
     public static void apply() {
         try {
@@ -31,7 +48,7 @@ public final class UITheme {
                     break;
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) { }
 
         Font base = new Font("Segoe UI", Font.PLAIN, 14);
         UIManager.put("defaultFont", base);
@@ -47,7 +64,7 @@ public final class UITheme {
      * Creates a primary-styled button.
      *
      * @param text button label
-     * @return configured JButton
+     * @return configured {@link JButton}
      */
     public static JButton primaryButton(String text) {
         JButton b = new JButton(text);
@@ -64,7 +81,7 @@ public final class UITheme {
      * Creates a secondary-styled button.
      *
      * @param text button label
-     * @return configured JButton
+     * @return configured {@link JButton}
      */
     public static JButton secondaryButton(String text) {
         JButton b = new JButton(text);

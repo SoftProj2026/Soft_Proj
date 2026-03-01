@@ -1,11 +1,12 @@
 package MainApp;
 
-import persistence.DataRepository;
 import Service.AuthService;
 import Service.BookingService;
-import presentation.LoginFrame;
-import domain.TimeSlot;
 import domain.Category;
+import domain.TimeSlot;
+import persistence.DataRepository;
+import presentation.LoginFrame;
+import presentation.UITheme;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -17,27 +18,39 @@ import java.util.List;
 /**
  * Application entry point.
  * <p>
- * Initializes the in-memory repository, seeds categories and time slots,
- * then launches the login UI.
+ * This class bootstraps the in-memory repository, seeds default categories and time slots,
+ * initializes core services, and launches the login UI.
  * </p>
  */
 public class Main {
 
     /**
      * Starts the application.
+     * <p>
+     * Steps:
+     * <ol>
+     *   <li>Apply UI theme</li>
+     *   <li>Create repository and seed initial data (admin user, categories, slots)</li>
+     *   <li>Create services</li>
+     *   <li>Launch {@link LoginFrame}</li>
+     * </ol>
+     * </p>
      *
      * @param args command-line arguments (not used)
      */
     public static void main(String[] args) {
 
+        UITheme.apply();
+
         DataRepository repo = new DataRepository();
         repo.addUser(new domain.Administrator("admin", "Admin@123"));
+
         List<Category> categories = buildCategories();
         for (Category c : categories) {
             repo.addCategory(c);
         }
 
-        seedTimeSlots(repo, categories, 14);
+        seedTimeSlots(repo, categories, 7);
 
         AuthService authService = new AuthService(repo);
         BookingService bookingService = new BookingService(repo);
@@ -48,9 +61,9 @@ public class Main {
     }
 
     /**
-     * Builds the list of categories available for booking.
+     * Builds the list of default booking categories.
      *
-     * @return list of booking categories
+     * @return list of categories
      */
     private static List<Category> buildCategories() {
         List<Category> categories = new ArrayList<>();
@@ -84,18 +97,18 @@ public class Main {
     }
 
     /**
-     * Seeds time slots for each category for a number of days ahead.
+     * Seeds the repository with hourly time slots for each category.
      * <p>
-     * Notes:
+     * Default behavior:
      * <ul>
-     *   <li>Creates 1-hour slots from 09:00 to 16:00.</li>
-     *   <li>Skips Fridays.</li>
-     *   <li>Each category gets its own slots per day.</li>
+     *   <li>Creates 1-hour slots from 09:00 to 16:00 inclusive</li>
+     *   <li>Skips Fridays</li>
+     *   <li>Seeds for {@code daysAhead} days starting from today</li>
      * </ul>
      * </p>
      *
-     * @param repo       data repository to store generated slots
-     * @param categories categories to associate with slots
+     * @param repo       repository to populate
+     * @param categories categories to create slots for
      * @param daysAhead  number of days to generate starting from today
      */
     private static void seedTimeSlots(DataRepository repo,
@@ -120,6 +133,7 @@ public class Main {
 
             for (Category c : categories) {
                 LocalTime t = start;
+
                 while (!t.isAfter(lastStart)) {
                     LocalDateTime dateTime = LocalDateTime.of(date, t);
                     repo.addSlot(new TimeSlot(dateTime, durationMinutes, c));

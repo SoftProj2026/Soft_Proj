@@ -9,19 +9,23 @@ import javax.swing.Timer;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Periodically checks for upcoming appointments and shows reminder popups.
+ * <p>
+ * The service runs on a Swing {@link Timer} that triggers every minute.
+ * It notifies the currently logged-in user about confirmed appointments
+ * starting within a configured window (e.g., 60 minutes).
+ * </p>
+ */
 public class ReminderService {
 
     private final DataRepository repo;
     private final AuthService auth;
 
-    private final int minutesBefore; // e.g. 60
+    private final int minutesBefore;
     private Timer timer;
 
     private final Set<Integer> notifiedIds = new HashSet<>();
@@ -29,20 +33,36 @@ public class ReminderService {
 
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    /**
+     * Creates a new reminder service.
+     *
+     * @param repo          repository containing appointments
+     * @param auth          authentication service to know which user is logged in
+     * @param minutesBefore reminder window size (in minutes)
+     */
     public ReminderService(DataRepository repo, AuthService auth, int minutesBefore) {
         this.repo = repo;
         this.auth = auth;
         this.minutesBefore = minutesBefore;
     }
 
+    /**
+     * Starts the reminder timer.
+     * <p>
+     * If already started, this method does nothing.
+     * </p>
+     */
     public void start() {
         if (timer != null) return;
 
-        timer = new Timer(60_000, e -> checkAndNotify()); // every 1 min
+        timer = new Timer(60_000, e -> checkAndNotify());
         timer.setInitialDelay(0);
         timer.start();
     }
 
+    /**
+     * Stops the reminder timer and clears reminder state.
+     */
     public void stop() {
         if (timer != null) {
             timer.stop();
@@ -52,10 +72,19 @@ public class ReminderService {
         notifiedIds.clear();
     }
 
+    /**
+     * Returns a snapshot of the most recently computed "soon" appointments list.
+     *
+     * @return copy of soon appointments
+     */
     public List<Appointment> getSoonAppointmentsSnapshot() {
         return new ArrayList<>(lastSoon);
     }
 
+    /**
+     * Checks for confirmed appointments for the current user that are starting soon,
+     * then shows a popup for newly detected ones.
+     */
     private void checkAndNotify() {
         if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) {
             lastSoon = new ArrayList<>();

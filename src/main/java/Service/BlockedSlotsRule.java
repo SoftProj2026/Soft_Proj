@@ -27,7 +27,7 @@ public class BlockedSlotsRule implements BookingRuleStrategy {
         LocalTime start = slot.getStartDateTime().toLocalTime();
 
         if (!start.isBefore(BREAK_START) && start.isBefore(BREAK_END)) {
-            return "ممنوع الحجز من 12:00 إلى 13:00 (استراحة).";
+            return "Reservations are not allowed from 12:00 to 13:00 (break)";
         }
 
         return null;

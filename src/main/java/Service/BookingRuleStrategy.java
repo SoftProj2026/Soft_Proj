@@ -14,13 +14,13 @@ public interface BookingRuleStrategy {
     /**
      * Validates the given appointment.
      *
-     * @param appointment the appointment to validate
-     * @return true if valid; false otherwise
+     * @param appointment appointment to validate
+     * @return {@code true} if valid; {@code false} otherwise
      */
     boolean isValid(Appointment appointment);
 
     /**
-     * Provides the error message for the last validation failure.
+     * Returns an error message describing why the last validation failed.
      *
      * @return error message
      */

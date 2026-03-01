@@ -27,7 +27,7 @@ public class LoginFrame extends JFrame {
     private static final String PREF_USERNAME = "remembered_username";
 
     private static final String ADMIN_USERNAME = "admin";
-    private static final String ADMIN_KEY = "ADMIN2026"; 
+    private static final String ADMIN_KEY = "ADMIN2026";
 
     private final AuthService authService;
     private final BookingService bookingService;
@@ -49,6 +49,13 @@ public class LoginFrame extends JFrame {
 
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
+    /**
+     * Creates the login window.
+     *
+     * @param authService    authentication service
+     * @param bookingService booking service used after login
+     * @param repo           repository for password recovery lookup
+     */
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
         this.authService = authService;
         this.bookingService = bookingService;
@@ -222,6 +229,17 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    /**
+     * Attempts to login using the entered credentials.
+     * <p>
+     * If login succeeds:
+     * <ul>
+     *   <li>Optionally persists "remember me" username</li>
+     *   <li>Starts {@link ReminderService}</li>
+     *   <li>Navigates to {@link MainDashboardFrame} (or {@link AdminDashboardFrame} if admin login)</li>
+     * </ul>
+     * </p>
+     */
     private void login() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
@@ -269,10 +287,20 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    /**
+     * Opens the sign-up window.
+     */
     private void openSignUp() {
         new SignUpFrame(authService).setVisible(true);
     }
 
+    /**
+     * Opens a password recovery dialog that looks up a username in the repository
+     * and shows the stored password.
+     * <p>
+     * Note: This is for demonstration/learning only and not secure for real systems.
+     * </p>
+     */
     private void openForgotPasswordDialog() {
         String u = JOptionPane.showInputDialog(
                 this,

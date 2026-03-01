@@ -11,9 +11,15 @@ import java.awt.*;
 import java.time.format.DateTimeFormatter;
 
 /**
- * View-only window that shows slots available for the company (slot.isAvailable()) for a selected category.
+ * View-only window that shows slots available for the company (slot.isAvailable())
+ * for a selected category.
+ * <p>
+ * Break-blocked slots are highlighted using a warning style.
+ * </p>
  *
- * Note: No "Close" button (close via window X or by closing MutualBookingFrame).
+ * <p>
+ * Note: No "Close" button (close via window X or by closing the parent window).
+ * </p>
  */
 public class CompanyAvailableSlotsFrame extends JFrame {
 
@@ -32,6 +38,12 @@ public class CompanyAvailableSlotsFrame extends JFrame {
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private final BlockedSlotsRule blockedRule = new BlockedSlotsRule();
 
+    /**
+     * Creates the company availability window for a category.
+     *
+     * @param repo     data repository containing slots
+     * @param category selected category
+     */
     public CompanyAvailableSlotsFrame(DataRepository repo, Category category) {
         this.repo = repo;
         this.category = category;
@@ -70,6 +82,9 @@ public class CompanyAvailableSlotsFrame extends JFrame {
         load();
     }
 
+    /**
+     * Loads and renders the list of available company slots for the category.
+     */
     private void load() {
         listPanel.removeAll();
 

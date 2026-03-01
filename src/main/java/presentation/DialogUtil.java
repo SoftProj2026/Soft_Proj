@@ -14,7 +14,16 @@ public final class DialogUtil {
     /**
      * Dialog types supported by this utility.
      */
-    public enum Type { INFO, SUCCESS, WARNING, ERROR }
+    public enum Type {
+        /** Informational message. */
+        INFO,
+        /** Success message. */
+        SUCCESS,
+        /** Warning message. */
+        WARNING,
+        /** Error message. */
+        ERROR
+    }
 
     /**
      * Shows a styled dialog message.

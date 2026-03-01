@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
  */
 public class NotInPastRule implements BookingRuleStrategy {
 
+    /**
+     * Validates that the appointment start date/time is not before the current time.
+     *
+     * @param appointment appointment to validate
+     * @return {@code true} if appointment is not in the past; {@code false} otherwise
+     */
     @Override
     public boolean isValid(Appointment appointment) {
         if (appointment == null
@@ -18,10 +24,14 @@ public class NotInPastRule implements BookingRuleStrategy {
         }
 
         LocalDateTime start = appointment.getSlot().getStartDateTime();
-
         return !start.isBefore(LocalDateTime.now());
     }
 
+    /**
+     * Returns the error message when the appointment is in the past.
+     *
+     * @return error message
+     */
     @Override
     public String getErrorMessage() {
         return "Cannot book an appointment in the past.";

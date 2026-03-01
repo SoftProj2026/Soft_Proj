@@ -14,14 +14,17 @@ import java.util.List;
 /**
  * Main booking dashboard UI.
  * <p>
- * Displays categories. When a category is clicked, it opens 3 separate windows:
+ * Displays categories. When a category is clicked, it opens a unified booking window
+ * that contains 3 columns:
  * <ol>
- *   <li>Company available slots (view only)</li>
- *   <li>My free slots (view only)</li>
+ *   <li>Company available</li>
+ *   <li>My free slots</li>
  *   <li>Mutual slots (booking)</li>
  * </ol>
  * </p>
+ * <p>
  * Also provides access to "My Bookings" and Logout.
+ * </p>
  */
 public class MainDashboardFrame extends JFrame {
 
@@ -29,12 +32,20 @@ public class MainDashboardFrame extends JFrame {
     private final BookingService booking;
     private final DataRepository repo;
 
-    // Sprint 3
+    /** Reminder service used to stop reminders on logout (can be null). */
     private final ReminderService reminder;
 
     private static final Color BG = new Color(245, 248, 255);
     private static final Color BLUE = new Color(33, 120, 255);
 
+    /**
+     * Creates the main dashboard window.
+     *
+     * @param auth     authentication service (must be logged in to use booking screens)
+     * @param booking  booking service
+     * @param repo     repository containing categories, slots, and appointments
+     * @param reminder reminder service (can be null)
+     */
     public MainDashboardFrame(AuthService auth,
                               BookingService booking,
                               DataRepository repo,
@@ -61,31 +72,7 @@ public class MainDashboardFrame extends JFrame {
         for (Category c : cats) {
             JButton btn = createCategoryButton(c.getName());
             btn.addActionListener(e -> {
-                CompanyAvailableSlotsFrame f1 = new CompanyAvailableSlotsFrame(repo, c);
-                MyFreeSlotsFrame f2 = new MyFreeSlotsFrame(auth, repo, c);
-                MutualBookingFrame f3 = new MutualBookingFrame(auth, booking, repo, c, f1, f2);
-
-                int w = 520;
-                int h = 640;
-                int gap = 20;
-
-                Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-                int totalW = (w * 3) + (gap * 2);
-
-                int startX = Math.max(10, (screen.width - totalW) / 2);
-                int y = Math.max(20, (screen.height - h) / 2);
-
-                f1.setSize(w, h);
-                f2.setSize(w, h);
-                f3.setSize(w, h);
-
-                f1.setLocation(startX, y);
-                f2.setLocation(startX + w + gap, y);
-                f3.setLocation(startX + (w + gap) * 2, y);
-
-                f1.setVisible(true);
-                f2.setVisible(true);
-                f3.setVisible(true);
+                new UnifiedBookingFrame(auth, booking, repo, c).setVisible(true);
             });
             categoryPanel.add(btn);
         }
@@ -105,7 +92,6 @@ public class MainDashboardFrame extends JFrame {
 
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> {
-            // Stop reminders first to prevent any popup after logout
             if (reminder != null) reminder.stop();
 
             auth.logout();
@@ -119,6 +105,12 @@ public class MainDashboardFrame extends JFrame {
         add(bottom, BorderLayout.SOUTH);
     }
 
+    /**
+     * Creates a consistently styled category button.
+     *
+     * @param text button label (category name)
+     * @return configured {@link JButton}
+     */
     private JButton createCategoryButton(String text) {
         JButton btn = new JButton(text);
         btn.setFocusPainted(false);

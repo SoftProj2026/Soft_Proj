@@ -4,9 +4,10 @@ import javax.swing.*;
 import java.awt.*;
 
 /**
- * A custom JPanel that paints a rounded rectangle background.
+ * A custom {@link JPanel} that paints a rounded rectangle background.
  */
 public class RoundedPanel extends JPanel {
+
     private final int radius;
     private final Color fill;
 

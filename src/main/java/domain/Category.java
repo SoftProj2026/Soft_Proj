@@ -5,7 +5,15 @@ package domain;
  */
 public class Category {
 
-    private String name;
+    private final String name;
+
+    /**
+     * Optional parent/related category reference.
+     * <p>
+     * Note: In the current implementation this field is never set through the constructor.
+     * It remains {@code null} unless you add a setter or a constructor parameter.
+     * </p>
+     */
     private Category category;
 
     /**
@@ -15,28 +23,31 @@ public class Category {
      */
     public Category(String name) {
         this.name = name;
-        this.category = category;
+        this.category = null;
     }
+
     /**
-     * Gets the parent/related category (if any).
+     * Returns the parent/related category (if any).
      *
      * @return the category reference (may be null)
      */
     public Category getCategory() {
         return category;
     }
+
     /**
-     * Gets the category name.
+     * Returns the category name.
      *
-     * @return the category name
+     * @return category name
      */
     public String getName() {
         return name;
     }
+
     /**
-     * Returns the category name as a string.
+     * Returns the category name.
      *
-     * @return category name
+     * @return category name as string
      */
     @Override
     public String toString() {

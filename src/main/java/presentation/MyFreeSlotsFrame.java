@@ -14,16 +14,19 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * View-only window that shows slots where the current user is free
- * (no overlap with CONFIRMED appointments), regardless of company availability.
+ * (no overlap with {@link AppointmentStatus#CONFIRMED} appointments),
+ * regardless of company availability.
  *
- * Note: No "Close" button (close via window X or by closing MutualBookingFrame).
+ * <p>
+ * Note: No "Close" button (close via window X or by closing the parent window).
+ * </p>
  */
 public class MyFreeSlotsFrame extends JFrame {
 
     private static final Color BG = UITheme.BG;
 
-    private static final Color ROW_FREE_BG = new Color(219, 234, 254); 
-    private static final Color ROW_FREE_FG = new Color(30, 64, 175);   
+    private static final Color ROW_FREE_BG = new Color(219, 234, 254);
+    private static final Color ROW_FREE_FG = new Color(30, 64, 175);
 
     private final AuthService auth;
     private final DataRepository repo;
@@ -32,6 +35,13 @@ public class MyFreeSlotsFrame extends JFrame {
     private final JPanel listPanel = new JPanel();
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    /**
+     * Creates the "My Free Slots" window.
+     *
+     * @param auth     authentication service (used to determine current user)
+     * @param repo     data repository containing slots/appointments
+     * @param category selected category
+     */
     public MyFreeSlotsFrame(AuthService auth, DataRepository repo, Category category) {
         this.auth = auth;
         this.repo = repo;
@@ -71,6 +81,12 @@ public class MyFreeSlotsFrame extends JFrame {
         load();
     }
 
+    /**
+     * Checks whether the current user has a confirmed appointment that overlaps this slot.
+     *
+     * @param slot slot to check
+     * @return true if the user is busy during this slot; false otherwise
+     */
     private boolean isUserBusy(TimeSlot slot) {
         if (slot == null) return false;
         if (!auth.isLoggedIn()) return false;
@@ -85,13 +101,16 @@ public class MyFreeSlotsFrame extends JFrame {
 
             boolean overlap =
                     slot.getStartDateTime().isBefore(existing.getEndDateTime()) &&
-                    slot.getEndDateTime().isAfter(existing.getStartDateTime());
+                            slot.getEndDateTime().isAfter(existing.getStartDateTime());
 
             if (overlap) return true;
         }
         return false;
     }
 
+    /**
+     * Loads and renders the list of free slots for the current user in the selected category.
+     */
     private void load() {
         listPanel.removeAll();
 

@@ -28,7 +28,10 @@ public class MyBookingsFrame extends JFrame {
     private final AuthService auth;
     private final DataRepository repo;
 
-    // Sprint 3: used for "soon" snapshot (optional) + consistency with popup reminders
+    /**
+     * Reminder service used to keep UI consistent with reminder popups.
+     * This is optional and may be {@code null}.
+     */
     private final ReminderService reminder;
 
     private final DefaultTableModel model;
@@ -36,19 +39,18 @@ public class MyBookingsFrame extends JFrame {
 
     private List<Appointment> visibleAppointments = new ArrayList<>();
 
-    // computed at load time: minutes until start per appointment id
+    /** Computed at load time: minutes until start per appointment id. */
     private final Map<Integer, Long> minutesUntilById = new HashMap<>();
 
-    // UI colors
-    private static final Color SOON_BG = new Color(254, 249, 195); // light yellow
+    private static final Color SOON_BG = new Color(254, 249, 195);
     private static final Color CANCELLED_FG = new Color(180, 30, 30);
     private static final Color CONFIRMED_FG = new Color(20, 83, 45);
 
     /**
      * Creates the MyBookings window.
      *
-     * @param auth authentication service
-     * @param repo data repository
+     * @param auth     authentication service
+     * @param repo     data repository
      * @param reminder reminder service (can be null)
      */
     public MyBookingsFrame(AuthService auth, DataRepository repo, ReminderService reminder) {
@@ -96,12 +98,22 @@ public class MyBookingsFrame extends JFrame {
     }
 
     /**
-     * Backward-compatible constructor if still used anywhere.
+     * Backward-compatible constructor (if used elsewhere).
+     *
+     * @param auth authentication service
+     * @param repo data repository
      */
     public MyBookingsFrame(AuthService auth, DataRepository repo) {
         this(auth, repo, null);
     }
 
+    /**
+     * Installs a custom row renderer that:
+     * <ul>
+     *   <li>Highlights appointments that start soon</li>
+     *   <li>Colors the status text (CONFIRMED / CANCELLED)</li>
+     * </ul>
+     */
     private void installRowRenderer() {
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
@@ -137,7 +149,6 @@ public class MyBookingsFrame extends JFrame {
                         c.setBackground(SOON_BG);
                     }
 
-                    // Color Status text
                     if (!isSelected && column == 5) { // Status column index
                         if (a.getStatus() == AppointmentStatus.CANCELLED) {
                             c.setForeground(CANCELLED_FG);
@@ -158,6 +169,10 @@ public class MyBookingsFrame extends JFrame {
 
     /**
      * Loads appointments belonging to the current logged-in user into the table.
+     * <p>
+     * This method also computes the number of minutes until each appointment starts
+     * and uses it to display a "SOON" marker.
+     * </p>
      */
     private void loadMyBookings() {
         model.setRowCount(0);
@@ -174,7 +189,6 @@ public class MyBookingsFrame extends JFrame {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         LocalDateTime now = LocalDateTime.now();
 
-        // Optional: soon ids from reminder service snapshot
         Set<Integer> soonFromService = new HashSet<>();
         if (reminder != null) {
             for (Appointment a : reminder.getSoonAppointmentsSnapshot()) {
@@ -230,6 +244,10 @@ public class MyBookingsFrame extends JFrame {
 
     /**
      * Cancels the selected appointment if it is confirmed.
+     * <p>
+     * Cancellation is delegated to {@link DataRepository#cancelAppointment(domain.Appointment)},
+     * which also enforces the "one cancellation per category" rule.
+     * </p>
      */
     private void cancelSelected() {
         int row = table.getSelectedRow();

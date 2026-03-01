@@ -1,4 +1,5 @@
 package domain;
+
 /**
  * Represents a booking appointment made by a user for a specific {@link TimeSlot}.
  * <p>
@@ -7,16 +8,17 @@ package domain;
  * </p>
  */
 public class Appointment {
-    /** Counter used to generate auto-increment appointment IDs. */
 
+    /** Counter used to generate auto-increment appointment IDs. */
     private static int counter = 1;
 
-    private int id;
-    private User user;
-    private TimeSlot slot;
-    private int durationInMinutes;
-    private int participants;
+    private final int id;
+    private final User user;
+    private final TimeSlot slot;
+    private final int durationInMinutes;
+    private final int participants;
     private AppointmentStatus status;
+
     /**
      * Creates a new appointment in {@link AppointmentStatus#PENDING} state.
      *
@@ -25,9 +27,7 @@ public class Appointment {
      * @param durationInMinutes appointment duration in minutes
      * @param participants      number of participants
      */
-    public Appointment(User user, TimeSlot slot,
-                       int durationInMinutes, int participants) {
-
+    public Appointment(User user, TimeSlot slot, int durationInMinutes, int participants) {
         this.id = counter++;
         this.user = user;
         this.slot = slot;
@@ -35,73 +35,80 @@ public class Appointment {
         this.participants = participants;
         this.status = AppointmentStatus.PENDING;
     }
+
     /**
-     * Gets the appointment ID.
+     * Returns the unique appointment ID.
      *
-     * @return the unique appointment ID
+     * @return appointment ID
      */
-    public int getId() { 
-    	return id; 
-    	}
+    public int getId() {
+        return id;
+    }
+
     /**
-     * Gets the user who owns this appointment.
+     * Returns the user who owns this appointment.
      *
      * @return the appointment owner
      */
     public User getUser() {
-    	return user; 
-    	}
+        return user;
+    }
+
     /**
-     * Gets the booked time slot.
+     * Returns the booked time slot.
      *
      * @return the time slot associated with this appointment
      */
     public TimeSlot getSlot() {
-    	return slot;
-    	}
+        return slot;
+    }
+
     /**
-     * Gets the appointment duration.
+     * Returns the appointment duration.
      *
      * @return duration in minutes
      */
     public int getDurationInMinutes() {
-    	return durationInMinutes; 
-    	}
-    /**
-     * Gets the number of participants.
-     *
-     * @return number of participants
-     */
-    
-    public int getParticipants() { 
-    	return participants;
-    	}
+        return durationInMinutes;
+    }
 
     /**
-     * Gets the current appointment status.
+     * Returns the number of participants.
      *
-     * @return the appointment status
+     * @return participants count
+     */
+    public int getParticipants() {
+        return participants;
+    }
+
+    /**
+     * Returns the current appointment status.
+     *
+     * @return appointment status
      */
     public AppointmentStatus getStatus() {
-    	return status;
-    	}
+        return status;
+    }
 
     /**
      * Confirms this appointment and marks its slot as booked/unavailable.
      * <p>
-     * (US2.1) Confirm booking and mark slot as unavailable.
+     * This transitions the appointment to {@link AppointmentStatus#CONFIRMED}
+     * and calls {@link TimeSlot#book()}.
      * </p>
      */
-  //US2.1 - Confirm booking and mark slot as unavailable
-
     public void confirm() {
         this.status = AppointmentStatus.CONFIRMED;
         slot.book();
     }
+
     /**
      * Cancels this appointment and releases its slot (makes it available again).
+     * <p>
+     * This transitions the appointment to {@link AppointmentStatus#CANCELLED}
+     * and calls {@link TimeSlot#cancel()}.
+     * </p>
      */
-     
     public void cancel() {
         this.status = AppointmentStatus.CANCELLED;
         slot.cancel();
