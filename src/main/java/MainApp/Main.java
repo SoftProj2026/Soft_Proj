@@ -3,6 +3,7 @@ package MainApp;
 import Service.AuthService;
 import Service.BookingService;
 import domain.Category;
+import domain.Provider;
 import domain.TimeSlot;
 import persistence.DataRepository;
 import presentation.LoginFrame;
@@ -18,32 +19,46 @@ import java.util.List;
 /**
  * Application entry point.
  * <p>
- * This class bootstraps the in-memory repository, seeds default categories and time slots,
- * initializes core services, and launches the login UI.
+ * Bootstraps:
+ * <ol>
+ *   <li>UI theme (Look & Feel)</li>
+ *   <li>In-memory repository</li>
+ *   <li>Seed users/providers/categories/time slots</li>
+ *   <li>Core services</li>
+ *   <li>Launch login UI</li>
+ * </ol>
  * </p>
  */
 public class Main {
 
     /**
      * Starts the application.
-     * <p>
-     * Steps:
-     * <ol>
-     *   <li>Apply UI theme</li>
-     *   <li>Create repository and seed initial data (admin user, categories, slots)</li>
-     *   <li>Create services</li>
-     *   <li>Launch {@link LoginFrame}</li>
-     * </ol>
-     * </p>
      *
-     * @param args command-line arguments (not used)
+     * @param args command line args (not used)
      */
     public static void main(String[] args) {
 
         UITheme.apply();
 
         DataRepository repo = new DataRepository();
+
         repo.addUser(new domain.Administrator("admin", "Admin@123"));
+
+        repo.addProvider(new Provider(
+                "company1", "Comp@1234",
+                "Al Noor Real Estate",
+                "+966500000001",
+                "contact@alnoor.example",
+                "Riyadh"
+        ));
+
+        repo.addProvider(new Provider(
+                "company2", "Comp@1234",
+                "Skyline Services Co.",
+                "+966500000002",
+                "hello@skyline.example",
+                "Jeddah"
+        ));
 
         List<Category> categories = buildCategories();
         for (Category c : categories) {
@@ -61,7 +76,7 @@ public class Main {
     }
 
     /**
-     * Builds the list of default booking categories.
+     * Builds the list of default booking categories shown in the UI.
      *
      * @return list of categories
      */

@@ -1,6 +1,7 @@
 package Service;
 
 import domain.Appointment;
+import domain.AuditEvent;
 import persistence.DataRepository;
 
 import java.util.ArrayList;
@@ -9,8 +10,13 @@ import java.util.List;
 /**
  * Handles the booking workflow by applying booking rules and saving appointments.
  * <p>
- * This service validates an appointment using a list of {@link BookingRuleStrategy} rules.
- * If all rules pass, the appointment is confirmed and stored in the repository.
+ * Workflow:
+ * <ol>
+ *   <li>Validate the appointment using configured {@link BookingRuleStrategy} rules</li>
+ *   <li>If any rule fails, return a failure {@link BookingResult} with the rule message</li>
+ *   <li>If valid, confirm the appointment and store it in {@link DataRepository}</li>
+ *   <li>Write an {@link AuditEvent} for admin activity tracking</li>
+ * </ol>
  * </p>
  */
 public class BookingService {
@@ -21,39 +27,36 @@ public class BookingService {
     /**
      * Creates a {@code BookingService} and registers default booking rules.
      *
-     * @param repo the repository used to store appointments
+     * @param repo repository used to store appointments and read existing ones
      */
     public BookingService(DataRepository repo) {
         this.repo = repo;
 
-        // Basic availability rule
         rules.add(new SlotAvailabilityRule());
 
-        // Time constraints
         rules.add(new NotInPastRule());
         rules.add(new MinimumNoticeRule());
 
-        // Business rules
         rules.add(new BlockedSlotsRule());
         rules.add(new DurationRule(60));
         rules.add(new ParticipantLimitRule(5));
 
-        // Conflict rules
         rules.add(new OverlapRule(repo));
     }
 
     /**
-     * Attempts to book an appointment by validating it against all configured rules.
+     * Attempts to book an appointment.
      * <p>
-     * If validation passes:
+     * On success:
      * <ul>
      *   <li>{@link Appointment#confirm()} is called</li>
-     *   <li>The appointment is saved to the {@link DataRepository}</li>
+     *   <li>appointment is saved in the repository</li>
+     *   <li>an audit event is written for admin review</li>
      * </ul>
      * </p>
      *
-     * @param appointment the appointment to book
-     * @return booking result (success/failure + message)
+     * @param appointment appointment to book
+     * @return result object containing success flag and message
      */
     public BookingResult book(Appointment appointment) {
         for (BookingRuleStrategy rule : rules) {
@@ -64,6 +67,18 @@ public class BookingService {
 
         appointment.confirm();
         repo.addAppointment(appointment);
+
+        String user = (appointment.getUser() != null) ? appointment.getUser().getUsername() : "unknown";
+        String category = (appointment.getSlot() != null && appointment.getSlot().getCategory() != null)
+                ? appointment.getSlot().getCategory().getName()
+                : "N/A";
+
+        repo.addAuditEvent(new AuditEvent(
+                AuditEvent.Type.APPOINTMENT_CONFIRMED,
+                user,
+                category,
+                "Confirmed appointment #" + appointment.getId()
+        ));
 
         return new BookingResult(true, "Appointment booked successfully.");
     }

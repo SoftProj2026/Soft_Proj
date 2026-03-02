@@ -1,12 +1,8 @@
 package domain;
-/**
- * Represents an administrator user in the system.
- * <p>
- * This class extends {@link User} and can be used to distinguish
- * admin accounts from regular users.
- * </p>
- */
+
+
 public class Administrator extends User {
+
     /**
      * Creates a new Administrator account.
      *
@@ -17,6 +13,3 @@ public class Administrator extends User {
         super(username, password);
     }
 }
-
-
-

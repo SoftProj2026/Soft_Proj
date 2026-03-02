@@ -5,6 +5,7 @@ import Service.BookingService;
 import Service.ReminderService;
 import persistence.DataRepository;
 import domain.User;
+import domain.Provider;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,24 +14,54 @@ import java.net.URL;
 import java.util.prefs.Preferences;
 
 /**
- * Login window.
+ * Login window (Swing UI).
  * <p>
- * Allows user to login, open sign-up screen, and recover password
- * from the in-memory repository. Also supports "Keep Me Logged In"
- * by remembering username using {@link Preferences}.
+ * Responsibilities:
+ * <ul>
+ *   <li>Authenticate users via {@link AuthService#login(String, String)}.</li>
+ *   <li>Optionally remember the username locally using {@link Preferences} ("Keep Me Logged In").</li>
+ *   <li>Support an Admin login mode protected by an extra Admin Key.</li>
+ *   <li>Route the user to the correct screen after login:</li>
+ *   <ul>
+ *     <li>Admin → {@link AdminDashboardFrame}</li>
+ *     <li>Provider account ({@link Provider}) → {@link ProviderInboxFrame}</li>
+ *     <li>Normal user → {@link MainDashboardFrame} (and start {@link ReminderService})</li>
+ *   </ul>
+ * </ul>
+ * </p>
+ *
+ * <p>
+ * Notes:
+ * <ul>
+ *   <li>This is a demo/learning UI (password recovery shows stored password in plain text if enabled).</li>
+ *   <li>Admin Key is hardcoded here via {@link #ADMIN_KEY}.</li>
+ * </ul>
  * </p>
  */
 public class LoginFrame extends JFrame {
 
+    /** Preferences node for storing "remember me" configuration. */
     private static final String PREF_NODE = "Soft_Proj";
+
+    /** Preferences key: whether remember-me is enabled. */
     private static final String PREF_REMEMBER = "remember_me";
+
+    /** Preferences key: remembered username value. */
     private static final String PREF_USERNAME = "remembered_username";
 
+    /** Hardcoded admin username allowed to use admin mode. */
     private static final String ADMIN_USERNAME = "admin";
+
+    /** Hardcoded admin key required when "Login as Admin" is selected. */
     private static final String ADMIN_KEY = "ADMIN2026";
 
+    /** Authentication service used to login and read current user. */
     private final AuthService authService;
+
+    /** Booking service (passed to other screens after login). */
     private final BookingService bookingService;
+
+    /** Repository used for password recovery and passing to other screens. */
     private final DataRepository repo;
 
     private JTextField usernameField;
@@ -41,20 +72,20 @@ public class LoginFrame extends JFrame {
 
     private JCheckBox keepLoggedIn;
 
-    // Admin UI
     private JCheckBox loginAsAdmin;
     private JPasswordField adminKeyField;
     private JLabel adminKeyLabel;
     private JPanel adminPanel;
 
+    /** Preferences storage for remember-me. */
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
     /**
      * Creates the login window.
      *
      * @param authService    authentication service
-     * @param bookingService booking service used after login
-     * @param repo           repository for password recovery lookup
+     * @param bookingService booking service (used later after login)
+     * @param repo           repository used by UI screens (users/appointments/messages)
      */
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
         this.authService = authService;
@@ -66,6 +97,19 @@ public class LoginFrame extends JFrame {
         attachHandlers();
     }
 
+    /**
+     * Initializes and lays out the Swing components of the login window.
+     * <p>
+     * This includes:
+     * <ul>
+     *   <li>Background image (optional)</li>
+     *   <li>Username/password inputs</li>
+     *   <li>Remember-me checkbox</li>
+     *   <li>Admin login toggle + key field</li>
+     *   <li>Login/Signup buttons</li>
+     * </ul>
+     * </p>
+     */
     private void initUI() {
         setTitle("Login");
         setSize(900, 520);
@@ -175,18 +219,38 @@ public class LoginFrame extends JFrame {
         root.add(card);
     }
 
+    /**
+     * Creates a white-colored label suitable for dark backgrounds.
+     *
+     * @param text label text
+     * @return configured label
+     */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
         l.setForeground(Color.WHITE);
         return l;
     }
 
+    /**
+     * Applies consistent styling to input fields.
+     *
+     * @param field the component to style (text/password field)
+     */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
         field.setBackground(new Color(255, 255, 255, 235));
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
+    /**
+     * Attaches UI event handlers:
+     * <ul>
+     *   <li>Login button → {@link #login()}</li>
+     *   <li>Sign up button → {@link #openSignUp()}</li>
+     *   <li>Remember-me changes persisted in {@link Preferences}</li>
+     *   <li>Admin mode toggle shows/hides the Admin Key panel</li>
+     * </ul>
+     */
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
@@ -216,6 +280,9 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
+    /**
+     * Loads remembered username from {@link Preferences} if remember-me was enabled.
+     */
     private void loadRememberedUser() {
         boolean remember = prefs.getBoolean(PREF_REMEMBER, false);
         keepLoggedIn.setSelected(remember);
@@ -230,14 +297,16 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Attempts to login using the entered credentials.
-     * <p>
-     * If login succeeds:
+     * Performs login and navigates based on role:
      * <ul>
-     *   <li>Optionally persists "remember me" username</li>
-     *   <li>Starts {@link ReminderService}</li>
-     *   <li>Navigates to {@link MainDashboardFrame} (or {@link AdminDashboardFrame} if admin login)</li>
+     *   <li>Admin (requires {@link #ADMIN_KEY} and {@link #ADMIN_USERNAME}) → {@link AdminDashboardFrame}</li>
+     *   <li>Provider account ({@link Provider}) → {@link ProviderInboxFrame}</li>
+     *   <li>Normal user → {@link MainDashboardFrame} and start {@link ReminderService}</li>
      * </ul>
+     * </p>
+     *
+     * <p>
+     * If remember-me is checked, username is stored in {@link Preferences}.
      * </p>
      */
     private void login() {
@@ -264,6 +333,12 @@ public class LoginFrame extends JFrame {
 
             if (wantsAdmin) {
                 new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+                dispose();
+                return;
+            }
+
+            if (authService.getCurrentUser() instanceof Provider) {
+                new ProviderInboxFrame(authService, repo).setVisible(true);
                 dispose();
                 return;
             }
@@ -295,10 +370,11 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Opens a password recovery dialog that looks up a username in the repository
-     * and shows the stored password.
+     * Opens a password recovery dialog which searches for a username in the repository
+     * and displays the stored password.
      * <p>
-     * Note: This is for demonstration/learning only and not secure for real systems.
+     * Security note: this is not secure for real applications, and should be replaced
+     * by a real password reset flow.
      * </p>
      */
     private void openForgotPasswordDialog() {

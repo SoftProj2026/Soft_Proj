@@ -9,24 +9,38 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 /**
- * Minimal admin-only dashboard.
+ * Admin-only dashboard.
  * <p>
- * Displays basic system counts and provides a logout action back to {@link LoginFrame}.
+ * Provides a minimal admin UI:
+ * <ul>
+ *   <li>System statistics (counts)</li>
+ *   <li>Navigation to the Admin Activity window</li>
+ *   <li>Logout back to {@link LoginFrame}</li>
+ * </ul>
  * </p>
  */
 public class AdminDashboardFrame extends JFrame {
+
+    private final JLabel users;
+    private final JLabel providers;
+    private final JLabel slots;
+    private final JLabel appts;
+
+    private final DataRepository repo;
 
     /**
      * Creates the admin dashboard window.
      *
      * @param auth    authentication service (used for logout)
-     * @param booking booking service (passed through to {@link LoginFrame} on logout)
-     * @param repo    repository used to read system statistics
+     * @param booking booking service (passed to LoginFrame on logout)
+     * @param repo    repository used to read system statistics/activity
      */
     public AdminDashboardFrame(AuthService auth, BookingService booking, DataRepository repo) {
 
+        this.repo = repo;
+
         setTitle("Admin Dashboard");
-        setSize(720, 360);
+        setSize(860, 460);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -38,22 +52,25 @@ public class AdminDashboardFrame extends JFrame {
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         root.add(title, BorderLayout.NORTH);
 
-        JPanel stats = new JPanel(new GridLayout(3, 1, 10, 10));
+        JPanel stats = new JPanel(new GridLayout(4, 1, 10, 10));
         stats.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel users = new JLabel("Users count: " + repo.getUsers().size());
-        JLabel slots = new JLabel("Slots count: " + repo.getSlots().size());
-        JLabel appts = new JLabel("Appointments count: " + repo.getAppointments().size());
+        users = new JLabel();
+        providers = new JLabel();
+        slots = new JLabel();
+        appts = new JLabel();
 
-        users.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        slots.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        appts.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-
-        stats.add(users);
-        stats.add(slots);
-        stats.add(appts);
+        for (JLabel l : new JLabel[]{users, providers, slots, appts}) {
+            l.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+            stats.add(l);
+        }
 
         root.add(stats, BorderLayout.CENTER);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+
+        JButton activityBtn = new JButton("User Activity");
+        activityBtn.addActionListener(e -> new AdminActivityFrame(repo).setVisible(true));
 
         JButton logout = new JButton("Logout");
         logout.addActionListener(e -> {
@@ -62,8 +79,23 @@ public class AdminDashboardFrame extends JFrame {
             dispose();
         });
 
-        JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        south.add(logout);
+        actions.add(activityBtn);
+        actions.add(logout);
+
+        JPanel south = new JPanel(new BorderLayout());
+        south.add(actions, BorderLayout.EAST);
         root.add(south, BorderLayout.SOUTH);
+
+        refreshCounts();
+    }
+
+    /**
+     * Refreshes the displayed system counts.
+     */
+    private void refreshCounts() {
+        users.setText("Users count: " + repo.getUsers().size());
+        providers.setText("Providers count: " + repo.getProviders().size());
+        slots.setText("Slots count: " + repo.getSlots().size());
+        appts.setText("Appointments count: " + repo.getAppointments().size());
     }
 }
