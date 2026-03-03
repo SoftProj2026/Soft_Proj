@@ -3,9 +3,9 @@ package presentation;
 import Service.AuthService;
 import Service.BookingService;
 import Service.ReminderService;
-import persistence.DataRepository;
 import domain.User;
 import domain.Provider;
+import persistence.DataRepository;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -49,9 +49,6 @@ public class LoginFrame extends JFrame {
     /** Preferences key: remembered username value. */
     private static final String PREF_USERNAME = "remembered_username";
 
-    /** Hardcoded admin username allowed to use admin mode. */
-    private static final String ADMIN_USERNAME = "admin";
-
     /** Hardcoded admin key required when "Login as Admin" is selected. */
     private static final String ADMIN_KEY = "ADMIN2026";
 
@@ -64,6 +61,7 @@ public class LoginFrame extends JFrame {
     /** Repository used for password recovery and passing to other screens. */
     private final DataRepository repo;
 
+    // Fields
     private JTextField usernameField;
     private JPasswordField passwordField;
 
@@ -73,12 +71,16 @@ public class LoginFrame extends JFrame {
     private JCheckBox keepLoggedIn;
 
     private JCheckBox loginAsAdmin;
+
     private JPasswordField adminKeyField;
     private JLabel adminKeyLabel;
     private JPanel adminPanel;
 
     /** Preferences storage for remember-me. */
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
+
+    private JLabel usernameLabel;
+    private JLabel passwordLabel;
 
     /**
      * Creates the login window.
@@ -99,16 +101,6 @@ public class LoginFrame extends JFrame {
 
     /**
      * Initializes and lays out the Swing components of the login window.
-     * <p>
-     * This includes:
-     * <ul>
-     *   <li>Background image (optional)</li>
-     *   <li>Username/password inputs</li>
-     *   <li>Remember-me checkbox</li>
-     *   <li>Admin login toggle + key field</li>
-     *   <li>Login/Signup buttons</li>
-     * </ul>
-     * </p>
      */
     private void initUI() {
         setTitle("Login");
@@ -148,13 +140,16 @@ public class LoginFrame extends JFrame {
         styleField(usernameField);
         styleField(passwordField);
 
+        usernameLabel = labelWhite("Username:");
+        passwordLabel = labelWhite("Password:");
+
         c.gridx = 0; c.gridy = 0; c.weightx = 0; c.anchor = GridBagConstraints.WEST;
-        form.add(labelWhite("Username:"), c);
+        form.add(usernameLabel, c);
         c.gridx = 1; c.gridy = 0; c.weightx = 1;
         form.add(usernameField, c);
 
         c.gridx = 0; c.gridy = 1; c.weightx = 0;
-        form.add(labelWhite("Password:"), c);
+        form.add(passwordLabel, c);
         c.gridx = 1; c.gridy = 1; c.weightx = 1;
         form.add(passwordField, c);
 
@@ -219,38 +214,18 @@ public class LoginFrame extends JFrame {
         root.add(card);
     }
 
-    /**
-     * Creates a white-colored label suitable for dark backgrounds.
-     *
-     * @param text label text
-     * @return configured label
-     */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
         l.setForeground(Color.WHITE);
         return l;
     }
 
-    /**
-     * Applies consistent styling to input fields.
-     *
-     * @param field the component to style (text/password field)
-     */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
         field.setBackground(new Color(255, 255, 255, 235));
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
-    /**
-     * Attaches UI event handlers:
-     * <ul>
-     *   <li>Login button → {@link #login()}</li>
-     *   <li>Sign up button → {@link #openSignUp()}</li>
-     *   <li>Remember-me changes persisted in {@link Preferences}</li>
-     *   <li>Admin mode toggle shows/hides the Admin Key panel</li>
-     * </ul>
-     */
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
@@ -264,25 +239,43 @@ public class LoginFrame extends JFrame {
         });
 
         loginAsAdmin.addActionListener(e -> {
-            boolean show = loginAsAdmin.isSelected();
-            adminPanel.setVisible(show);
-
-            if (!show) {
-                adminKeyField.setText("");
-            }
-
-            adminPanel.getParent().revalidate();
-            adminPanel.getParent().repaint();
-            this.revalidate();
-            this.repaint();
+            boolean adminMode = loginAsAdmin.isSelected();
+            setAdminMode(adminMode);
         });
 
         getRootPane().setDefaultButton(loginButton);
     }
 
-    /**
-     * Loads remembered username from {@link Preferences} if remember-me was enabled.
-     */
+    
+    private void setAdminMode(boolean adminMode) {
+
+        adminPanel.setVisible(adminMode);
+
+        usernameLabel.setVisible(!adminMode);
+        usernameField.setVisible(!adminMode);
+
+        passwordLabel.setVisible(!adminMode);
+        passwordField.setVisible(!adminMode);
+
+        keepLoggedIn.setVisible(!adminMode);
+
+        signUpButton.setVisible(!adminMode);
+
+        if (adminMode) {
+            usernameField.setText("");
+            passwordField.setText("");
+            keepLoggedIn.setSelected(false);
+            adminKeyField.setText("");
+        } else {
+            adminKeyField.setText("");
+        }
+
+        adminPanel.getParent().revalidate();
+        adminPanel.getParent().repaint();
+        this.revalidate();
+        this.repaint();
+    }
+
     private void loadRememberedUser() {
         boolean remember = prefs.getBoolean(PREF_REMEMBER, false);
         keepLoggedIn.setSelected(remember);
@@ -297,21 +290,9 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Performs login and navigates based on role:
-     * <ul>
-     *   <li>Admin (requires {@link #ADMIN_KEY} and {@link #ADMIN_USERNAME}) → {@link AdminDashboardFrame}</li>
-     *   <li>Provider account ({@link Provider}) → {@link ProviderInboxFrame}</li>
-     *   <li>Normal user → {@link MainDashboardFrame} and start {@link ReminderService}</li>
-     * </ul>
-     * </p>
-     *
-     * <p>
-     * If remember-me is checked, username is stored in {@link Preferences}.
-     * </p>
+     * Performs login and navigates based on role.
      */
     private void login() {
-        String username = usernameField.getText();
-        String password = new String(passwordField.getPassword());
 
         boolean wantsAdmin = (loginAsAdmin != null && loginAsAdmin.isSelected());
 
@@ -323,19 +304,21 @@ public class LoginFrame extends JFrame {
                 return;
             }
 
-            if (username == null || !username.trim().equalsIgnoreCase(ADMIN_USERNAME)) {
-                JOptionPane.showMessageDialog(this, "Only the admin account can use Admin login.");
+            boolean ok = authService.loginAsAdmin();
+            if (!ok) {
+                JOptionPane.showMessageDialog(this, "Admin account not found in repository.");
                 return;
             }
+
+            new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+            dispose();
+            return;
         }
 
-        if (authService.login(username, password)) {
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
 
-            if (wantsAdmin) {
-                new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
-                dispose();
-                return;
-            }
+        if (authService.login(username, password)) {
 
             if (authService.getCurrentUser() instanceof Provider) {
                 new ProviderInboxFrame(authService, repo).setVisible(true);
@@ -345,7 +328,7 @@ public class LoginFrame extends JFrame {
 
             if (keepLoggedIn.isSelected()) {
                 prefs.putBoolean(PREF_REMEMBER, true);
-                prefs.put(PREF_USERNAME, username.trim());
+                prefs.put(PREF_USERNAME, username != null ? username.trim() : "");
             } else {
                 prefs.putBoolean(PREF_REMEMBER, false);
                 prefs.remove(PREF_USERNAME);
@@ -362,21 +345,11 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    /**
-     * Opens the sign-up window.
-     */
     private void openSignUp() {
         new SignUpFrame(authService).setVisible(true);
     }
 
-    /**
-     * Opens a password recovery dialog which searches for a username in the repository
-     * and displays the stored password.
-     * <p>
-     * Security note: this is not secure for real applications, and should be replaced
-     * by a real password reset flow.
-     * </p>
-     */
+    @SuppressWarnings("unused")
     private void openForgotPasswordDialog() {
         String u = JOptionPane.showInputDialog(
                 this,

@@ -47,10 +47,6 @@ public class AuthService {
      * A login succeeds if a user exists in the repository whose username matches
      * (case-insensitive) and password matches exactly.
      * </p>
-     *
-     * @param username the entered username
-     * @param password the entered password
-     * @return {@code true} if credentials are valid; {@code false} otherwise
      */
     public boolean login(String username, String password) {
         if (username == null || password == null) return false;
@@ -69,15 +65,29 @@ public class AuthService {
     }
 
     /**
+     * NEW: Logs in as admin without asking for username/password.
+     * <p>
+     * This is intended to be used ONLY after validating the Admin Key in the UI.
+     * It simply finds the "admin" user in the repository and sets it as currentUser.
+     * </p>
+     *
+     * @return true if admin user exists and was logged in; false otherwise
+     */
+    public boolean loginAsAdmin() {
+        for (User user : repo.getUsers()) {
+            if (user != null
+                    && user.getUsername() != null
+                    && user.getUsername().equalsIgnoreCase("admin")) {
+                currentUser = user;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Registers a new user after validating input, ensuring unique username,
      * and verifying age (18+).
-     *
-     * @param firstName   first name (required)
-     * @param lastName    last name (required)
-     * @param username    username (required, must be unique)
-     * @param password    password (required)
-     * @param dateOfBirth date of birth (required, must be 18+)
-     * @return the registration result status
      */
     public RegisterResult register(String firstName,
                                    String lastName,
@@ -106,30 +116,14 @@ public class AuthService {
         return RegisterResult.SUCCESS;
     }
 
-    /**
-     * Returns the currently logged-in user.
-     *
-     * @return current user, or {@code null} if not logged in
-     */
     public User getCurrentUser() {
         return currentUser;
     }
 
-    /**
-     * Indicates whether a user is currently logged in.
-     *
-     * @return {@code true} if logged in; {@code false} otherwise
-     */
     public boolean isLoggedIn() {
         return currentUser != null;
     }
 
-    /**
-     * Logs out the current user.
-     * <p>
-     * After logout, {@link #isLoggedIn()} will return {@code false}.
-     * </p>
-     */
     public void logout() {
         currentUser = null;
     }
