@@ -2,6 +2,7 @@ package presentation;
 
 import Service.AuthService;
 import Service.BookingService;
+import domain.Administrator;
 import persistence.DataRepository;
 
 import javax.swing.*;
@@ -9,15 +10,15 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 /**
- * Admin-only dashboard.
+ * Admin dashboard window for both the big admin and category admins.
  * <p>
- * Provides a minimal admin UI:
- * <ul>
- *   <li>System statistics (counts)</li>
- *   <li>Navigation to the Admin Activity window</li>
- *   <li>Logout back to {@link LoginFrame}</li>
- * </ul>
+ * The dashboard displays basic repository statistics and provides navigation to:
  * </p>
+ * <ul>
+ *   <li>Requests approval screen</li>
+ *   <li>User activity screen</li>
+ *   <li>Logout</li>
+ * </ul>
  */
 public class AdminDashboardFrame extends JFrame {
 
@@ -27,17 +28,21 @@ public class AdminDashboardFrame extends JFrame {
     private final JLabel appts;
 
     private final DataRepository repo;
+    private final AuthService auth;
+    private final BookingService booking;
 
     /**
      * Creates the admin dashboard window.
      *
-     * @param auth    authentication service (used for logout)
-     * @param booking booking service (passed to LoginFrame on logout)
-     * @param repo    repository used to read system statistics/activity
+     * @param auth    authentication service
+     * @param booking booking service
+     * @param repo    data repository
      */
     public AdminDashboardFrame(AuthService auth, BookingService booking, DataRepository repo) {
 
         this.repo = repo;
+        this.auth = auth;
+        this.booking = booking;
 
         setTitle("Admin Dashboard");
         setSize(860, 460);
@@ -69,6 +74,9 @@ public class AdminDashboardFrame extends JFrame {
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 
+        JButton requestsBtn = new JButton("Requests");
+        requestsBtn.addActionListener(e -> openRequests());
+
         JButton activityBtn = new JButton("User Activity");
         activityBtn.addActionListener(e -> new AdminActivityFrame(repo).setVisible(true));
 
@@ -79,6 +87,7 @@ public class AdminDashboardFrame extends JFrame {
             dispose();
         });
 
+        actions.add(requestsBtn);
         actions.add(activityBtn);
         actions.add(logout);
 
@@ -90,7 +99,25 @@ public class AdminDashboardFrame extends JFrame {
     }
 
     /**
-     * Refreshes the displayed system counts.
+     * Opens the request approval screen for the currently logged-in administrator.
+     */
+    private void openRequests() {
+        if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) {
+            DialogUtil.show(this, "Login Required", "You must login first.", DialogUtil.Type.WARNING);
+            return;
+        }
+
+        if (!(auth.getCurrentUser() instanceof Administrator)) {
+            DialogUtil.show(this, "Not Admin", "Only Administrator accounts can open requests.", DialogUtil.Type.WARNING);
+            return;
+        }
+
+        Administrator a = (Administrator) auth.getCurrentUser();
+        new AdminRequestsFrame(repo, a).setVisible(true);
+    }
+
+    /**
+     * Refreshes the repository statistics labels.
      */
     private void refreshCounts() {
         users.setText("Users count: " + repo.getUsers().size());

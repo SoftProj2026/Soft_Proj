@@ -10,7 +10,11 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 /**
- * Customer UI: list providers and allow sending a contact request/message.
+ * Customer UI window that lists providers and allows sending a message as a {@link ContactRequest}.
+ * <p>
+ * The user selects a provider, writes a message, and submits it. The request is stored in the
+ * {@link DataRepository} for later viewing by the provider.
+ * </p>
  */
 public class CustomerContactProvidersFrame extends JFrame {
 
@@ -22,6 +26,12 @@ public class CustomerContactProvidersFrame extends JFrame {
 
     private final JTextArea messageArea = new JTextArea(6, 30);
 
+    /**
+     * Creates the contact providers window.
+     *
+     * @param auth authentication service
+     * @param repo data repository
+     */
     public CustomerContactProvidersFrame(AuthService auth, DataRepository repo) {
         this.auth = auth;
         this.repo = repo;
@@ -49,7 +59,6 @@ public class CustomerContactProvidersFrame extends JFrame {
 
         add(header, BorderLayout.NORTH);
 
-        // Left: providers list
         JPanel left = new JPanel(new BorderLayout(8, 8));
         left.setBorder(new EmptyBorder(12, 12, 12, 6));
         left.setBackground(UITheme.BG);
@@ -69,14 +78,15 @@ public class CustomerContactProvidersFrame extends JFrame {
 
                 Provider p = (Provider) value;
                 String text = p.getDisplayName() + "  (@" + p.getUsername() + ")";
-                if (p.getPhone() != null && !p.getPhone().isEmpty()) text += " | " + p.getPhone();
+                if (p.getPhone() != null && !p.getPhone().isEmpty()) {
+                    text += " | " + p.getPhone();
+                }
                 return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus);
             }
         });
 
         left.add(new JScrollPane(providersList), BorderLayout.CENTER);
 
-        // Right: message
         JPanel right = new JPanel(new BorderLayout(8, 8));
         right.setBorder(new EmptyBorder(12, 6, 12, 12));
         right.setBackground(UITheme.BG);
@@ -111,6 +121,9 @@ public class CustomerContactProvidersFrame extends JFrame {
         loadProviders();
     }
 
+    /**
+     * Loads providers from the repository into the list model.
+     */
     private void loadProviders() {
         providersModel.clear();
         for (Provider p : repo.getProviders()) {
@@ -118,6 +131,9 @@ public class CustomerContactProvidersFrame extends JFrame {
         }
     }
 
+    /**
+     * Validates inputs and submits a {@link ContactRequest} to the repository.
+     */
     private void sendMessage() {
         if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) {
             DialogUtil.show(this, "Login Required", "You must login first.", DialogUtil.Type.WARNING);

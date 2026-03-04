@@ -3,77 +3,132 @@ package domain;
 import java.time.LocalDateTime;
 
 /**
- * Represents a time interval available for booking.
+ * Represents a time interval that can be booked within a {@link Category}.
  * <p>
- * A slot has a start time, end time (computed from duration), a booked flag,
- * and an optional {@link Category}.
+ * A slot may be:
  * </p>
+ * <ul>
+ *   <li><b>Available</b>: not booked and not held</li>
+ *   <li><b>Held</b>: temporarily reserved for a pending approval request</li>
+ *   <li><b>Booked</b>: confirmed and no longer available</li>
+ * </ul>
  */
 public class TimeSlot {
-    private LocalDateTime startDateTime;
-    private LocalDateTime endDateTime;
-    private boolean isBooked;
 
-    private Category category;
+    private final LocalDateTime startDateTime;
+    private final LocalDateTime endDateTime;
+
+    private boolean booked;
+
+    private boolean held;
+    private Integer heldRequestId;
+
+    private final Category category;
 
     /**
-     * Creates a new time slot with the given start time, duration, and category.
+     * Creates a time slot for a specific category.
      *
-     * @param startDateTime     the slot start date/time
-     * @param durationInMinutes duration in minutes (used to compute end time)
-     * @param category          the slot category (may be null)
+     * @param startDateTime      slot start date/time
+     * @param durationInMinutes  slot duration in minutes
+     * @param category           slot category (may be null)
      */
     public TimeSlot(LocalDateTime startDateTime, int durationInMinutes, Category category) {
         this.startDateTime = startDateTime;
         this.endDateTime = startDateTime.plusMinutes(durationInMinutes);
-        this.isBooked = false;
+        this.booked = false;
+        this.held = false;
+        this.heldRequestId = null;
         this.category = category;
     }
 
     /**
-     * Creates a new time slot without a category.
+     * Creates a time slot without a category.
      *
-     * @param startDateTime     the slot start date/time
-     * @param durationInMinutes duration in minutes (used to compute end time)
+     * @param startDateTime     slot start date/time
+     * @param durationInMinutes slot duration in minutes
      */
     public TimeSlot(LocalDateTime startDateTime, int durationInMinutes) {
         this(startDateTime, durationInMinutes, null);
     }
 
     /**
-     * Gets the slot category.
+     * Returns the category assigned to the slot.
      *
-     * @return the category (may be null)
+     * @return category (may be null)
      */
     public Category getCategory() {
         return category;
     }
 
     /**
-     * Checks if the slot is available for booking.
+     * Indicates whether the slot is available for requesting/booking.
      *
-     * @return true if not booked; false otherwise
+     * @return true if not booked and not held; otherwise false
      */
     public boolean isAvailable() {
-        return !isBooked;
+        return !booked && !held;
     }
 
     /**
-     * Marks the slot as booked (unavailable).
+     * Indicates whether the slot is currently held for a pending approval request.
+     *
+     * @return true if held; otherwise false
+     */
+    public boolean isHeld() {
+        return held;
+    }
+
+    /**
+     * Returns the request id currently holding the slot.
+     *
+     * @return held request id, or null if not held
+     */
+    public Integer getHeldRequestId() {
+        return heldRequestId;
+    }
+
+    /**
+     * Places a temporary hold on this slot.
+     * <p>
+     * If the slot is already booked, the hold is not applied.
+     * </p>
+     *
+     * @param requestId booking request id that holds the slot
+     */
+    public void hold(int requestId) {
+        if (booked) return;
+        this.held = true;
+        this.heldRequestId = requestId;
+    }
+
+    /**
+     * Releases a temporary hold, making the slot available again if it is not booked.
+     */
+    public void releaseHold() {
+        this.held = false;
+        this.heldRequestId = null;
+    }
+
+    /**
+     * Marks the slot as booked and clears any hold information.
      */
     public void book() {
-        this.isBooked = true;
+        this.booked = true;
+        this.held = false;
+        this.heldRequestId = null;
     }
 
     /**
-     * Cancels the booking and makes the slot available again.
+     * Cancels the booking and clears any hold information.
      */
     public void cancel() {
-        this.isBooked = false;
+        this.booked = false;
+        this.held = false;
+        this.heldRequestId = null;
     }
 
     /**
-     * Gets the start date/time of this slot.
+     * Returns the slot start date/time.
      *
      * @return start date/time
      */
@@ -82,7 +137,7 @@ public class TimeSlot {
     }
 
     /**
-     * Gets the end date/time of this slot.
+     * Returns the slot end date/time.
      *
      * @return end date/time
      */

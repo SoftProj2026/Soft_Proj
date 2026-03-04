@@ -8,16 +8,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Handles the booking workflow by applying booking rules and saving appointments.
+ * Service responsible for validating and confirming appointments using a set of booking rules.
  * <p>
- * Workflow:
- * <ol>
- *   <li>Validate the appointment using configured {@link BookingRuleStrategy} rules</li>
- *   <li>If any rule fails, return a failure {@link BookingResult} with the rule message</li>
- *   <li>If valid, confirm the appointment and store it in {@link DataRepository}</li>
- *   <li>Write an {@link AuditEvent} for admin activity tracking</li>
- * </ol>
+ * The booking process:
  * </p>
+ * <ol>
+ *   <li>Validate the appointment using configured {@link BookingRuleStrategy} rules.</li>
+ *   <li>If any rule fails, return a failure {@link BookingResult} with the rule message.</li>
+ *   <li>If valid, confirm the appointment and store it in {@link DataRepository}.</li>
+ *   <li>Write an {@link AuditEvent} for admin activity tracking.</li>
+ * </ol>
  */
 public class BookingService {
 
@@ -25,7 +25,7 @@ public class BookingService {
     private final List<BookingRuleStrategy> rules = new ArrayList<>();
 
     /**
-     * Creates a {@code BookingService} and registers default booking rules.
+     * Creates a booking service and registers the default booking rules.
      *
      * @param repo repository used to store appointments and read existing ones
      */
@@ -33,26 +33,19 @@ public class BookingService {
         this.repo = repo;
 
         rules.add(new SlotAvailabilityRule());
-
         rules.add(new NotInPastRule());
         rules.add(new MinimumNoticeRule());
-
         rules.add(new BlockedSlotsRule());
         rules.add(new DurationRule(60));
         rules.add(new ParticipantLimitRule(5));
-
         rules.add(new OverlapRule(repo));
     }
 
     /**
-     * Attempts to book an appointment.
+     * Attempts to book an appointment after validating it against all booking rules.
      * <p>
-     * On success:
-     * <ul>
-     *   <li>{@link Appointment#confirm()} is called</li>
-     *   <li>appointment is saved in the repository</li>
-     *   <li>an audit event is written for admin review</li>
-     * </ul>
+     * If the booking succeeds, the appointment is confirmed and stored in the repository,
+     * and an audit event is written.
      * </p>
      *
      * @param appointment appointment to book

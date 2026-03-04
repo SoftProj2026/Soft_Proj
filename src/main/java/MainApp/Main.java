@@ -1,7 +1,9 @@
 package MainApp;
 
 import Service.AuthService;
+import Service.BookingRequestService;
 import Service.BookingService;
+import domain.Administrator;
 import domain.Category;
 import domain.Provider;
 import domain.TimeSlot;
@@ -19,15 +21,17 @@ import java.util.List;
 /**
  * Application entry point.
  * <p>
- * Bootstraps:
- * <ol>
- *   <li>UI theme (Look & Feel)</li>
- *   <li>In-memory repository</li>
- *   <li>Seed users/providers/categories/time slots</li>
- *   <li>Core services</li>
- *   <li>Launch login UI</li>
- * </ol>
+ * Bootstraps the Swing UI application by:
  * </p>
+ * <ol>
+ *   <li>Applying the UI theme</li>
+ *   <li>Creating the in-memory {@link DataRepository}</li>
+ *   <li>Seeding a single provider company ("QR Booking")</li>
+ *   <li>Seeding categories and category-admin accounts</li>
+ *   <li>Printing category-admin credentials to the console</li>
+ *   <li>Seeding time slots for the upcoming days</li>
+ *   <li>Creating core services and launching the {@link LoginFrame}</li>
+ * </ol>
  */
 public class Main {
 
@@ -42,22 +46,15 @@ public class Main {
 
         DataRepository repo = new DataRepository();
 
-        repo.addUser(new domain.Administrator("admin", "Admin@123"));
+        repo.addUser(new Administrator("admin", "Admin@123"));
 
         repo.addProvider(new Provider(
-                "company1", "Comp@1234",
-                "Al Noor Real Estate",
-                "+966500000001",
-                "contact@alnoor.example",
-                "Riyadh"
-        ));
-
-        repo.addProvider(new Provider(
-                "company2", "Comp@1234",
-                "Skyline Services Co.",
-                "+966500000002",
-                "hello@skyline.example",
-                "Jeddah"
+                "qrbooking",
+                "Comp@1234",
+                "QR Booking",
+                "+0000000000",
+                "contact@qrbooking.example",
+                "N/A"
         ));
 
         List<Category> categories = buildCategories();
@@ -65,10 +62,16 @@ public class Main {
             repo.addCategory(c);
         }
 
+        String categoryAdminPassword = seedCategoryAdmins(repo, categories);
+
+        printCategoryAdminCredentials(categories, categoryAdminPassword);
+
         seedTimeSlots(repo, categories, 7);
 
         AuthService authService = new AuthService(repo);
         BookingService bookingService = new BookingService(repo);
+
+        new BookingRequestService(repo);
 
         javax.swing.SwingUtilities.invokeLater(() -> {
             new LoginFrame(authService, bookingService, repo).setVisible(true);
@@ -76,9 +79,42 @@ public class Main {
     }
 
     /**
-     * Builds the list of default booking categories shown in the UI.
+     * Seeds category-admin accounts for each category.
      *
-     * @return list of categories
+     * @param repo       repository to populate
+     * @param categories list of categories
+     * @return the password used for all seeded category admins
+     */
+    private static String seedCategoryAdmins(DataRepository repo, List<Category> categories) {
+        String pass = "Admin@123";
+        for (Category c : categories) {
+            String u = BookingRequestService.categoryAdminUsername(c);
+            repo.addUser(new Administrator(u, pass));
+        }
+        return pass;
+    }
+
+    /**
+     * Prints category-admin credentials to the console.
+     *
+     * @param categories list of categories
+     * @param password   shared password used for category admins
+     */
+    private static void printCategoryAdminCredentials(List<Category> categories, String password) {
+        System.out.println("=== Category Admin Credentials ===");
+        System.out.println("Password (all category admins): " + password);
+        System.out.println("---------------------------------");
+        for (Category c : categories) {
+            String username = BookingRequestService.categoryAdminUsername(c);
+            System.out.println("Category: " + c.getName() + " | Username: " + username + " | Password: " + password);
+        }
+        System.out.println("=================================");
+    }
+
+    /**
+     * Builds the list of booking categories shown in the UI.
+     *
+     * @return list of default categories
      */
     private static List<Category> buildCategories() {
         List<Category> categories = new ArrayList<>();
@@ -115,12 +151,12 @@ public class Main {
      * Seeds the repository with hourly time slots for each category.
      * <p>
      * Default behavior:
+     * </p>
      * <ul>
      *   <li>Creates 1-hour slots from 09:00 to 16:00 inclusive</li>
      *   <li>Skips Fridays</li>
      *   <li>Seeds for {@code daysAhead} days starting from today</li>
      * </ul>
-     * </p>
      *
      * @param repo       repository to populate
      * @param categories categories to create slots for

@@ -3,7 +3,7 @@ package presentation;
 import Service.AuthService;
 import Service.BookingService;
 import Service.ReminderService;
-import domain.User;
+import domain.Administrator;
 import domain.Provider;
 import persistence.DataRepository;
 
@@ -14,54 +14,37 @@ import java.net.URL;
 import java.util.prefs.Preferences;
 
 /**
- * Login window (Swing UI).
+ * Login window implemented using Swing.
  * <p>
- * Responsibilities:
- * <ul>
- *   <li>Authenticate users via {@link AuthService#login(String, String)}.</li>
- *   <li>Optionally remember the username locally using {@link Preferences} ("Keep Me Logged In").</li>
- *   <li>Support an Admin login mode protected by an extra Admin Key.</li>
- *   <li>Route the user to the correct screen after login:</li>
- *   <ul>
- *     <li>Admin → {@link AdminDashboardFrame}</li>
- *     <li>Provider account ({@link Provider}) → {@link ProviderInboxFrame}</li>
- *     <li>Normal user → {@link MainDashboardFrame} (and start {@link ReminderService})</li>
- *   </ul>
- * </ul>
+ * Supports three login modes:
  * </p>
+ * <ul>
+ *   <li><b>Normal Login</b>: username/password for regular users and providers.</li>
+ *   <li><b>Login for Category Admin</b>: username/password for category-admin accounts only.</li>
+ *   <li><b>QR Admin for Company</b>: admin-key mode that logs in as the "admin" account.</li>
+ * </ul>
  *
  * <p>
- * Notes:
- * <ul>
- *   <li>This is a demo/learning UI (password recovery shows stored password in plain text if enabled).</li>
- *   <li>Admin Key is hardcoded here via {@link #ADMIN_KEY}.</li>
- * </ul>
+ * Security rule:
  * </p>
+ * <ul>
+ *   <li>Category admins (administrator accounts other than {@code admin}) are blocked in Normal Login mode.</li>
+ *   <li>Category admins may login only when "Login for Category Admin" is selected.</li>
+ *   <li>The big admin account {@code admin} may always access the admin dashboard.</li>
+ * </ul>
  */
 public class LoginFrame extends JFrame {
 
-    /** Preferences node for storing "remember me" configuration. */
     private static final String PREF_NODE = "Soft_Proj";
-
-    /** Preferences key: whether remember-me is enabled. */
     private static final String PREF_REMEMBER = "remember_me";
-
-    /** Preferences key: remembered username value. */
     private static final String PREF_USERNAME = "remembered_username";
 
-    /** Hardcoded admin key required when "Login as Admin" is selected. */
     private static final String ADMIN_KEY = "ADMIN2026";
 
-    /** Authentication service used to login and read current user. */
     private final AuthService authService;
-
-    /** Booking service (passed to other screens after login). */
     private final BookingService bookingService;
-
-    /** Repository used for password recovery and passing to other screens. */
     private final DataRepository repo;
 
-    // Fields
     private JTextField usernameField;
     private JPasswordField passwordField;
 
@@ -70,13 +53,13 @@ public class LoginFrame extends JFrame {
 
     private JCheckBox keepLoggedIn;
 
-    private JCheckBox loginAsAdmin;
+    private JCheckBox loginAsQrAdmin;
+    private JCheckBox loginAsCategoryAdmin;
 
     private JPasswordField adminKeyField;
     private JLabel adminKeyLabel;
     private JPanel adminPanel;
 
-    /** Preferences storage for remember-me. */
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
     private JLabel usernameLabel;
@@ -86,8 +69,8 @@ public class LoginFrame extends JFrame {
      * Creates the login window.
      *
      * @param authService    authentication service
-     * @param bookingService booking service (used later after login)
-     * @param repo           repository used by UI screens (users/appointments/messages)
+     * @param bookingService booking service
+     * @param repo           data repository
      */
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
         this.authService = authService;
@@ -97,10 +80,11 @@ public class LoginFrame extends JFrame {
         initUI();
         loadRememberedUser();
         attachHandlers();
+        applyMode();
     }
 
     /**
-     * Initializes and lays out the Swing components of the login window.
+     * Initializes and lays out the Swing UI components.
      */
     private void initUI() {
         setTitle("Login");
@@ -119,7 +103,7 @@ public class LoginFrame extends JFrame {
         card.setOpaque(true);
         card.setBackground(new Color(0, 0, 0, 140));
         card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setPreferredSize(new Dimension(520, 360));
+        card.setPreferredSize(new Dimension(560, 390));
 
         JLabel title = new JLabel("Login", SwingConstants.CENTER);
         title.setForeground(Color.WHITE);
@@ -143,14 +127,25 @@ public class LoginFrame extends JFrame {
         usernameLabel = labelWhite("Username:");
         passwordLabel = labelWhite("Password:");
 
-        c.gridx = 0; c.gridy = 0; c.weightx = 0; c.anchor = GridBagConstraints.WEST;
+        c.gridx = 0;
+        c.gridy = 0;
+        c.weightx = 0;
+        c.anchor = GridBagConstraints.WEST;
         form.add(usernameLabel, c);
-        c.gridx = 1; c.gridy = 0; c.weightx = 1;
+
+        c.gridx = 1;
+        c.gridy = 0;
+        c.weightx = 1;
         form.add(usernameField, c);
 
-        c.gridx = 0; c.gridy = 1; c.weightx = 0;
+        c.gridx = 0;
+        c.gridy = 1;
+        c.weightx = 0;
         form.add(passwordLabel, c);
-        c.gridx = 1; c.gridy = 1; c.weightx = 1;
+
+        c.gridx = 1;
+        c.gridy = 1;
+        c.weightx = 1;
         form.add(passwordField, c);
 
         keepLoggedIn = new JCheckBox("Keep Me Logged In");
@@ -158,18 +153,33 @@ public class LoginFrame extends JFrame {
         keepLoggedIn.setForeground(new Color(255, 255, 255, 230));
         keepLoggedIn.setFocusPainted(false);
 
-        c.gridx = 1; c.gridy = 2; c.weightx = 1;
+        c.gridx = 1;
+        c.gridy = 2;
+        c.weightx = 1;
         c.anchor = GridBagConstraints.WEST;
         form.add(keepLoggedIn, c);
 
-        loginAsAdmin = new JCheckBox("Login as Admin");
-        loginAsAdmin.setOpaque(false);
-        loginAsAdmin.setForeground(new Color(255, 255, 255, 230));
-        loginAsAdmin.setFocusPainted(false);
+        loginAsCategoryAdmin = new JCheckBox("Login for Category Admin");
+        loginAsCategoryAdmin.setOpaque(false);
+        loginAsCategoryAdmin.setForeground(new Color(255, 255, 255, 230));
+        loginAsCategoryAdmin.setFocusPainted(false);
 
-        c.gridx = 1; c.gridy = 3; c.weightx = 1;
+        c.gridx = 1;
+        c.gridy = 3;
+        c.weightx = 1;
         c.anchor = GridBagConstraints.WEST;
-        form.add(loginAsAdmin, c);
+        form.add(loginAsCategoryAdmin, c);
+
+        loginAsQrAdmin = new JCheckBox("QR Admin for Company");
+        loginAsQrAdmin.setOpaque(false);
+        loginAsQrAdmin.setForeground(new Color(255, 255, 255, 230));
+        loginAsQrAdmin.setFocusPainted(false);
+
+        c.gridx = 1;
+        c.gridy = 4;
+        c.weightx = 1;
+        c.anchor = GridBagConstraints.WEST;
+        form.add(loginAsQrAdmin, c);
 
         adminPanel = new JPanel(new GridBagLayout());
         adminPanel.setOpaque(false);
@@ -178,21 +188,30 @@ public class LoginFrame extends JFrame {
         a.insets = new Insets(8, 8, 8, 8);
         a.fill = GridBagConstraints.HORIZONTAL;
 
-        adminKeyLabel = labelWhite("Admin Key:");
+        adminKeyLabel = labelWhite("QR Admin Key:");
         adminKeyField = new JPasswordField(18);
         styleField(adminKeyField);
 
-        a.gridx = 0; a.gridy = 0; a.weightx = 0; a.anchor = GridBagConstraints.WEST;
+        a.gridx = 0;
+        a.gridy = 0;
+        a.weightx = 0;
+        a.anchor = GridBagConstraints.WEST;
         adminPanel.add(adminKeyLabel, a);
-        a.gridx = 1; a.gridy = 0; a.weightx = 1;
+
+        a.gridx = 1;
+        a.gridy = 0;
+        a.weightx = 1;
         adminPanel.add(adminKeyField, a);
 
         adminPanel.setVisible(false);
 
-        c.gridx = 0; c.gridy = 4; c.weightx = 1;
+        c.gridx = 0;
+        c.gridy = 5;
+        c.weightx = 1;
         c.gridwidth = 2;
         c.anchor = GridBagConstraints.WEST;
         form.add(adminPanel, c);
+
         c.gridwidth = 1;
 
         JPanel south = new JPanel();
@@ -214,18 +233,32 @@ public class LoginFrame extends JFrame {
         root.add(card);
     }
 
+    /**
+     * Creates a white label for dark backgrounds.
+     *
+     * @param text label text
+     * @return label component
+     */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
         l.setForeground(Color.WHITE);
         return l;
     }
 
+    /**
+     * Styles an input component.
+     *
+     * @param field input component
+     */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
         field.setBackground(new Color(255, 255, 255, 235));
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
+    /**
+     * Attaches UI event handlers.
+     */
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
@@ -238,44 +271,48 @@ public class LoginFrame extends JFrame {
             }
         });
 
-        loginAsAdmin.addActionListener(e -> {
-            boolean adminMode = loginAsAdmin.isSelected();
-            setAdminMode(adminMode);
+        loginAsQrAdmin.addActionListener(e -> {
+            if (loginAsQrAdmin.isSelected()) loginAsCategoryAdmin.setSelected(false);
+            applyMode();
+        });
+
+        loginAsCategoryAdmin.addActionListener(e -> {
+            if (loginAsCategoryAdmin.isSelected()) loginAsQrAdmin.setSelected(false);
+            applyMode();
         });
 
         getRootPane().setDefaultButton(loginButton);
     }
 
-    
-    private void setAdminMode(boolean adminMode) {
+    /**
+     * Applies the selected login mode to the UI by showing/hiding relevant controls.
+     */
+    private void applyMode() {
+        boolean qrAdminMode = loginAsQrAdmin != null && loginAsQrAdmin.isSelected();
+        boolean categoryAdminMode = loginAsCategoryAdmin != null && loginAsCategoryAdmin.isSelected();
 
-        adminPanel.setVisible(adminMode);
+        adminPanel.setVisible(qrAdminMode);
 
-        usernameLabel.setVisible(!adminMode);
-        usernameField.setVisible(!adminMode);
+        boolean normalFieldsVisible = !qrAdminMode;
 
-        passwordLabel.setVisible(!adminMode);
-        passwordField.setVisible(!adminMode);
+        usernameLabel.setVisible(normalFieldsVisible);
+        usernameField.setVisible(normalFieldsVisible);
 
-        keepLoggedIn.setVisible(!adminMode);
+        passwordLabel.setVisible(normalFieldsVisible);
+        passwordField.setVisible(normalFieldsVisible);
 
-        signUpButton.setVisible(!adminMode);
-
-        if (adminMode) {
-            usernameField.setText("");
-            passwordField.setText("");
-            keepLoggedIn.setSelected(false);
-            adminKeyField.setText("");
-        } else {
-            adminKeyField.setText("");
-        }
+        keepLoggedIn.setVisible(!qrAdminMode && !categoryAdminMode);
+        signUpButton.setVisible(!qrAdminMode && !categoryAdminMode);
 
         adminPanel.getParent().revalidate();
         adminPanel.getParent().repaint();
-        this.revalidate();
-        this.repaint();
+        revalidate();
+        repaint();
     }
 
+    /**
+     * Loads remembered username from preferences when enabled.
+     */
     private void loadRememberedUser() {
         boolean remember = prefs.getBoolean(PREF_REMEMBER, false);
         keepLoggedIn.setSelected(remember);
@@ -290,17 +327,17 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Performs login and navigates based on role.
+     * Performs login based on the current mode and navigates to the appropriate screen.
      */
     private void login() {
+        boolean qrAdminMode = loginAsQrAdmin != null && loginAsQrAdmin.isSelected();
+        boolean categoryAdminMode = loginAsCategoryAdmin != null && loginAsCategoryAdmin.isSelected();
 
-        boolean wantsAdmin = (loginAsAdmin != null && loginAsAdmin.isSelected());
-
-        if (wantsAdmin) {
+        if (qrAdminMode) {
             String key = new String(adminKeyField.getPassword()).trim();
 
             if (!ADMIN_KEY.equals(key)) {
-                JOptionPane.showMessageDialog(this, "Invalid Admin Key.");
+                JOptionPane.showMessageDialog(this, "Invalid QR Admin Key.");
                 return;
             }
 
@@ -318,72 +355,65 @@ public class LoginFrame extends JFrame {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
 
-        if (authService.login(username, password)) {
+        if (!authService.login(username, password)) {
+            JOptionPane.showMessageDialog(this, "Invalid credentials.");
+            return;
+        }
 
-            if (authService.getCurrentUser() instanceof Provider) {
-                new ProviderInboxFrame(authService, repo).setVisible(true);
-                dispose();
+        if (authService.getCurrentUser() instanceof Administrator) {
+            String u = authService.getCurrentUser().getUsername();
+            boolean isBigAdmin = u != null && u.equalsIgnoreCase("admin");
+
+            if (!isBigAdmin && !categoryAdminMode) {
+                authService.logout();
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Category Admin login is blocked here.\n" +
+                                "Please enable \"Login for Category Admin\" to continue."
+                );
                 return;
             }
 
-            if (keepLoggedIn.isSelected()) {
-                prefs.putBoolean(PREF_REMEMBER, true);
-                prefs.put(PREF_USERNAME, username != null ? username.trim() : "");
-            } else {
-                prefs.putBoolean(PREF_REMEMBER, false);
-                prefs.remove(PREF_USERNAME);
-            }
-
-            ReminderService reminder = new ReminderService(repo, authService, 60);
-            reminder.start();
-
-            new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
+            new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
             dispose();
-
-        } else {
-            JOptionPane.showMessageDialog(this, "Invalid credentials.");
+            return;
         }
+
+        if (authService.getCurrentUser() instanceof Provider) {
+            new ProviderInboxFrame(authService, repo).setVisible(true);
+            dispose();
+            return;
+        }
+
+        if (categoryAdminMode) {
+            authService.logout();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "This mode is only for Category Admin accounts.\n" +
+                            "Please uncheck \"Login for Category Admin\" to login as a user."
+            );
+            return;
+        }
+
+        if (keepLoggedIn.isSelected()) {
+            prefs.putBoolean(PREF_REMEMBER, true);
+            prefs.put(PREF_USERNAME, username != null ? username.trim() : "");
+        } else {
+            prefs.putBoolean(PREF_REMEMBER, false);
+            prefs.remove(PREF_USERNAME);
+        }
+
+        ReminderService reminder = new ReminderService(repo, authService, 60);
+        reminder.start();
+
+        new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
+        dispose();
     }
 
+    /**
+     * Opens the sign-up window.
+     */
     private void openSignUp() {
         new SignUpFrame(authService).setVisible(true);
-    }
-
-    @SuppressWarnings("unused")
-    private void openForgotPasswordDialog() {
-        String u = JOptionPane.showInputDialog(
-                this,
-                "Enter your username:",
-                "Forgot Password",
-                JOptionPane.QUESTION_MESSAGE
-        );
-
-        if (u == null) return;
-        u = u.trim();
-        if (u.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Username cannot be empty.");
-            return;
-        }
-
-        User found = null;
-        for (User user : repo.getUsers()) {
-            if (user.getUsername().equalsIgnoreCase(u)) {
-                found = user;
-                break;
-            }
-        }
-
-        if (found == null) {
-            JOptionPane.showMessageDialog(this,
-                    "No account found with this username.",
-                    "Not found",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        JOptionPane.showMessageDialog(this,
-                "Your password is: " + found.getPassword(),
-                "Password Recovery",
-                JOptionPane.INFORMATION_MESSAGE);
     }
 }
