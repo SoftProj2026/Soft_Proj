@@ -80,7 +80,6 @@ public class ProviderInboxFrame extends JFrame {
         getContentPane().setBackground(UITheme.BG);
         setLayout(new BorderLayout(12, 12));
 
-        // Header
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(Color.WHITE);
         header.setBorder(new EmptyBorder(12, 12, 12, 12));

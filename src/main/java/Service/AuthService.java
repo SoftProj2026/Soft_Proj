@@ -48,6 +48,26 @@ public class AuthService {
      * (case-insensitive) and password matches exactly.
      * </p>
      */
+    /**
+     * Logs in directly by username (no password check).
+     * Intended for Category Admin Key-based login after UI validation.
+     *
+     * @param username username to login as
+     * @return true if user exists and was logged in; false otherwise
+     */
+    public boolean loginAsUser(String username) {
+        if (username == null) return false;
+        String u = username.trim();
+        if (u.isEmpty()) return false;
+
+        for (User user : repo.getUsers()) {
+            if (user != null && user.getUsername() != null && user.getUsername().equalsIgnoreCase(u)) {
+                currentUser = user;
+                return true;
+            }
+        }
+        return false;
+    }
     public boolean login(String username, String password) {
         if (username == null || password == null) return false;
 

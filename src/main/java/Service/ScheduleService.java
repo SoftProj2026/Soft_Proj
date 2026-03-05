@@ -35,8 +35,6 @@ public class ScheduleService {
      * @return list of available slots
      * @throws IllegalStateException if the user is not logged in
      */
-  //US1.5 - Logged-in user can view available time slots only
-  //Booked slots must not appear in the list
 
     public List<TimeSlot> getAvailableSlots() {
 

@@ -1,15 +1,20 @@
 package presentation;
 
 import Service.AuthService;
+import Service.BookingRequestService;
 import Service.BookingService;
 import Service.ReminderService;
 import domain.Administrator;
+import domain.Category;
 import domain.Provider;
 import persistence.DataRepository;
+import persistence.RepoStorage;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.net.URL;
 import java.util.prefs.Preferences;
 
@@ -20,7 +25,7 @@ import java.util.prefs.Preferences;
  * </p>
  * <ul>
  *   <li><b>Normal Login</b>: username/password for regular users and providers.</li>
- *   <li><b>Login for Category Admin</b>: username/password for category-admin accounts only.</li>
+ *   <li><b>Login for Category Admin</b>: select category + enter Category Admin Key (no username/password).</li>
  *   <li><b>QR Admin for Company</b>: admin-key mode that logs in as the "admin" account.</li>
  * </ul>
  *
@@ -60,6 +65,12 @@ public class LoginFrame extends JFrame {
     private JLabel adminKeyLabel;
     private JPanel adminPanel;
 
+    private JPanel categoryAdminPanel;
+    private JComboBox<Category> categoryBox;
+    private JPasswordField categoryKeyField;
+    private JLabel categoryLabel;
+    private JLabel categoryKeyLabel;
+
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
 
     private JLabel usernameLabel;
@@ -78,6 +89,15 @@ public class LoginFrame extends JFrame {
         this.repo = repo;
 
         initUI();
+
+        // Save on close (persist data.json)
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                RepoStorage.save(repo);
+            }
+        });
+
         loadRememberedUser();
         attachHandlers();
         applyMode();
@@ -103,7 +123,7 @@ public class LoginFrame extends JFrame {
         card.setOpaque(true);
         card.setBackground(new Color(0, 0, 0, 140));
         card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setPreferredSize(new Dimension(560, 390));
+        card.setPreferredSize(new Dimension(560, 410));
 
         JLabel title = new JLabel("Login", SwingConstants.CENTER);
         title.setForeground(Color.WHITE);
@@ -118,6 +138,7 @@ public class LoginFrame extends JFrame {
         c.insets = new Insets(8, 8, 8, 8);
         c.fill = GridBagConstraints.HORIZONTAL;
 
+        // Normal login fields
         usernameField = new JTextField(18);
         passwordField = new JPasswordField(18);
 
@@ -205,12 +226,61 @@ public class LoginFrame extends JFrame {
 
         adminPanel.setVisible(false);
 
+        categoryAdminPanel = new JPanel(new GridBagLayout());
+        categoryAdminPanel.setOpaque(false);
+
+        GridBagConstraints ca = new GridBagConstraints();
+        ca.insets = new Insets(8, 8, 8, 8);
+        ca.fill = GridBagConstraints.HORIZONTAL;
+
+        categoryLabel = labelWhite("Category:");
+        categoryKeyLabel = labelWhite("Category Admin Key:");
+
+        categoryBox = new JComboBox<>();
+        categoryBox.setFont(categoryBox.getFont().deriveFont(14.5f));
+        categoryBox.setBackground(new Color(255, 255, 255, 235));
+        categoryBox.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        categoryBox.setPreferredSize(new Dimension(260, 36));
+
+        for (Category cat : repo.getCategories()) {
+            categoryBox.addItem(cat);
+        }
+
+        categoryKeyField = new JPasswordField(18);
+        styleField(categoryKeyField);
+
+        ca.gridx = 0;
+        ca.gridy = 0;
+        ca.weightx = 0;
+        ca.anchor = GridBagConstraints.WEST;
+        categoryAdminPanel.add(categoryLabel, ca);
+
+        ca.gridx = 1;
+        ca.gridy = 0;
+        ca.weightx = 1;
+        categoryAdminPanel.add(categoryBox, ca);
+
+        ca.gridx = 0;
+        ca.gridy = 1;
+        ca.weightx = 0;
+        categoryAdminPanel.add(categoryKeyLabel, ca);
+
+        ca.gridx = 1;
+        ca.gridy = 1;
+        ca.weightx = 1;
+        categoryAdminPanel.add(categoryKeyField, ca);
+
+        categoryAdminPanel.setVisible(false);
+
         c.gridx = 0;
         c.gridy = 5;
         c.weightx = 1;
         c.gridwidth = 2;
         c.anchor = GridBagConstraints.WEST;
         form.add(adminPanel, c);
+
+        c.gridy = 6;
+        form.add(categoryAdminPanel, c);
 
         c.gridwidth = 1;
 
@@ -235,9 +305,6 @@ public class LoginFrame extends JFrame {
 
     /**
      * Creates a white label for dark backgrounds.
-     *
-     * @param text label text
-     * @return label component
      */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
@@ -247,8 +314,6 @@ public class LoginFrame extends JFrame {
 
     /**
      * Styles an input component.
-     *
-     * @param field input component
      */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
@@ -292,8 +357,9 @@ public class LoginFrame extends JFrame {
         boolean categoryAdminMode = loginAsCategoryAdmin != null && loginAsCategoryAdmin.isSelected();
 
         adminPanel.setVisible(qrAdminMode);
+        categoryAdminPanel.setVisible(categoryAdminMode);
 
-        boolean normalFieldsVisible = !qrAdminMode;
+        boolean normalFieldsVisible = !qrAdminMode && !categoryAdminMode;
 
         usernameLabel.setVisible(normalFieldsVisible);
         usernameField.setVisible(normalFieldsVisible);
@@ -301,8 +367,8 @@ public class LoginFrame extends JFrame {
         passwordLabel.setVisible(normalFieldsVisible);
         passwordField.setVisible(normalFieldsVisible);
 
-        keepLoggedIn.setVisible(!qrAdminMode && !categoryAdminMode);
-        signUpButton.setVisible(!qrAdminMode && !categoryAdminMode);
+        keepLoggedIn.setVisible(normalFieldsVisible);
+        signUpButton.setVisible(normalFieldsVisible);
 
         adminPanel.getParent().revalidate();
         adminPanel.getParent().repaint();
@@ -347,6 +413,44 @@ public class LoginFrame extends JFrame {
                 return;
             }
 
+            RepoStorage.save(repo);
+            new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+            dispose();
+            return;
+        }
+
+        if (categoryAdminMode) {
+            Category selected = (Category) categoryBox.getSelectedItem();
+            if (selected == null) {
+                JOptionPane.showMessageDialog(this, "Please select a category first.");
+                return;
+            }
+
+            String inputKey = new String(categoryKeyField.getPassword()).trim();
+            if (inputKey.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter Category Admin Key.");
+                return;
+            }
+
+            String expectedKey = BookingRequestService.categoryAdminKey(selected); 
+            if (!expectedKey.equalsIgnoreCase(inputKey)) {
+                JOptionPane.showMessageDialog(this, "Invalid Category Admin Key for this category.");
+                return;
+            }
+
+            String adminUsername = BookingRequestService.categoryAdminUsername(selected); 
+
+            boolean ok = authService.loginAsUser(adminUsername);
+            if (!ok) {
+                JOptionPane.showMessageDialog(this,
+                        "Category admin account not found for this category.\n" +
+                                "If you have old saved data, delete:\n" +
+                                "%USERPROFILE%\\.Soft_Proj\\data.json\n" +
+                                "Then run the app again.");
+                return;
+            }
+
+            RepoStorage.save(repo);
             new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
             dispose();
             return;
@@ -364,7 +468,7 @@ public class LoginFrame extends JFrame {
             String u = authService.getCurrentUser().getUsername();
             boolean isBigAdmin = u != null && u.equalsIgnoreCase("admin");
 
-            if (!isBigAdmin && !categoryAdminMode) {
+            if (!isBigAdmin) {
                 authService.logout();
                 JOptionPane.showMessageDialog(
                         this,
@@ -374,24 +478,16 @@ public class LoginFrame extends JFrame {
                 return;
             }
 
+            RepoStorage.save(repo);
             new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
             dispose();
             return;
         }
 
         if (authService.getCurrentUser() instanceof Provider) {
+            RepoStorage.save(repo);
             new ProviderInboxFrame(authService, repo).setVisible(true);
             dispose();
-            return;
-        }
-
-        if (categoryAdminMode) {
-            authService.logout();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "This mode is only for Category Admin accounts.\n" +
-                            "Please uncheck \"Login for Category Admin\" to login as a user."
-            );
             return;
         }
 
@@ -406,6 +502,7 @@ public class LoginFrame extends JFrame {
         ReminderService reminder = new ReminderService(repo, authService, 60);
         reminder.start();
 
+        RepoStorage.save(repo);
         new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
         dispose();
     }

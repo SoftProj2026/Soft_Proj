@@ -9,7 +9,7 @@ import domain.AppointmentStatus;
 import domain.Category;
 import domain.TimeSlot;
 import persistence.DataRepository;
-
+import Service.BookingResult;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -17,6 +17,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -85,6 +86,12 @@ public class UnifiedBookingFrame extends JFrame {
     /** Row foreground color for busy/unavailable rows. */
     private static final Color ROW_BAD_FG = new Color(180, 30, 30);
 
+    /** NEW: Row background color for past time rows. */
+    private static final Color ROW_PAST_BG = new Color(240, 240, 240);
+
+    /** NEW: Row foreground color for past time rows. */
+    private static final Color ROW_PAST_FG = new Color(120, 120, 120);
+
     /** Working day start hour. */
     private static final LocalTime START_HOUR = LocalTime.of(9, 0);
 
@@ -125,14 +132,6 @@ public class UnifiedBookingFrame extends JFrame {
     private final DateTimeFormatter dayNameFmt = DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH);
     private final DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
 
-    /**
-     * Creates the unified booking window for a given category.
-     *
-     * @param auth     authentication service
-     * @param booking  booking service (not used to confirm directly in this window)
-     * @param repo     data repository
-     * @param category selected category
-     */
     public UnifiedBookingFrame(AuthService auth, BookingService booking, DataRepository repo, Category category) {
         this.auth = auth;
         this.booking = booking;
@@ -169,11 +168,6 @@ public class UnifiedBookingFrame extends JFrame {
         reloadAll();
     }
 
-    /**
-     * Builds the top header panel containing the title and instructions.
-     *
-     * @return header panel
-     */
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(Color.WHITE);
@@ -191,11 +185,6 @@ public class UnifiedBookingFrame extends JFrame {
         return header;
     }
 
-    /**
-     * Builds the main 3-column layout.
-     *
-     * @return columns container panel
-     */
     private JPanel buildColumns() {
         JPanel cols = new JPanel(new GridLayout(1, 3, 12, 12));
         cols.setBorder(new EmptyBorder(0, 14, 0, 14));
@@ -208,11 +197,6 @@ public class UnifiedBookingFrame extends JFrame {
         return cols;
     }
 
-    /**
-     * Builds the "Company Available" card.
-     *
-     * @return company card panel
-     */
     private JPanel buildCompanyCard() {
         JPanel card = createCardShell();
 
@@ -229,11 +213,6 @@ public class UnifiedBookingFrame extends JFrame {
         return card;
     }
 
-    /**
-     * Builds the "My Free Slots" card.
-     *
-     * @return my-free card panel
-     */
     private JPanel buildMyCard() {
         JPanel card = createCardShell();
 
@@ -250,11 +229,6 @@ public class UnifiedBookingFrame extends JFrame {
         return card;
     }
 
-    /**
-     * Builds the "Mutual Slots (Send Request)" card.
-     *
-     * @return mutual card panel
-     */
     private JPanel buildMutualCard() {
         JPanel card = createCardShell();
 
@@ -277,11 +251,6 @@ public class UnifiedBookingFrame extends JFrame {
         return card;
     }
 
-    /**
-     * Creates a card container with border and padding.
-     *
-     * @return card panel
-     */
     private JPanel createCardShell() {
         JPanel outer = new JPanel(new BorderLayout(10, 10));
         outer.setBackground(Color.WHITE);
@@ -292,12 +261,6 @@ public class UnifiedBookingFrame extends JFrame {
         return outer;
     }
 
-    /**
-     * Builds a card header block.
-     *
-     * @param titleText title label text
-     * @return header panel
-     */
     private JPanel buildCardHeader(String titleText) {
         JPanel header = new JPanel();
         header.setOpaque(false);
@@ -311,12 +274,6 @@ public class UnifiedBookingFrame extends JFrame {
         return header;
     }
 
-    /**
-     * Wraps a list panel with a white-background scroll pane.
-     *
-     * @param list list panel
-     * @return scroll pane
-     */
     private JScrollPane wrapScroll(JPanel list) {
         JScrollPane scroll = new JScrollPane(list);
         scroll.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
@@ -324,11 +281,6 @@ public class UnifiedBookingFrame extends JFrame {
         return scroll;
     }
 
-    /**
-     * Builds the bottom action bar.
-     *
-     * @return bottom panel
-     */
     private JPanel buildBottomBar() {
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         bottom.setBackground(BG);
@@ -344,19 +296,10 @@ public class UnifiedBookingFrame extends JFrame {
         return bottom;
     }
 
-    /**
-     * Formats a day selector button label in English.
-     *
-     * @param d date to format
-     * @return formatted label
-     */
     private String formatDayButton(LocalDate d) {
         return d.format(dayNameFmt) + " " + d.getDayOfMonth() + "/" + d.getMonthValue();
     }
 
-    /**
-     * Renders the day selector bars for all three columns.
-     */
     private void renderDayBars() {
         companyDayBarWrap.removeAll();
         myDayBarWrap.removeAll();
@@ -385,13 +328,6 @@ public class UnifiedBookingFrame extends JFrame {
         mutualDayBarWrap.revalidate();
     }
 
-    /**
-     * Builds a day selector bar for a column.
-     *
-     * @param selected currently selected date
-     * @param onSelect selection handler
-     * @return day bar panel
-     */
     private JPanel buildDayBarFor(LocalDate selected, java.util.function.Consumer<LocalDate> onSelect) {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         bar.setOpaque(false);
@@ -405,12 +341,6 @@ public class UnifiedBookingFrame extends JFrame {
         return bar;
     }
 
-    /**
-     * Styles a day button consistently.
-     *
-     * @param b        day button
-     * @param selected selected flag
-     */
     private void styleDayButton(JButton b, boolean selected) {
         b.setFocusPainted(false);
         b.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -429,9 +359,6 @@ public class UnifiedBookingFrame extends JFrame {
         }
     }
 
-    /**
-     * Reloads day bars and all columns.
-     */
     private void reloadAll() {
         renderDayBars();
         reloadCompany();
@@ -439,13 +366,6 @@ public class UnifiedBookingFrame extends JFrame {
         reloadMutual();
     }
 
-    /**
-     * Attempts to close the window.
-     * <p>
-     * If the current user has exactly one confirmed booking in the category,
-     * closing is blocked to preserve the MAIN/EMERGENCY business rule.
-     * </p>
-     */
     private void attemptClose() {
         long confirmed = countConfirmedForThisCategory();
         if (confirmed == 1) {
@@ -461,11 +381,6 @@ public class UnifiedBookingFrame extends JFrame {
         dispose();
     }
 
-    /**
-     * Counts confirmed bookings for the current user in the selected category.
-     *
-     * @return number of confirmed bookings
-     */
     private long countConfirmedForThisCategory() {
         if (!auth.isLoggedIn()) return 0;
         String user = auth.getCurrentUser().getUsername();
@@ -478,12 +393,6 @@ public class UnifiedBookingFrame extends JFrame {
                 .count();
     }
 
-    /**
-     * Checks whether the current user has any confirmed appointment overlapping a slot.
-     *
-     * @param slot slot to test
-     * @return true if the user is busy; false otherwise
-     */
     private boolean isUserBusy(TimeSlot slot) {
         if (slot == null) return false;
         if (!auth.isLoggedIn()) return false;
@@ -507,13 +416,6 @@ public class UnifiedBookingFrame extends JFrame {
         return false;
     }
 
-    /**
-     * Finds a repository slot for this category at the given day and hour.
-     *
-     * @param date target date
-     * @param hour target hour
-     * @return matching slot or null if not found
-     */
     private TimeSlot findRepoSlot(LocalDate date, LocalTime hour) {
         for (TimeSlot slot : repo.getSlots()) {
             if (slot == null || slot.getStartDateTime() == null) continue;
@@ -528,12 +430,6 @@ public class UnifiedBookingFrame extends JFrame {
         return null;
     }
 
-    /**
-     * Adds a styled break row to a list panel.
-     *
-     * @param panel list panel
-     * @param label row label
-     */
     private void addBreakRow(JPanel panel, String label) {
         JLabel row = styledLabel(label, ROW_BREAK_BG, ROW_BREAK_FG);
         row.setToolTipText("Break time (12:00 - 13:00).");
@@ -541,9 +437,14 @@ public class UnifiedBookingFrame extends JFrame {
         panel.add(Box.createVerticalStrut(8));
     }
 
-    /**
-     * Reloads the "Company Available" column.
-     */
+    /** NEW: Adds a past-time row (disabled style). */
+    private void addPastRow(JPanel panel, String label) {
+        JLabel row = styledLabel(label, ROW_PAST_BG, ROW_PAST_FG);
+        row.setToolTipText("Past time - not bookable.");
+        panel.add(row);
+        panel.add(Box.createVerticalStrut(8));
+    }
+
     private void reloadCompany() {
         companyListPanel.removeAll();
 
@@ -582,9 +483,6 @@ public class UnifiedBookingFrame extends JFrame {
         refreshPanel(companyListPanel);
     }
 
-    /**
-     * Reloads the "My Free Slots" column.
-     */
     private void reloadMy() {
         myListPanel.removeAll();
 
@@ -622,9 +520,6 @@ public class UnifiedBookingFrame extends JFrame {
         refreshPanel(myListPanel);
     }
 
-    /**
-     * Reloads the "Mutual Slots (Send Request)" column.
-     */
     private void reloadMutual() {
         mutualListPanel.removeAll();
         selectedMutualSlot = null;
@@ -652,6 +547,8 @@ public class UnifiedBookingFrame extends JFrame {
             return;
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
         LocalTime t = START_HOUR;
         int countBookable = 0;
 
@@ -668,6 +565,13 @@ public class UnifiedBookingFrame extends JFrame {
                 JLabel row = styledLabel(t.format(timeFmt) + "  (No slot)", ROW_BAD_BG, ROW_BAD_FG);
                 mutualListPanel.add(row);
                 mutualListPanel.add(Box.createVerticalStrut(8));
+                t = t.plusHours(1);
+                continue;
+            }
+
+            boolean isPast = slot.getStartDateTime() != null && slot.getStartDateTime().isBefore(now);
+            if (isPast) {
+                addPastRow(mutualListPanel, t.format(timeFmt) + "  (Past - Not bookable)");
                 t = t.plusHours(1);
                 continue;
             }
@@ -715,12 +619,6 @@ public class UnifiedBookingFrame extends JFrame {
         refreshPanel(mutualListPanel);
     }
 
-    /**
-     * Creates a simple message label for list panels.
-     *
-     * @param msg message text
-     * @return label component
-     */
     private JLabel simpleMsg(String msg) {
         JLabel l = new JLabel(msg);
         l.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -728,14 +626,6 @@ public class UnifiedBookingFrame extends JFrame {
         return l;
     }
 
-    /**
-     * Creates a styled list row label.
-     *
-     * @param text row text
-     * @param bg   background color
-     * @param fg   foreground color
-     * @return label component
-     */
     private JLabel styledLabel(String text, Color bg, Color fg) {
         JLabel l = new JLabel(text);
         l.setOpaque(true);
@@ -746,25 +636,11 @@ public class UnifiedBookingFrame extends JFrame {
         return l;
     }
 
-    /**
-     * Revalidates and repaints a panel after updates.
-     *
-     * @param p panel to refresh
-     */
     private void refreshPanel(JPanel p) {
         p.revalidate();
         p.repaint();
     }
 
-    /**
-     * Prompts the user for an integer value within an inclusive range.
-     *
-     * @param title   dialog title
-     * @param message dialog message
-     * @param min     minimum allowed value
-     * @param max     maximum allowed value
-     * @return value, or null if cancelled
-     */
     private Integer promptIntInRange(String title, String message, int min, int max) {
         while (true) {
             String input = JOptionPane.showInputDialog(this, message, title, JOptionPane.QUESTION_MESSAGE);
@@ -795,12 +671,6 @@ public class UnifiedBookingFrame extends JFrame {
         }
     }
 
-    /**
-     * Sends a booking request for the selected mutual slot.
-     * <p>
-     * The slot is held while the request is pending approvals.
-     * </p>
-     */
     private void bookSelectedMutual() {
         if (!auth.isLoggedIn()) {
             DialogUtil.show(this, "Login Required", "You must login first.", DialogUtil.Type.WARNING);
@@ -809,6 +679,16 @@ public class UnifiedBookingFrame extends JFrame {
 
         if (selectedMutualSlot == null) {
             DialogUtil.show(this, "No Slot Selected", "Please select a mutual slot first!", DialogUtil.Type.WARNING);
+            return;
+        }
+
+        // NEW: hard guard (even though UI disables, still protect)
+        if (selectedMutualSlot.getStartDateTime() != null
+                && selectedMutualSlot.getStartDateTime().isBefore(LocalDateTime.now())) {
+            DialogUtil.show(this, "Not Allowed", "You cannot book a past time slot.", DialogUtil.Type.ERROR);
+            selectedMutualSlot = null;
+            mutualGroup.clearSelection();
+            reloadMutual();
             return;
         }
 

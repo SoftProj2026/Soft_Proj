@@ -6,87 +6,42 @@ import domain.TimeSlot;
 import domain.User;
 import persistence.DataRepository;
 
-/**
- * Service responsible for creating booking requests and computing category-admin usernames.
- */
+import java.time.LocalDateTime;
+
 public class BookingRequestService {
 
     private final DataRepository repo;
 
-    /**
-     * Creates the booking request service.
-     *
-     * @param repo repository used to store and query requests and appointments
-     */
     public BookingRequestService(DataRepository repo) {
         this.repo = repo;
     }
 
-    /**
-     * Generates a stable short username for a category admin.
-     * <p>
-     * Format:
-     * </p>
-     * <ul>
-     *   <li>Base acronym: first letter of each word</li>
-     *   <li>Stable suffix: 2-digit code derived from the normalized category name</li>
-     *   <li>Final: {@code acronym + code + "123"}</li>
-     * </ul>
-     *
-     * <p>
-     * This approach avoids collisions without relying on runtime state or category order.
-     * </p>
-     *
-     * @param category category
-     * @return stable category admin username
-     */
-    public static String categoryAdminUsername(Category category) {
+    public static String categoryAdminKey(Category category) {
         String raw = (category != null && category.getName() != null) ? category.getName() : "";
-        String cleaned = raw.toLowerCase()
-                .replaceAll("[^a-z0-9 ]", " ")
+        String cleaned = raw
+                .replaceAll("[^A-Za-z0-9 ]", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
 
-        if (cleaned.isEmpty()) return "cat00123";
+        if (cleaned.isEmpty()) return "CA123";
 
         String[] words = cleaned.split(" ");
         StringBuilder acronym = new StringBuilder();
         for (String w : words) {
-            if (!w.isEmpty()) acronym.append(w.charAt(0));
+            if (!w.isEmpty()) acronym.append(Character.toUpperCase(w.charAt(0)));
         }
 
-        if (acronym.length() == 0) acronym.append("cat");
+        if (acronym.length() == 0) acronym.append("CA");
+        return acronym + "123";
+    }
 
-        String normNoSpaces = cleaned.replace(" ", "");
-        int h = stableHash(normNoSpaces);
-        int code = Math.abs(h) % 100;
-        String code2 = String.format("%02d", code);
-
-        return acronym + code2 + "123";
+    public static String categoryAdminUsername(Category category) {
+        return categoryAdminKey(category).toLowerCase();
     }
 
     /**
-     * Computes a stable hash value for a string (deterministic across runs).
-     *
-     * @param s input string
-     * @return hash value
-     */
-    private static int stableHash(String s) {
-        int hash = 0;
-        for (int i = 0; i < s.length(); i++) {
-            hash = (hash * 31) + s.charAt(i);
-        }
-        return hash;
-    }
-
-    /**
-     * Submits a booking request and holds the slot if accepted.
-     *
-     * @param requester         user submitting the request
-     * @param slot              requested time slot
-     * @param durationInMinutes duration in minutes
-     * @param participants      number of participants
-     * @return booking result (success + message)
+     * IMPORTANT: return type is Service.BookingResult (your project class),
+     * not an inner BookingResult.
      */
     public BookingResult submitRequest(User requester,
                                        TimeSlot slot,
@@ -95,6 +50,10 @@ public class BookingRequestService {
 
         if (requester == null || slot == null || slot.getCategory() == null) {
             return new BookingResult(false, "Invalid request (missing user/slot/category).");
+        }
+
+        if (slot.getStartDateTime() != null && slot.getStartDateTime().isBefore(LocalDateTime.now())) {
+            return new BookingResult(false, "You cannot book a past time slot.");
         }
 
         if (!slot.isAvailable()) {
@@ -111,7 +70,8 @@ public class BookingRequestService {
         long pending = repo.countPendingRequestsForUserCategory(username, categoryName);
 
         if (confirmed + pending >= 2) {
-            return new BookingResult(false, "Not allowed: you already have MAIN + EMERGENCY (confirmed or pending) in this category.");
+            return new BookingResult(false,
+                    "Not allowed: you already have MAIN + EMERGENCY (confirmed or pending) in this category.");
         }
 
         String catAdmin = categoryAdminUsername(slot.getCategory());
@@ -127,9 +87,6 @@ public class BookingRequestService {
         slot.hold(r.getId());
         repo.addBookingRequest(r);
 
-        return new BookingResult(
-                true,
-                "Request submitted to category admin @" + catAdmin + ". Status: PENDING_CATEGORY_ADMIN"
-        );
+        return new BookingResult(true, "Request submitted. Status: PENDING_CATEGORY_ADMIN");
     }
 }

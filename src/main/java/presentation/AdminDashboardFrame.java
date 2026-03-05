@@ -4,6 +4,7 @@ import Service.AuthService;
 import Service.BookingService;
 import domain.Administrator;
 import persistence.DataRepository;
+import persistence.RepoStorage;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -82,6 +83,8 @@ public class AdminDashboardFrame extends JFrame {
 
         JButton logout = new JButton("Logout");
         logout.addActionListener(e -> {
+            RepoStorage.save(repo);
+
             auth.logout();
             new LoginFrame(auth, booking, repo).setVisible(true);
             dispose();

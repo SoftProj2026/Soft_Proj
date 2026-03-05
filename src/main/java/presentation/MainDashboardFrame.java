@@ -5,6 +5,7 @@ import Service.BookingService;
 import Service.ReminderService;
 import domain.Category;
 import persistence.DataRepository;
+import persistence.RepoStorage;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -89,9 +90,7 @@ public class MainDashboardFrame extends JFrame {
         List<Category> cats = repo.getCategories();
         for (Category c : cats) {
             JButton btn = createCategoryButton(c.getName());
-            btn.addActionListener(e -> {
-                new UnifiedBookingFrame(auth, booking, repo, c).setVisible(true);
-            });
+            btn.addActionListener(e -> new UnifiedBookingFrame(auth, booking, repo, c).setVisible(true));
             categoryPanel.add(btn);
         }
 
@@ -117,6 +116,9 @@ public class MainDashboardFrame extends JFrame {
         logoutBtn.addActionListener(e -> {
             if (reminder != null) reminder.stop();
 
+            // NEW: persist repo before logout
+            RepoStorage.save(repo);
+
             auth.logout();
             new LoginFrame(auth, booking, repo).setVisible(true);
             dispose();
@@ -131,10 +133,6 @@ public class MainDashboardFrame extends JFrame {
 
     /**
      * Creates a consistently styled category button used in the grid.
-     * <p>
-     * The button label is the category name. Clicking it opens {@link UnifiedBookingFrame}
-     * for that category.
-     * </p>
      *
      * @param text button label (category name)
      * @return configured Swing button
