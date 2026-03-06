@@ -2,7 +2,6 @@ package presentation;
 
 import Service.AuthService;
 import Service.BookingService;
-import Service.ReminderService;
 import domain.Category;
 import persistence.DataRepository;
 import persistence.RepoStorage;
@@ -45,11 +44,6 @@ public class MainDashboardFrame extends JFrame {
     /** Repository containing categories, slots, appointments, and providers. */
     private final DataRepository repo;
 
-    /**
-     * Reminder service used to stop reminder notifications when the user logs out.
-     * This may be {@code null} (depending on how the app is started).
-     */
-    private final ReminderService reminder;
 
     /** Background color used for the dashboard. */
     private static final Color BG = new Color(245, 248, 255);
@@ -67,13 +61,12 @@ public class MainDashboardFrame extends JFrame {
      */
     public MainDashboardFrame(AuthService auth,
                               BookingService booking,
-                              DataRepository repo,
-                              ReminderService reminder) {
+                              DataRepository repo
+                           ) {
 
         this.auth = auth;
         this.booking = booking;
         this.repo = repo;
-        this.reminder = reminder;
 
         setTitle("Booking Dashboard");
         setSize(1100, 650);
@@ -109,12 +102,11 @@ public class MainDashboardFrame extends JFrame {
 
         JButton myBookingsBtn = new JButton("My Bookings");
         myBookingsBtn.addActionListener(e ->
-                new MyBookingsFrame(auth, repo, reminder).setVisible(true)
+                new MyBookingsFrame(auth, repo).setVisible(true)
         );
 
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> {
-            if (reminder != null) reminder.stop();
 
             // NEW: persist repo before logout
             RepoStorage.save(repo);

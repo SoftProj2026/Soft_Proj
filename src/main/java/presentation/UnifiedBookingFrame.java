@@ -9,7 +9,7 @@ import domain.AppointmentStatus;
 import domain.Category;
 import domain.TimeSlot;
 import persistence.DataRepository;
-import Service.BookingResult;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -32,18 +32,20 @@ import java.util.Locale;
  *   <li><b>Mutual Slots (Send Request)</b>: bookable hours where company is available and user is free</li>
  * </ol>
  *
- * <p>
  * Booking behavior:
- * </p>
  * <ul>
  *   <li>The user does <b>not</b> confirm an appointment directly.</li>
  *   <li>Clicking "Book Selected Slot" submits a booking request via {@link BookingRequestService}.</li>
  *   <li>The selected slot is held while the request is pending approvals.</li>
  * </ul>
  *
- * <p>
  * Working hours are 09:00 to 16:00 inclusive, with a break at 12:00 that is not bookable.
- * </p>
+ *
+ * IMPORTANT (Updated):
+ * - The "MAIN + EMERGENCY" rule is enforced using BOTH:
+ *   confirmed appointments + pending booking requests (active count).
+ * - After submitting the first request, user is prompted to submit EMERGENCY.
+ * - Third request is blocked if user already has 2 active (pending+confirmed) in that category.
  */
 public class UnifiedBookingFrame extends JFrame {
 
@@ -86,10 +88,10 @@ public class UnifiedBookingFrame extends JFrame {
     /** Row foreground color for busy/unavailable rows. */
     private static final Color ROW_BAD_FG = new Color(180, 30, 30);
 
-    /** NEW: Row background color for past time rows. */
+    /** Row background color for past time rows. */
     private static final Color ROW_PAST_BG = new Color(240, 240, 240);
 
-    /** NEW: Row foreground color for past time rows. */
+    /** Row foreground color for past time rows. */
     private static final Color ROW_PAST_FG = new Color(120, 120, 120);
 
     /** Working day start hour. */
@@ -102,14 +104,11 @@ public class UnifiedBookingFrame extends JFrame {
     private static final LocalTime BREAK_HOUR = LocalTime.of(12, 0);
 
     private final AuthService auth;
-
-    private final BookingService booking;
-
+    private final BookingService booking; 
     private final DataRepository repo;
     private final Category category;
 
     private final BookingRequestService requestService;
-
     private final BlockedSlotsRule blockedRule = new BlockedSlotsRule();
 
     private final List<LocalDate> weekDates = new ArrayList<>();
@@ -366,31 +365,35 @@ public class UnifiedBookingFrame extends JFrame {
         reloadMutual();
     }
 
+    /**
+     * ACTIVE = confirmed appointments + pending booking requests (same category for current user).
+     * This is used to enforce the MAIN + EMERGENCY flow even while approvals are pending.
+     */
+    private long countActiveForThisCategory() {
+        if (!auth.isLoggedIn() || auth.getCurrentUser() == null) return 0;
+
+        String user = auth.getCurrentUser().getUsername();
+        String cat = category.getName();
+
+        return repo.countConfirmedForUserCategory(user, cat)
+                + repo.countPendingRequestsForUserCategory(user, cat);
+    }
+
     private void attemptClose() {
-        long confirmed = countConfirmedForThisCategory();
-        if (confirmed == 1) {
+        long active = countActiveForThisCategory();
+
+        if (active == 1) {
             DialogUtil.show(
                     this,
                     "Emergency Required",
-                    "You already booked the MAIN appointment for \"" + category.getName() + "\".\n" +
-                            "Now you must book an EMERGENCY appointment before closing.",
+                    "You submitted the MAIN request for \"" + category.getName() + "\".\n" +
+                            "Now you must submit an EMERGENCY request before closing.",
                     DialogUtil.Type.WARNING
             );
             return;
         }
+
         dispose();
-    }
-
-    private long countConfirmedForThisCategory() {
-        if (!auth.isLoggedIn()) return 0;
-        String user = auth.getCurrentUser().getUsername();
-
-        return repo.getAppointments().stream()
-                .filter(a -> a.getStatus() == AppointmentStatus.CONFIRMED)
-                .filter(a -> a.getUser() != null && a.getUser().getUsername().equalsIgnoreCase(user))
-                .filter(a -> a.getSlot() != null && a.getSlot().getCategory() != null)
-                .filter(a -> a.getSlot().getCategory().getName().equalsIgnoreCase(category.getName()))
-                .count();
     }
 
     private boolean isUserBusy(TimeSlot slot) {
@@ -437,7 +440,6 @@ public class UnifiedBookingFrame extends JFrame {
         panel.add(Box.createVerticalStrut(8));
     }
 
-    /** NEW: Adds a past-time row (disabled style). */
     private void addPastRow(JPanel panel, String label) {
         JLabel row = styledLabel(label, ROW_PAST_BG, ROW_PAST_FG);
         row.setToolTipText("Past time - not bookable.");
@@ -531,18 +533,18 @@ public class UnifiedBookingFrame extends JFrame {
             return;
         }
 
-        long confirmed = countConfirmedForThisCategory();
+        long active = countActiveForThisCategory();
 
         JLabel hint;
-        if (confirmed == 0) hint = simpleMsg("Next CONFIRMED booking will be MAIN for this category (after approvals).");
-        else if (confirmed == 1) hint = simpleMsg("Next CONFIRMED booking MUST be EMERGENCY (required).");
-        else hint = simpleMsg("MAIN + EMERGENCY done. No more confirmed bookings allowed.");
+        if (active == 0) hint = simpleMsg("Next request will be MAIN for this category.");
+        else if (active == 1) hint = simpleMsg("Next request MUST be EMERGENCY (required).");
+        else hint = simpleMsg("MAIN + EMERGENCY already submitted. No more requests allowed.");
 
         hint.setForeground(new Color(90, 100, 115));
         mutualListPanel.add(hint);
         mutualListPanel.add(Box.createVerticalStrut(10));
 
-        if (confirmed >= 2) {
+        if (active >= 2) {
             refreshPanel(mutualListPanel);
             return;
         }
@@ -682,7 +684,6 @@ public class UnifiedBookingFrame extends JFrame {
             return;
         }
 
-        // NEW: hard guard (even though UI disables, still protect)
         if (selectedMutualSlot.getStartDateTime() != null
                 && selectedMutualSlot.getStartDateTime().isBefore(LocalDateTime.now())) {
             DialogUtil.show(this, "Not Allowed", "You cannot book a past time slot.", DialogUtil.Type.ERROR);
@@ -692,12 +693,12 @@ public class UnifiedBookingFrame extends JFrame {
             return;
         }
 
-        long confirmed = countConfirmedForThisCategory();
-        if (confirmed >= 2) {
+        long active = countActiveForThisCategory();
+        if (active >= 2) {
             DialogUtil.show(
                     this,
-                    "Booking Not Allowed",
-                    "You already have MAIN + EMERGENCY for \"" + category.getName() + "\".",
+                    "Request Not Allowed",
+                    "You already have MAIN + EMERGENCY (confirmed or pending) for \"" + category.getName() + "\".",
                     DialogUtil.Type.ERROR
             );
             return;
@@ -733,6 +734,17 @@ public class UnifiedBookingFrame extends JFrame {
         );
 
         if (result.isSuccess()) {
+            long activeNow = countActiveForThisCategory();
+            if (activeNow == 1) {
+                DialogUtil.show(
+                        this,
+                        "Emergency Required",
+                        "MAIN request submitted for \"" + category.getName() + "\".\n" +
+                                "Now please submit an EMERGENCY request.\n" +
+                                "You cannot close until you do.",
+                        DialogUtil.Type.INFO
+                );
+            }
             reloadAll();
         }
     }

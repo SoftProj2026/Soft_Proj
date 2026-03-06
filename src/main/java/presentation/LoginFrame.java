@@ -1,9 +1,12 @@
 package presentation;
 
 import Service.AuthService;
+import Service.BookingEmailReminderService;
 import Service.BookingRequestService;
 import Service.BookingService;
-import Service.ReminderService;
+import Service.EmailReminderScheduler;
+import Service.EmailSender;
+import Service.SmtpEmailSender;
 import domain.Administrator;
 import domain.Category;
 import domain.Provider;
@@ -20,23 +23,14 @@ import java.util.prefs.Preferences;
 
 /**
  * Login window implemented using Swing.
- * <p>
- * Supports three login modes:
- * </p>
- * <ul>
- *   <li><b>Normal Login</b>: username/password for regular users and providers.</li>
- *   <li><b>Login for Category Admin</b>: select category + enter Category Admin Key (no username/password).</li>
- *   <li><b>QR Admin for Company</b>: admin-key mode that logs in as the "admin" account.</li>
- * </ul>
  *
- * <p>
- * Security rule:
- * </p>
- * <ul>
- *   <li>Category admins (administrator accounts other than {@code admin}) are blocked in Normal Login mode.</li>
- *   <li>Category admins may login only when "Login for Category Admin" is selected.</li>
- *   <li>The big admin account {@code admin} may always access the admin dashboard.</li>
- * </ul>
+ * Supports three login modes:
+ * - Normal Login: username/password for regular users and providers.
+ * - Login for Category Admin: select category + enter Category Admin Key (no username/password).
+ * - QR Admin for Company: admin-key mode that logs in as the "admin" account.
+ *
+ * NOTE:
+ * - This class can start an EMAIL reminder scheduler after normal user login.
  */
 public class LoginFrame extends JFrame {
 
@@ -45,6 +39,13 @@ public class LoginFrame extends JFrame {
     private static final String PREF_USERNAME = "remembered_username";
 
     private static final String ADMIN_KEY = "ADMIN2026";
+
+    // Company email (sender identity)
+    private static final String COMPANY_EMAIL = "remaajomaa842@gmail.com";
+
+    // NEW: Put your Gmail App Password (not your normal password)
+    // NOTE: If you don't want env vars, you can hardcode it here (but don't push to GitHub).
+    private static final String COMPANY_APP_PASSWORD = "PUT_GMAIL_APP_PASSWORD_HERE";
 
     private final AuthService authService;
     private final BookingService bookingService;
@@ -76,13 +77,8 @@ public class LoginFrame extends JFrame {
     private JLabel usernameLabel;
     private JLabel passwordLabel;
 
-    /**
-     * Creates the login window.
-     *
-     * @param authService    authentication service
-     * @param bookingService booking service
-     * @param repo           data repository
-     */
+    private EmailReminderScheduler emailScheduler;
+
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
         this.authService = authService;
         this.bookingService = bookingService;
@@ -90,10 +86,13 @@ public class LoginFrame extends JFrame {
 
         initUI();
 
-        // Save on close (persist data.json)
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
+                if (emailScheduler != null) {
+                    emailScheduler.stop();
+                    emailScheduler = null;
+                }
                 RepoStorage.save(repo);
             }
         });
@@ -103,9 +102,6 @@ public class LoginFrame extends JFrame {
         applyMode();
     }
 
-    /**
-     * Initializes and lays out the Swing UI components.
-     */
     private void initUI() {
         setTitle("Login");
         setSize(900, 520);
@@ -138,7 +134,6 @@ public class LoginFrame extends JFrame {
         c.insets = new Insets(8, 8, 8, 8);
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        // Normal login fields
         usernameField = new JTextField(18);
         passwordField = new JPasswordField(18);
 
@@ -303,27 +298,18 @@ public class LoginFrame extends JFrame {
         root.add(card);
     }
 
-    /**
-     * Creates a white label for dark backgrounds.
-     */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
         l.setForeground(Color.WHITE);
         return l;
     }
 
-    /**
-     * Styles an input component.
-     */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
         field.setBackground(new Color(255, 255, 255, 235));
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
-    /**
-     * Attaches UI event handlers.
-     */
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
@@ -349,9 +335,6 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
-    /**
-     * Applies the selected login mode to the UI by showing/hiding relevant controls.
-     */
     private void applyMode() {
         boolean qrAdminMode = loginAsQrAdmin != null && loginAsQrAdmin.isSelected();
         boolean categoryAdminMode = loginAsCategoryAdmin != null && loginAsCategoryAdmin.isSelected();
@@ -376,9 +359,6 @@ public class LoginFrame extends JFrame {
         repaint();
     }
 
-    /**
-     * Loads remembered username from preferences when enabled.
-     */
     private void loadRememberedUser() {
         boolean remember = prefs.getBoolean(PREF_REMEMBER, false);
         keepLoggedIn.setSelected(remember);
@@ -392,124 +372,143 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    /**
-     * Performs login based on the current mode and navigates to the appropriate screen.
-     */
     private void login() {
         boolean qrAdminMode = loginAsQrAdmin != null && loginAsQrAdmin.isSelected();
         boolean categoryAdminMode = loginAsCategoryAdmin != null && loginAsCategoryAdmin.isSelected();
 
-        if (qrAdminMode) {
-            String key = new String(adminKeyField.getPassword()).trim();
+        try {
+            if (qrAdminMode) {
+                String key = new String(adminKeyField.getPassword()).trim();
 
-            if (!ADMIN_KEY.equals(key)) {
-                JOptionPane.showMessageDialog(this, "Invalid QR Admin Key.");
+                if (!ADMIN_KEY.equals(key)) {
+                    JOptionPane.showMessageDialog(this, "Invalid QR Admin Key.");
+                    return;
+                }
+
+                boolean ok = authService.loginAsAdmin();
+                if (!ok) {
+                    JOptionPane.showMessageDialog(this, "Admin account not found in repository.");
+                    return;
+                }
+
+                RepoStorage.save(repo);
+                new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+                dispose();
                 return;
             }
 
-            boolean ok = authService.loginAsAdmin();
-            if (!ok) {
-                JOptionPane.showMessageDialog(this, "Admin account not found in repository.");
+            if (categoryAdminMode) {
+                Category selected = (Category) categoryBox.getSelectedItem();
+                if (selected == null) {
+                    JOptionPane.showMessageDialog(this, "Please select a category first.");
+                    return;
+                }
+
+                String inputKey = new String(categoryKeyField.getPassword()).trim();
+                if (inputKey.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please enter Category Admin Key.");
+                    return;
+                }
+
+                String expectedKey = BookingRequestService.categoryAdminKey(selected);
+                if (!expectedKey.equalsIgnoreCase(inputKey)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Category Admin Key for this category.");
+                    return;
+                }
+
+                String adminUsername = BookingRequestService.categoryAdminUsername(selected);
+
+                boolean ok = authService.loginAsUser(adminUsername);
+                if (!ok) {
+                    JOptionPane.showMessageDialog(this,
+                            "Category admin account not found for this category.\n" +
+                                    "If you have old saved data, delete:\n" +
+                                    "%USERPROFILE%\\.Soft_Proj\\data.json\n" +
+                                    "Then run the app again.");
+                    return;
+                }
+
+                RepoStorage.save(repo);
+                new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+                dispose();
                 return;
             }
+
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
+
+            if (!authService.login(username, password)) {
+                JOptionPane.showMessageDialog(this, "Invalid credentials.");
+                return;
+            }
+
+            if (authService.getCurrentUser() instanceof Administrator) {
+                String u = authService.getCurrentUser().getUsername();
+                boolean isBigAdmin = u != null && u.equalsIgnoreCase("admin");
+
+                if (!isBigAdmin) {
+                    authService.logout();
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Category Admin login is blocked here.\n" +
+                                    "Please enable \"Login for Category Admin\" to continue."
+                    );
+                    return;
+                }
+
+                RepoStorage.save(repo);
+                new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+                dispose();
+                return;
+            }
+
+            if (authService.getCurrentUser() instanceof Provider) {
+                RepoStorage.save(repo);
+                new ProviderInboxFrame(authService, repo).setVisible(true);
+                dispose();
+                return;
+            }
+
+            if (keepLoggedIn.isSelected()) {
+                prefs.putBoolean(PREF_REMEMBER, true);
+                prefs.put(PREF_USERNAME, username != null ? username.trim() : "");
+            } else {
+                prefs.putBoolean(PREF_REMEMBER, false);
+                prefs.remove(PREF_USERNAME);
+            }
+
+            // NEW: Start email reminder scheduler (24h reminders)
+            // NOTE: Gmail requires App Password for SMTP
+            EmailSender sender = new SmtpEmailSender(
+                    COMPANY_EMAIL,
+                    COMPANY_APP_PASSWORD
+            );
+
+            BookingEmailReminderService emailSvc = new BookingEmailReminderService(
+                    repo,
+                    sender,
+                    COMPANY_EMAIL
+            );
+
+            // background check every 1 minute for demo
+            emailScheduler = new EmailReminderScheduler(repo, authService, emailSvc, 1);
+            emailScheduler.start();
 
             RepoStorage.save(repo);
-            new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+            new MainDashboardFrame(authService, bookingService, repo).setVisible(true);
             dispose();
-            return;
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Login crashed: " + ex.getClass().getSimpleName() + "\n" + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
-
-        if (categoryAdminMode) {
-            Category selected = (Category) categoryBox.getSelectedItem();
-            if (selected == null) {
-                JOptionPane.showMessageDialog(this, "Please select a category first.");
-                return;
-            }
-
-            String inputKey = new String(categoryKeyField.getPassword()).trim();
-            if (inputKey.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please enter Category Admin Key.");
-                return;
-            }
-
-            String expectedKey = BookingRequestService.categoryAdminKey(selected); 
-            if (!expectedKey.equalsIgnoreCase(inputKey)) {
-                JOptionPane.showMessageDialog(this, "Invalid Category Admin Key for this category.");
-                return;
-            }
-
-            String adminUsername = BookingRequestService.categoryAdminUsername(selected); 
-
-            boolean ok = authService.loginAsUser(adminUsername);
-            if (!ok) {
-                JOptionPane.showMessageDialog(this,
-                        "Category admin account not found for this category.\n" +
-                                "If you have old saved data, delete:\n" +
-                                "%USERPROFILE%\\.Soft_Proj\\data.json\n" +
-                                "Then run the app again.");
-                return;
-            }
-
-            RepoStorage.save(repo);
-            new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
-            dispose();
-            return;
-        }
-
-        String username = usernameField.getText();
-        String password = new String(passwordField.getPassword());
-
-        if (!authService.login(username, password)) {
-            JOptionPane.showMessageDialog(this, "Invalid credentials.");
-            return;
-        }
-
-        if (authService.getCurrentUser() instanceof Administrator) {
-            String u = authService.getCurrentUser().getUsername();
-            boolean isBigAdmin = u != null && u.equalsIgnoreCase("admin");
-
-            if (!isBigAdmin) {
-                authService.logout();
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Category Admin login is blocked here.\n" +
-                                "Please enable \"Login for Category Admin\" to continue."
-                );
-                return;
-            }
-
-            RepoStorage.save(repo);
-            new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
-            dispose();
-            return;
-        }
-
-        if (authService.getCurrentUser() instanceof Provider) {
-            RepoStorage.save(repo);
-            new ProviderInboxFrame(authService, repo).setVisible(true);
-            dispose();
-            return;
-        }
-
-        if (keepLoggedIn.isSelected()) {
-            prefs.putBoolean(PREF_REMEMBER, true);
-            prefs.put(PREF_USERNAME, username != null ? username.trim() : "");
-        } else {
-            prefs.putBoolean(PREF_REMEMBER, false);
-            prefs.remove(PREF_USERNAME);
-        }
-
-        ReminderService reminder = new ReminderService(repo, authService, 60);
-        reminder.start();
-
-        RepoStorage.save(repo);
-        new MainDashboardFrame(authService, bookingService, repo, reminder).setVisible(true);
-        dispose();
     }
 
-    /**
-     * Opens the sign-up window.
-     */
     private void openSignUp() {
         new SignUpFrame(authService).setVisible(true);
     }

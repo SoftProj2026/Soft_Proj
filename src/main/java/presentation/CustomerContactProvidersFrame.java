@@ -11,10 +11,6 @@ import java.awt.*;
 
 /**
  * Customer UI window that lists providers and allows sending a message as a {@link ContactRequest}.
- * <p>
- * The user selects a provider, writes a message, and submits it. The request is stored in the
- * {@link DataRepository} for later viewing by the provider.
- * </p>
  */
 public class CustomerContactProvidersFrame extends JFrame {
 
@@ -26,12 +22,6 @@ public class CustomerContactProvidersFrame extends JFrame {
 
     private final JTextArea messageArea = new JTextArea(6, 30);
 
-    /**
-     * Creates the contact providers window.
-     *
-     * @param auth authentication service
-     * @param repo data repository
-     */
     public CustomerContactProvidersFrame(AuthService auth, DataRepository repo) {
         this.auth = auth;
         this.repo = repo;
@@ -78,7 +68,10 @@ public class CustomerContactProvidersFrame extends JFrame {
 
                 Provider p = (Provider) value;
                 String text = p.getDisplayName() + "  (@" + p.getUsername() + ")";
-                if (p.getPhone() != null && !p.getPhone().isEmpty()) {
+                // تعديل هنا: اعرض الإيميل إذا موجود، وإلا أعرض الهاتف
+                if (p.getEmail() != null && !p.getEmail().isEmpty()) {
+                    text += " | " + p.getEmail();
+                } else if (p.getPhone() != null && !p.getPhone().isEmpty()) {
                     text += " | " + p.getPhone();
                 }
                 return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus);

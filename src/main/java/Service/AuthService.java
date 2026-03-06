@@ -6,55 +6,22 @@ import persistence.DataRepository;
 import java.time.LocalDate;
 import java.time.Period;
 
-/**
- * Provides authentication and registration operations.
- * <p>
- * This service validates login credentials against users stored in the
- * {@link DataRepository} and tracks the currently logged-in user.
- * </p>
- */
 public class AuthService {
 
-    /**
-     * Registration outcomes.
-     */
     public enum RegisterResult {
-        /** Registration succeeded. */
         SUCCESS,
-        /** Username is already taken. */
         USERNAME_TAKEN,
-        /** User is under 18 years old. */
         UNDER_18,
-        /** Input data is missing/invalid. */
         INVALID_INPUT
     }
 
     private final DataRepository repo;
     private User currentUser;
 
-    /**
-     * Creates a new {@code AuthService}.
-     *
-     * @param repo the repository used to store and retrieve users
-     */
     public AuthService(DataRepository repo) {
         this.repo = repo;
     }
 
-    /**
-     * Attempts to login using username and password.
-     * <p>
-     * A login succeeds if a user exists in the repository whose username matches
-     * (case-insensitive) and password matches exactly.
-     * </p>
-     */
-    /**
-     * Logs in directly by username (no password check).
-     * Intended for Category Admin Key-based login after UI validation.
-     *
-     * @param username username to login as
-     * @return true if user exists and was logged in; false otherwise
-     */
     public boolean loginAsUser(String username) {
         if (username == null) return false;
         String u = username.trim();
@@ -68,6 +35,7 @@ public class AuthService {
         }
         return false;
     }
+
     public boolean login(String username, String password) {
         if (username == null || password == null) return false;
 
@@ -84,15 +52,6 @@ public class AuthService {
         return false;
     }
 
-    /**
-     * NEW: Logs in as admin without asking for username/password.
-     * <p>
-     * This is intended to be used ONLY after validating the Admin Key in the UI.
-     * It simply finds the "admin" user in the repository and sets it as currentUser.
-     * </p>
-     *
-     * @return true if admin user exists and was logged in; false otherwise
-     */
     public boolean loginAsAdmin() {
         for (User user : repo.getUsers()) {
             if (user != null
@@ -106,20 +65,37 @@ public class AuthService {
     }
 
     /**
-     * Registers a new user after validating input, ensuring unique username,
-     * and verifying age (18+).
+     * Force email-based registration (email is required).
+     * Keep this method only to avoid breaking older code, but make it fail.
      */
     public RegisterResult register(String firstName,
                                    String lastName,
                                    String username,
                                    String password,
                                    LocalDate dateOfBirth) {
+        return RegisterResult.INVALID_INPUT;
+    }
+
+    /**
+     * NEW: Email is required.
+     */
+    public RegisterResult register(String firstName,
+                                   String lastName,
+                                   String username,
+                                   String password,
+                                   LocalDate dateOfBirth,
+                                   String email) {
 
         if (firstName == null || firstName.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
         if (lastName == null || lastName.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
         if (username == null || username.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
         if (password == null || password.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
         if (dateOfBirth == null) return RegisterResult.INVALID_INPUT;
+
+        if (email == null || email.trim().isEmpty()) return RegisterResult.INVALID_INPUT;
+
+        String em = email.trim();
+        if (!em.contains("@") || !em.contains(".")) return RegisterResult.INVALID_INPUT;
 
         String u = username.trim();
 
@@ -132,19 +108,11 @@ public class AuthService {
         int age = Period.between(dateOfBirth, LocalDate.now()).getYears();
         if (age < 18) return RegisterResult.UNDER_18;
 
-        repo.addUser(new User(firstName.trim(), lastName.trim(), u, password, dateOfBirth));
+        repo.addUser(new User(firstName.trim(), lastName.trim(), u, password, dateOfBirth, em));
         return RegisterResult.SUCCESS;
     }
 
-    public User getCurrentUser() {
-        return currentUser;
-    }
-
-    public boolean isLoggedIn() {
-        return currentUser != null;
-    }
-
-    public void logout() {
-        currentUser = null;
-    }
+    public User getCurrentUser() { return currentUser; }
+    public boolean isLoggedIn() { return currentUser != null; }
+    public void logout() { currentUser = null; }
 }

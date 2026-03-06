@@ -5,30 +5,24 @@ import java.awt.*;
 
 /**
  * A JPanel that paints a scaled background image.
- * <p>
+ *
  * Used as a root container to display a full-window background image
- * with components centered using {@link GridBagLayout}.
- * </p>
+ * with components centered using GridBagLayout.
  */
 public class BackgroundPanel extends JPanel {
 
     private final Image background;
 
-    /**
-     * Creates a panel with a background image.
-     *
-     * @param background the background image (may be null)
-     */
     public BackgroundPanel(Image background) {
         this.background = background;
         setLayout(new GridBagLayout());
+
+        // IMPORTANT: background panel should not block child mouse events
+        setOpaque(false);
+        setFocusable(false);
+        setEnabled(true);
     }
 
-    /**
-     * Paints the component and stretches the background to fill the panel.
-     *
-     * @param g graphics context
-     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);

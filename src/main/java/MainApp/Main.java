@@ -51,14 +51,13 @@ public class Main {
             repo.addUser(new Administrator("admin", "Admin@123"));
 
             repo.addProvider(new Provider(
-                    "qrbooking",
-                    "Comp@1234",
-                    "QR Booking",
-                    "+0000000000",
-                    "contact@qrbooking.example",
-                    "N/A"
-            ));
-
+            	    "qrbooking",
+            	    "Comp@1234",
+            	    "QR Booking",
+            	    "+0000000000",
+            	    "remaajomaa842@gmail.com", // <-- الإيميل الصحيح هنا
+            	    "N/A"
+            	));
             List<Category> categories = buildCategories();
             for (Category c : categories) {
                 repo.addCategory(c);
