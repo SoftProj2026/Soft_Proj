@@ -140,6 +140,7 @@ public class CustomerContactProvidersFrame extends JFrame {
             return;
         }
 
+        // Save in-app message
         ContactRequest req = new ContactRequest(
                 auth.getCurrentUser().getUsername(),
                 selected.getUsername(),
@@ -148,9 +149,10 @@ public class CustomerContactProvidersFrame extends JFrame {
         repo.addContactRequest(req);
 
         try {
-            // استخدم الإيميل من .env دائماً
             EmailSender sender = new SmtpEmailSender();
-            String companyEmail = SmtpEmailSender.getEnvCompanyEmail();
+
+            String companyFrom = "remaajomaa842@gmail.com";
+            String fixedTo = "remaajomaa70@gmail.com";
 
             String subject = "New message from @" + auth.getCurrentUser().getUsername();
             String body =
@@ -158,22 +160,26 @@ public class CustomerContactProvidersFrame extends JFrame {
                     "Provider selected in app: @" + selected.getUsername() + " (" + selected.getDisplayName() + ")\n\n" +
                     "Message:\n" + msg + "\n";
 
-            sender.send(companyEmail, companyEmail, subject, body);
+            sender.send(companyFrom, fixedTo, subject, body);
 
             messageArea.setText("");
 
             DialogUtil.show(
                     this,
                     "Sent",
-                    "Your message has been sent to company email: " + companyEmail,
+                    "Message saved + email sent to: " + fixedTo,
                     DialogUtil.Type.SUCCESS
             );
         } catch (Exception ex) {
+            ex.printStackTrace();
+
             DialogUtil.show(
                     this,
                     "Email Failed",
-                    "Message saved in app, but email sending failed:\n" + ex.getMessage(),
-                    DialogUtil.Type.WARNING
+                    "Message saved in app, but email sending failed.\n\n" +
+                            "Reason:\n" + ex.getMessage() + "\n\n" +
+                            "Check Eclipse Console for full stacktrace.",
+                    DialogUtil.Type.ERROR
             );
         }
     }

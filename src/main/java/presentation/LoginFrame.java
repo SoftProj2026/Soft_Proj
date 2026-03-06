@@ -472,13 +472,14 @@ public class LoginFrame extends JFrame {
 
             // NEW: Start email reminder scheduler (24h reminders)
             // NOTE: Gmail requires App Password for SMTP
-            EmailSender sender = new SmtpEmailSender(); // لا تمرر أي إيميل/باسورد هنا, كل شيء من env
+            EmailSender sender = new SmtpEmailSender(); // كل شيء من env
+
+            // ✅ هذا السطر صار يشتغل لأننا رجّعنا getEnvCompanyEmail داخل SmtpEmailSender
             String companyEmail = SmtpEmailSender.getEnvCompanyEmail();
 
             BookingEmailReminderService emailSvc = new BookingEmailReminderService(
                     repo,
                     sender
-                    
             );
 
             emailScheduler = new EmailReminderScheduler(repo, authService, emailSvc, 1);
