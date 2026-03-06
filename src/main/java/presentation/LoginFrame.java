@@ -40,11 +40,6 @@ public class LoginFrame extends JFrame {
 
     private static final String ADMIN_KEY = "ADMIN2026";
 
-    private static final String COMPANY_EMAIL = "remaajomaa842@gmail.com";
-
-    private static final String COMPANY_APP_PASSWORD = "liii fbhq sbhg mtwx\r\n"
-    		+ "";
-
     private final AuthService authService;
     private final BookingService bookingService;
     private final DataRepository repo;
@@ -477,15 +472,13 @@ public class LoginFrame extends JFrame {
 
             // NEW: Start email reminder scheduler (24h reminders)
             // NOTE: Gmail requires App Password for SMTP
-            EmailSender sender = new SmtpEmailSender(
-                    COMPANY_EMAIL,
-                    COMPANY_APP_PASSWORD
-            );
+            EmailSender sender = new SmtpEmailSender(); // لا تمرر أي إيميل/باسورد هنا, كل شيء من env
+            String companyEmail = SmtpEmailSender.getEnvCompanyEmail();
 
             BookingEmailReminderService emailSvc = new BookingEmailReminderService(
                     repo,
-                    sender,
-                    COMPANY_EMAIL
+                    sender
+                    
             );
 
             emailScheduler = new EmailReminderScheduler(repo, authService, emailSvc, 1);

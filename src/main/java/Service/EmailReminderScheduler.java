@@ -4,6 +4,7 @@ import domain.Appointment;
 import domain.AppointmentStatus;
 import persistence.DataRepository;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -21,20 +22,35 @@ public class EmailReminderScheduler {
     private final DataRepository repo;
     private final AuthService auth;
     private final BookingEmailReminderService reminderService;
-
     private final ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
     private final Set<Integer> emailedAppointmentIds = new HashSet<>();
-
     private final long checkEveryMinutes;
 
-    public EmailReminderScheduler(DataRepository repo,
-                                 AuthService auth,
-                                 BookingEmailReminderService reminderService,
-                                 long checkEveryMinutes) {
+    // Injectable clock (useful for unit testing)
+    private final Clock clock;
+
+    // اختياري: إذا ما عندك رغبة في Clock فيمكنك حذف هذا الكونستركتر والإبقاء فقط على واحد
+    public EmailReminderScheduler(
+        DataRepository repo,
+        AuthService auth,
+        BookingEmailReminderService reminderService,
+        long checkEveryMinutes
+    ) {
+        this(repo, auth, reminderService, checkEveryMinutes, Clock.systemDefaultZone());
+    }
+
+    public EmailReminderScheduler(
+        DataRepository repo,
+        AuthService auth,
+        BookingEmailReminderService reminderService,
+        long checkEveryMinutes,
+        Clock clock
+    ) {
         this.repo = repo;
         this.auth = auth;
         this.reminderService = reminderService;
         this.checkEveryMinutes = checkEveryMinutes;
+        this.clock = clock;
     }
 
     public void start() {
@@ -58,7 +74,7 @@ public class EmailReminderScheduler {
         if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) return;
 
         String username = auth.getCurrentUser().getUsername();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock); // إذا أردت تزوير الوقت باختبار
 
         for (Appointment a : repo.getAppointments()) {
             if (a == null) continue;
@@ -67,7 +83,6 @@ public class EmailReminderScheduler {
             if (!a.getUser().getUsername().equalsIgnoreCase(username)) continue;
 
             if (emailedAppointmentIds.contains(a.getId())) continue;
-
             if (a.getSlot() == null || a.getSlot().getStartDateTime() == null) continue;
 
             LocalDateTime start = a.getSlot().getStartDateTime();
@@ -78,7 +93,7 @@ public class EmailReminderScheduler {
             // Trigger when it enters the < 24 hour window
             if (until.compareTo(Duration.ofHours(24)) >= 0) continue;
 
-            reminderService.send24hReminderIfNeeded(a);
+            reminderService.send24hReminderIfNeeded(a); // ← هنا سيستدعى SmtpEmailSender إذا استخدمته
             emailedAppointmentIds.add(a.getId());
         }
     }

@@ -24,13 +24,6 @@ public class CustomerContactProvidersFrame extends JFrame {
 
     private final JTextArea messageArea = new JTextArea(6, 30);
 
-    private static final String COMPANY_EMAIL = "remaajomaa842@gmail.com";
-
-    private static final String COMPANY_APP_PASSWORD =
-            System.getenv("liii fbhq sbhg mtwx\r\n"
-            		+ "") != null ? System.getenv("liii fbhq sbhg mtwx\r\n"
-            		+ "") : "";
-
     public CustomerContactProvidersFrame(AuthService auth, DataRepository repo) {
         this.auth = auth;
         this.repo = repo;
@@ -155,11 +148,9 @@ public class CustomerContactProvidersFrame extends JFrame {
         repo.addContactRequest(req);
 
         try {
-            if (COMPANY_APP_PASSWORD.isEmpty()) {
-                throw new IllegalStateException("Missing GMAIL_APP_PASSWORD environment variable.");
-            }
-
-            EmailSender sender = new SmtpEmailSender(COMPANY_EMAIL, COMPANY_APP_PASSWORD);
+            // استخدم الإيميل من .env دائماً
+            EmailSender sender = new SmtpEmailSender();
+            String companyEmail = SmtpEmailSender.getEnvCompanyEmail();
 
             String subject = "New message from @" + auth.getCurrentUser().getUsername();
             String body =
@@ -167,17 +158,16 @@ public class CustomerContactProvidersFrame extends JFrame {
                     "Provider selected in app: @" + selected.getUsername() + " (" + selected.getDisplayName() + ")\n\n" +
                     "Message:\n" + msg + "\n";
 
-            sender.send(COMPANY_EMAIL, COMPANY_EMAIL, subject, body);
+            sender.send(companyEmail, companyEmail, subject, body);
 
             messageArea.setText("");
 
             DialogUtil.show(
                     this,
                     "Sent",
-                    "Your message has been sent to company email: " + COMPANY_EMAIL,
+                    "Your message has been sent to company email: " + companyEmail,
                     DialogUtil.Type.SUCCESS
             );
-
         } catch (Exception ex) {
             DialogUtil.show(
                     this,
