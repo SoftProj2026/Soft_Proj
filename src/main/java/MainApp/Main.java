@@ -51,13 +51,14 @@ public class Main {
             repo.addUser(new Administrator("admin", "Admin@123"));
 
             repo.addProvider(new Provider(
-            	    "qrbooking",
-            	    "Comp@1234",
-            	    "QR Booking",
-            	    "+0000000000",
-            	    "remaajomaa842@gmail.com", // <-- الإيميل الصحيح هنا
-            	    "N/A"
-            	));
+                    "qrbooking",
+                    "Comp@1234",
+                    "QR Booking",
+                    "", 
+                    "remaajomaa842@gmail.com",
+                    ""  
+            ));
+
             List<Category> categories = buildCategories();
             for (Category c : categories) {
                 repo.addCategory(c);
@@ -79,12 +80,6 @@ public class Main {
         });
     }
 
-    /**
-     * Seeds category-admin accounts for each category.
-     *
-     * @param repo       repository to store users in
-     * @param categories list of categories to create admin accounts for
-     */
     private static void seedCategoryAdmins(DataRepository repo, List<Category> categories) {
         String pass = "Admin@123";
         for (Category c : categories) {
@@ -93,11 +88,6 @@ public class Main {
         }
     }
 
-    /**
-     * Creates the fixed set of categories used by the application.
-     *
-     * @return list of categories
-     */
     private static List<Category> buildCategories() {
         List<Category> categories = new ArrayList<>();
 
@@ -129,13 +119,6 @@ public class Main {
         return categories;
     }
 
-    /**
-     * Seeds a week of time slots for all categories.
-     *
-     * @param repo      repository to store time slots in
-     * @param categories categories to seed slots for
-     * @param daysAhead number of days ahead to create slots for
-     */
     private static void seedTimeSlots(DataRepository repo, List<Category> categories, int daysAhead) {
 
         int durationMinutes = 60;

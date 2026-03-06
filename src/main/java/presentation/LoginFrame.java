@@ -40,12 +40,10 @@ public class LoginFrame extends JFrame {
 
     private static final String ADMIN_KEY = "ADMIN2026";
 
-    // Company email (sender identity)
     private static final String COMPANY_EMAIL = "remaajomaa842@gmail.com";
 
-    // NEW: Put your Gmail App Password (not your normal password)
-    // NOTE: If you don't want env vars, you can hardcode it here (but don't push to GitHub).
-    private static final String COMPANY_APP_PASSWORD = "PUT_GMAIL_APP_PASSWORD_HERE";
+    private static final String COMPANY_APP_PASSWORD = "liii fbhq sbhg mtwx\r\n"
+    		+ "";
 
     private final AuthService authService;
     private final BookingService bookingService;
@@ -490,7 +488,6 @@ public class LoginFrame extends JFrame {
                     COMPANY_EMAIL
             );
 
-            // background check every 1 minute for demo
             emailScheduler = new EmailReminderScheduler(repo, authService, emailSvc, 1);
             emailScheduler.start();
 

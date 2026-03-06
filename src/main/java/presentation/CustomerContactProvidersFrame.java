@@ -1,6 +1,8 @@
 package presentation;
 
 import Service.AuthService;
+import Service.EmailSender;
+import Service.SmtpEmailSender;
 import domain.ContactRequest;
 import domain.Provider;
 import persistence.DataRepository;
@@ -21,6 +23,13 @@ public class CustomerContactProvidersFrame extends JFrame {
     private final JList<Provider> providersList = new JList<>(providersModel);
 
     private final JTextArea messageArea = new JTextArea(6, 30);
+
+    private static final String COMPANY_EMAIL = "remaajomaa842@gmail.com";
+
+    private static final String COMPANY_APP_PASSWORD =
+            System.getenv("liii fbhq sbhg mtwx\r\n"
+            		+ "") != null ? System.getenv("liii fbhq sbhg mtwx\r\n"
+            		+ "") : "";
 
     public CustomerContactProvidersFrame(AuthService auth, DataRepository repo) {
         this.auth = auth;
@@ -68,7 +77,6 @@ public class CustomerContactProvidersFrame extends JFrame {
 
                 Provider p = (Provider) value;
                 String text = p.getDisplayName() + "  (@" + p.getUsername() + ")";
-                // تعديل هنا: اعرض الإيميل إذا موجود، وإلا أعرض الهاتف
                 if (p.getEmail() != null && !p.getEmail().isEmpty()) {
                     text += " | " + p.getEmail();
                 } else if (p.getPhone() != null && !p.getPhone().isEmpty()) {
@@ -114,9 +122,6 @@ public class CustomerContactProvidersFrame extends JFrame {
         loadProviders();
     }
 
-    /**
-     * Loads providers from the repository into the list model.
-     */
     private void loadProviders() {
         providersModel.clear();
         for (Provider p : repo.getProviders()) {
@@ -124,9 +129,6 @@ public class CustomerContactProvidersFrame extends JFrame {
         }
     }
 
-    /**
-     * Validates inputs and submits a {@link ContactRequest} to the repository.
-     */
     private void sendMessage() {
         if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) {
             DialogUtil.show(this, "Login Required", "You must login first.", DialogUtil.Type.WARNING);
@@ -150,15 +152,39 @@ public class CustomerContactProvidersFrame extends JFrame {
                 selected.getUsername(),
                 msg
         );
-
         repo.addContactRequest(req);
-        messageArea.setText("");
 
-        DialogUtil.show(
-                this,
-                "Sent",
-                "Your message has been sent to \"" + selected.getDisplayName() + "\".",
-                DialogUtil.Type.SUCCESS
-        );
+        try {
+            if (COMPANY_APP_PASSWORD.isEmpty()) {
+                throw new IllegalStateException("Missing GMAIL_APP_PASSWORD environment variable.");
+            }
+
+            EmailSender sender = new SmtpEmailSender(COMPANY_EMAIL, COMPANY_APP_PASSWORD);
+
+            String subject = "New message from @" + auth.getCurrentUser().getUsername();
+            String body =
+                    "From: @" + auth.getCurrentUser().getUsername() + "\n" +
+                    "Provider selected in app: @" + selected.getUsername() + " (" + selected.getDisplayName() + ")\n\n" +
+                    "Message:\n" + msg + "\n";
+
+            sender.send(COMPANY_EMAIL, COMPANY_EMAIL, subject, body);
+
+            messageArea.setText("");
+
+            DialogUtil.show(
+                    this,
+                    "Sent",
+                    "Your message has been sent to company email: " + COMPANY_EMAIL,
+                    DialogUtil.Type.SUCCESS
+            );
+
+        } catch (Exception ex) {
+            DialogUtil.show(
+                    this,
+                    "Email Failed",
+                    "Message saved in app, but email sending failed:\n" + ex.getMessage(),
+                    DialogUtil.Type.WARNING
+            );
+        }
     }
 }

@@ -44,7 +44,6 @@ public class SmtpEmailSender implements EmailSender {
         try {
             MimeMessage msg = new MimeMessage(session);
 
-            // Gmail غالبًا لازم From نفس smtpUsername
             msg.setFrom(new InternetAddress(smtpUsername));
 
             msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to.trim()));
