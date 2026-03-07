@@ -1,0 +1,61 @@
+Sprint 3 — Notifications & Mocking (Week 4)
+In Sprint 3, we implemented the email notification/reminder feature and applied mocking in testing to validate the reminder behavior without sending real emails. The reminder logic checks confirmed appointments and triggers a reminder only when the appointment start time is in the future and within the next 24 hours. The sending mechanism is abstracted behind the EmailSender interface, which allows switching between a real SMTP sender (SmtpEmailSender) and a test/mock sender (Mockito mock or manual fake) during unit testing.
+A scheduler (EmailReminderScheduler) periodically scans upcoming bookings for the logged-in user and ensures reminders are not sent repeatedly during the same run by tracking already-emailed appointment IDs.
+____________________________________________________________________________________________________________________
+Sprint 3: User Stories Summary (Notifications & Mocking)
+US3.1 — Send appointment reminders (≤ 24 hours)
+Story: As a system, I want to send reminder notifications for upcoming confirmed appointments so that users are notified in advance.
+Acceptance:
+
+A reminder is generated only for appointments with status CONFIRMED.
+The appointment must start in the future (past appointments do not trigger reminders).
+A reminder is sent only if the appointment starts within 24 hours or less.
+If the user email is missing, the reminder is skipped safely (no crash).
+Implemented in:
+Service.BookingEmailReminderService.send24hReminderIfNeeded(...)
+Service.UpcomingBookingReminderService.buildReminderMessages(...) (builds reminder text/messages)
+
+
+
+US3.2 — Automatic reminder scheduling (periodic check)
+Story: As a system, I want to automatically check upcoming appointments periodically so that reminders are sent without the user manually triggering them.
+Acceptance:
+
+The scheduler runs at a fixed interval (e.g., every 1 minute).
+The scheduler sends reminders only for the currently logged-in user.
+The scheduler does nothing if no user is logged in.
+The scheduler does not re-send reminders for the same appointment during the same application run.
+Implemented in:
+Service.EmailReminderScheduler (scheduled executor + in-memory “already emailed” tracking)
+
+
+
+
+
+US3.3 — Mock notification service in test mode (Mockito / Manual Mock)
+Story: As a developer/tester, I want to mock the email sending service so that I can verify reminders are triggered correctly without sending real emails.
+Acceptance:
+
+Unit tests can replace the real email sender with a mock implementation.
+Tests can verify that send(...) is called when an appointment is within 24 hours.
+Tests can verify that send(...) is not called when an appointment is more than 24 hours away.
+Implemented in:
+Service.EmailSender interface (dependency inversion for mocking)
+Test layer using Mockito to mock EmailSender and verify(...) calls
+(Optional) Service.ConsoleEmailSender for manual/console-based fake sending
+
+
+
+
+US3.4 — Require/collect user email for reminders (email availability)
+Story: As a system, I want to ensure the user has a valid email address so that reminder emails can be delivered.
+Acceptance:
+
+If a user logs in without an email, the system prompts the user to enter a valid email.
+Email is validated (basic format check).
+Email is saved to the current user and persisted so reminders work after restart.
+If the user cancels email entry, the system continues but reminders cannot be sent.
+Implemented in:
+presentation.LoginFrame.ensureCurrentUserEmail()
+domain.User.setEmail(...)
+persistence.RepoStorage.save(repo) (persist immediately)
