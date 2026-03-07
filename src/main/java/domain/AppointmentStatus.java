@@ -18,5 +18,10 @@ public enum AppointmentStatus {
     /**
      * Appointment has been cancelled and the slot is released.
      */
-    CANCELLED
+    CANCELLED,
+
+    /**
+     * Appointment has ended (time passed).
+     */
+    COMPLETED
 }

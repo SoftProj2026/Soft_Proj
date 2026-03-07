@@ -24,6 +24,8 @@ import java.time.LocalDateTime;
  *       and marks the slot as booked.</li>
  *   <li>When cancelled, {@link #cancel()} sets status to {@link AppointmentStatus#CANCELLED}
  *       and releases the slot.</li>
+ *   <li>When the appointment time passes, {@link #complete()} can set status to
+ *       {@link AppointmentStatus#COMPLETED} (slot remains booked historically).</li>
  * </ul>
  */
 public class Appointment {
@@ -175,5 +177,17 @@ public class Appointment {
         this.status = AppointmentStatus.CANCELLED;
         this.cancelledAt = LocalDateTime.now();
         slot.cancel();
+    }
+
+    /**
+     * Marks this appointment as completed if it has already been confirmed.
+     * <p>
+     * IMPORTANT: does NOT cancel the slot. The slot remains booked historically.
+     * </p>
+     */
+    public void complete() {
+        if (this.status == AppointmentStatus.CONFIRMED) {
+            this.status = AppointmentStatus.COMPLETED;
+        }
     }
 }

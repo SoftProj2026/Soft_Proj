@@ -1,49 +1,60 @@
-
 Sprint 1 – Core Scheduling & Authentication (Week 2)
-In Sprint 1, we implemented the core authentication and slot viewing functionality. The login process is handled by AuthService.login(), which validates the provided username and password against users stored in the in-memory DataRepository. Upon successful authentication, the current user is stored and the UI navigates from LoginFrame to MainDashboardFrame.
-Logout is implemented through AuthService.logout() and triggered by the “Logout” button in the dashboard, which clears the current session and returns the user to the login screen.
-For viewing available slots (US1.3), the dashboard loads time slots by category and displays only available (not booked) slots using TimeSlot.isAvailable(). Additionally, blocked break-time slots (12:00–13:00) are disabled using BlockedSlotsRule to ensure users cannot select them.
+In Sprint 1, we implemented the core authentication and access control for users and administrators, as well as viewing available time slots. User login is handled by AuthService.login(), which validates the entered username and password against users stored in the in-memory DataRepository. When authentication succeeds, the currentUser session is stored and the UI navigates from LoginFrame to the correct dashboard (MainDashboardFrame for normal users, AdminDashboardFrame for admins, and ProviderInboxFrame for providers).
 
+Logout is implemented through AuthService.logout() and triggered by the “Logout” button in the dashboards. Logout clears the current session and returns the user back to the login screen.
 
- Sprint 1 : User Stories Summary
-(Authentication & Viewing Available Slots)
+For slot viewing, the system displays only available slots based on TimeSlot.isAvailable() and prevents users from selecting blocked break-time slots (12:00–13:00) using BlockedSlotsRule. This ensures users can browse availability but cannot select invalid or blocked time windows.
+___________________________________________________________________________________________________
+Sprint 1: User Stories Summary (Authentication & Viewing Available Slots)
 US1.1 – User login
 Story: As a user, I want to log in using my username and password so that I can access the system and manage bookings.
 Acceptance:
 
-Valid credentials _ login succeeds and user is redirected to the main dashboard.
-Invalid credentials _ an error message is shown and the user stays on the login screen.
-Session stores the currently logged-in user in the authentication service.
-US1.2 – Remember username (Keep Me Logged In)
+Valid credentials → login succeeds and the user is redirected to the correct dashboard.
+Invalid credentials → an error message is shown and the user remains on the login screen.
+The session stores the currently logged-in user in the authentication service (AuthService.currentUser).
+Implemented in:
+Service.AuthService.login(...)
+presentation.LoginFrame (UI navigation + invalid credentials message)
+US1.2 – Remember username (“Keep Me Logged In”)
 Story: As a user, I want the system to remember my username when I select “Keep Me Logged In” so that I can log in faster next time.
 Acceptance:
 
-If “Keep Me Logged In” is checked, the username is saved using Preferences and pre-filled next time the app opens.
-If unchecked, the saved username is removed and the field is not pre-filled.
+If “Keep Me Logged In” is checked, the username is stored using Preferences and is pre-filled next time.
+If unchecked, the stored username is removed and the field is not pre-filled.
+Implemented in:
+presentation.LoginFrame (Preferences node + remember logic)
 US1.3 – Register (Sign Up)
 Story: As a new user, I want to create an account so that I can log in and book appointments.
 Acceptance:
 
-Sign-up screen opens from the login screen.
+The sign-up screen opens from the login screen.
 A new user account is added to the in-memory repository.
-After successful registration, the user can log in with the created credentials.
-
+After successful registration, the user can log in using the newly created credentials.
+Email is required and validated during registration.
+Implemented in:
+presentation.SignUpFrame (UI + validation)
+Service.AuthService.register(..., email) (repository insert + age check)
 US1.4 – Admin login protected by Admin Key (single admin account)
-Story: As an administrator, I want to enable “Login as Admin” and enter an Admin Key so that only authorized admins can access admin mode.
+Story: As an administrator, I want to enable “QR Admin for Company” mode and enter an Admin Key so that only authorized admins can access admin mode.
 Acceptance:
 
-Login screen contains a checkbox “Login as Admin”.
+Login screen contains a checkbox “QR Admin for Company”.
 When unchecked → login behaves as normal user login.
 When checked → an Admin Key field appears.
 Wrong Admin Key → admin login is blocked and an error message is shown.
-Admin mode requires the admin username (single admin account, e.g., admin) + correct password + correct Admin Key.
-On success, the system opens AdminDashboardFrame (not the normal user dashboard).
+On success, the system logs in as the single admin account (admin) and opens AdminDashboardFrame.
+Implemented in:
+presentation.LoginFrame (Admin Key UI + validation using ADMIN_KEY)
+Service.AuthService.loginAsAdmin() (login as admin user)
 
 US1.5 – Admin dashboard access and logout
-Story: As an administrator, I want an admin dashboard and the ability to log out so that I can manage/administer the system and end my session securely.
+Story: As an administrator, I want an admin dashboard and the ability to log out so that I can administer the system and end my session securely.
 Acceptance:
 
 After successful admin login, Admin Dashboard opens.
-Admin dashboard displays basic system stats (users/slots/appointments).
-Clicking Logout logs out the session and returns to LoginFrame.
-
+Admin dashboard displays system stats (users/providers/slots/appointments).
+Clicking Logout ends the session and returns to LoginFrame.
+Implemented in:
+presentation.AdminDashboardFrame (stats + navigation + logout)
+Service.AuthService.logout()

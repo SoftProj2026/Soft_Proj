@@ -24,13 +24,17 @@ import java.util.prefs.Preferences;
 /**
  * Login window implemented using Swing.
  *
- * Supports three login modes:
- * - Normal Login: username/password for regular users and providers.
- * - Login for Category Admin: select category + enter Category Admin Key (no username/password).
- * - QR Admin for Company: admin-key mode that logs in as the "admin" account.
+ * <p>This screen supports three login modes:</p>
+ * <ul>
+ *   <li><b>Normal login</b> using username/password for regular users and providers.</li>
+ *   <li><b>Category admin login</b> by selecting a category and entering a category-admin key (no username/password).</li>
+ *   <li><b>QR admin login</b> using a QR admin key which logs in as the single big-admin account ("admin").</li>
+ * </ul>
  *
- * NOTE:
- * - This class can start an EMAIL reminder scheduler after normal user login.
+ * <p>After a successful normal user login, an email reminder scheduler may be started to send booking reminders.</p>
+ *
+ * <p>The "Keep Me Logged In" option stores the username using {@link Preferences} so the username can be pre-filled
+ * on the next application run.</p>
  */
 public class LoginFrame extends JFrame {
 
@@ -72,6 +76,13 @@ public class LoginFrame extends JFrame {
 
     private EmailReminderScheduler emailScheduler;
 
+    /**
+     * Creates the login frame.
+     *
+     * @param authService    authentication service
+     * @param bookingService booking service
+     * @param repo           repository instance (used for persistence and reminders)
+     */
     public LoginFrame(AuthService authService, BookingService bookingService, DataRepository repo) {
         this.authService = authService;
         this.bookingService = bookingService;
@@ -95,6 +106,9 @@ public class LoginFrame extends JFrame {
         applyMode();
     }
 
+    /**
+     * Initializes the UI layout and components.
+     */
     private void initUI() {
         setTitle("Login");
         setSize(900, 520);
@@ -291,18 +305,32 @@ public class LoginFrame extends JFrame {
         root.add(card);
     }
 
+    /**
+     * Creates a white label for use on the dark login card background.
+     *
+     * @param text label text
+     * @return configured label
+     */
     private JLabel labelWhite(String text) {
         JLabel l = new JLabel(text);
         l.setForeground(Color.WHITE);
         return l;
     }
 
+    /**
+     * Applies consistent styling to input fields.
+     *
+     * @param field component to style
+     */
     private void styleField(JComponent field) {
         field.setFont(field.getFont().deriveFont(14.5f));
         field.setBackground(new Color(255, 255, 255, 235));
         field.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 
+    /**
+     * Attaches all event handlers to UI components.
+     */
     private void attachHandlers() {
         loginButton.addActionListener(e -> login());
         signUpButton.addActionListener(e -> openSignUp());
@@ -328,6 +356,9 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
+    /**
+     * Applies the current selected login mode by showing/hiding fields.
+     */
     private void applyMode() {
         boolean qrAdminMode = loginAsQrAdmin != null && loginAsQrAdmin.isSelected();
         boolean categoryAdminMode = loginAsCategoryAdmin != null && loginAsCategoryAdmin.isSelected();
@@ -352,6 +383,9 @@ public class LoginFrame extends JFrame {
         repaint();
     }
 
+    /**
+     * Loads previously remembered username if enabled.
+     */
     private void loadRememberedUser() {
         boolean remember = prefs.getBoolean(PREF_REMEMBER, false);
         keepLoggedIn.setSelected(remember);
@@ -365,6 +399,86 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    /**
+     * Performs a basic email format validation.
+     *
+     * @param email email string
+     * @return {@code true} if email looks valid
+     */
+    private boolean isValidEmail(String email) {
+        if (email == null) return false;
+        String e = email.trim();
+        if (e.isEmpty()) return false;
+        return e.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    }
+
+    /**
+     * Ensures the currently logged-in user has an email address.
+     *
+     * <p>If the user email is missing, the user is prompted to enter an email address. A valid email will
+     * be stored in the current {@link domain.User} object and persisted immediately via {@link RepoStorage}.</p>
+     */
+    private void ensureCurrentUserEmail() {
+        if (authService == null || !authService.isLoggedIn() || authService.getCurrentUser() == null) return;
+
+        String current = authService.getCurrentUser().getEmail();
+        if (current != null && !current.trim().isEmpty()) return;
+
+        while (true) {
+            String input = JOptionPane.showInputDialog(
+                    this,
+                    "Your email is missing.\nPlease enter your email to receive booking reminders:",
+                    "Email Required",
+                    JOptionPane.QUESTION_MESSAGE
+            );
+
+            if (input == null) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "No email entered.\nReminder emails will NOT be sent.",
+                        "Warning",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            input = input.trim();
+            if (input.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Email cannot be empty. Please try again.",
+                        "Invalid Email",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                continue;
+            }
+
+            if (!isValidEmail(input)) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Invalid email format. Please enter a valid email (example: name@gmail.com).",
+                        "Invalid Email",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                continue;
+            }
+
+            authService.getCurrentUser().setEmail(input);
+            RepoStorage.save(repo);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Email saved successfully.\nYou will receive reminder emails for upcoming bookings.",
+                    "Saved",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
+    }
+
+    /**
+     * Handles login based on the selected mode and navigates to the appropriate dashboard.
+     */
     private void login() {
         boolean qrAdminMode = loginAsQrAdmin != null && loginAsQrAdmin.isSelected();
         boolean categoryAdminMode = loginAsCategoryAdmin != null && loginAsCategoryAdmin.isSelected();
@@ -443,8 +557,7 @@ public class LoginFrame extends JFrame {
                     authService.logout();
                     JOptionPane.showMessageDialog(
                             this,
-                            "Category Admin login is blocked here.\n" +
-                                    "Please enable \"Login for Category Admin\" to continue."
+                            "Category Admin login is blocked here.\nPlease enable \"Login for Category Admin\" to continue."
                     );
                     return;
                 }
@@ -470,17 +583,10 @@ public class LoginFrame extends JFrame {
                 prefs.remove(PREF_USERNAME);
             }
 
-            // NEW: Start email reminder scheduler (24h reminders)
-            // NOTE: Gmail requires App Password for SMTP
-            EmailSender sender = new SmtpEmailSender(); // كل شيء من env
+            ensureCurrentUserEmail();
 
-            // ✅ هذا السطر صار يشتغل لأننا رجّعنا getEnvCompanyEmail داخل SmtpEmailSender
-            String companyEmail = SmtpEmailSender.getEnvCompanyEmail();
-
-            BookingEmailReminderService emailSvc = new BookingEmailReminderService(
-                    repo,
-                    sender
-            );
+            EmailSender sender = new SmtpEmailSender();
+            BookingEmailReminderService emailSvc = new BookingEmailReminderService(repo, sender);
 
             emailScheduler = new EmailReminderScheduler(repo, authService, emailSvc, 1);
             emailScheduler.start();
@@ -500,6 +606,9 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    /**
+     * Opens the sign-up window.
+     */
     private void openSignUp() {
         new SignUpFrame(authService).setVisible(true);
     }

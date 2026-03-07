@@ -8,14 +8,51 @@ import persistence.DataRepository;
 
 import java.time.LocalDateTime;
 
+/**
+ * Service responsible for creating booking requests and enforcing request-time business rules.
+ *
+ * <p>This service supports the request-based booking workflow:</p>
+ * <ul>
+ *   <li>A user selects a mutual available slot.</li>
+ *   <li>The system creates a {@link BookingRequest}.</li>
+ *   <li>The selected {@link TimeSlot} is held while the request is pending approvals.</li>
+ * </ul>
+ *
+ * <p>Key rules enforced during request submission:</p>
+ * <ul>
+ *   <li>Requests cannot be submitted for past time slots.</li>
+ *   <li>Only available (not booked / not held) slots can be requested.</li>
+ *   <li>Duration and participants must be positive values.</li>
+ *   <li>MAIN + EMERGENCY rule: a user cannot exceed two active items (confirmed + pending) per category.</li>
+ * </ul>
+ */
 public class BookingRequestService {
 
     private final DataRepository repo;
 
+    /**
+     * Creates a booking request service.
+     *
+     * @param repo repository used to store requests and query active bookings
+     */
     public BookingRequestService(DataRepository repo) {
         this.repo = repo;
     }
 
+    /**
+     * Generates a category-admin key based on the category name.
+     *
+     * <p>The key is created as:</p>
+     * <ul>
+     *   <li>Take the acronym from the category name words (letters only)</li>
+     *   <li>Append {@code "123"}</li>
+     * </ul>
+     *
+     * <p>If category name is missing/empty, a default {@code "CA123"} is returned.</p>
+     *
+     * @param category category
+     * @return category admin key
+     */
     public static String categoryAdminKey(Category category) {
         String raw = (category != null && category.getName() != null) ? category.getName() : "";
         String cleaned = raw
@@ -35,13 +72,26 @@ public class BookingRequestService {
         return acronym + "123";
     }
 
+    /**
+     * Derives the category-admin username from {@link #categoryAdminKey(Category)} by lower-casing the key.
+     *
+     * @param category category
+     * @return username used for the category admin account
+     */
     public static String categoryAdminUsername(Category category) {
         return categoryAdminKey(category).toLowerCase();
     }
 
     /**
-     * IMPORTANT: return type is Service.BookingResult (your project class),
-     * not an inner BookingResult.
+     * Submits a booking request for a slot and holds the slot during the approval process.
+     *
+     * <p>Returns a {@link BookingResult} describing whether the request was accepted and the reason/result message.</p>
+     *
+     * @param requester        requesting user
+     * @param slot             requested slot
+     * @param durationInMinutes requested duration in minutes
+     * @param participants     participants count
+     * @return booking result
      */
     public BookingResult submitRequest(User requester,
                                        TimeSlot slot,
@@ -70,8 +120,10 @@ public class BookingRequestService {
         long pending = repo.countPendingRequestsForUserCategory(username, categoryName);
 
         if (confirmed + pending >= 2) {
-            return new BookingResult(false,
-                    "Not allowed: you already have MAIN + EMERGENCY (confirmed or pending) in this category.");
+            return new BookingResult(
+                    false,
+                    "Not allowed: you already have MAIN + EMERGENCY (confirmed or pending) in this category."
+            );
         }
 
         String catAdmin = categoryAdminUsername(slot.getCategory());

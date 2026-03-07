@@ -108,7 +108,6 @@ public class MainDashboardFrame extends JFrame {
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> {
 
-            // NEW: persist repo before logout
             RepoStorage.save(repo);
 
             auth.logout();

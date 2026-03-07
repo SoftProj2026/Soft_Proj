@@ -14,37 +14,63 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Periodically checks upcoming CONFIRMED appointments and triggers 24-hour reminder emails.
- * Uses in-memory tracking to avoid re-sending the same appointment repeatedly during the same run.
+ * Periodically checks upcoming confirmed appointments for the currently logged-in user and triggers reminder emails.
+ *
+ * <p>Reminder rules applied by the scheduler:</p>
+ * <ul>
+ *   <li>Only {@link AppointmentStatus#CONFIRMED} appointments are considered.</li>
+ *   <li>Only appointments belonging to the currently logged-in user are considered.</li>
+ *   <li>Only future appointments are considered.</li>
+ *   <li>Reminders are triggered only when the appointment start is within the next 24 hours.</li>
+ * </ul>
+ *
+ * <p>To avoid spamming, the scheduler tracks already-reminded appointment IDs in-memory and will not send
+ * multiple reminders for the same appointment during the same application run.</p>
  */
 public class EmailReminderScheduler {
 
     private final DataRepository repo;
     private final AuthService auth;
     private final BookingEmailReminderService reminderService;
+
     private final ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
     private final Set<Integer> emailedAppointmentIds = new HashSet<>();
-    private final long checkEveryMinutes;
 
-    // Injectable clock (useful for unit testing)
+    private final long checkEveryMinutes;
     private final Clock clock;
 
-    // اختياري: إذا ما عندك رغبة في Clock فيمكنك حذف هذا الكونستركتر والإبقاء فقط على واحد
+    /**
+     * Creates a scheduler using the system default clock.
+     *
+     * @param repo             repository used to read appointments
+     * @param auth             authentication service used to determine the current logged-in user
+     * @param reminderService  reminder service used to send reminder emails
+     * @param checkEveryMinutes interval in minutes between checks
+     */
     public EmailReminderScheduler(
-        DataRepository repo,
-        AuthService auth,
-        BookingEmailReminderService reminderService,
-        long checkEveryMinutes
+            DataRepository repo,
+            AuthService auth,
+            BookingEmailReminderService reminderService,
+            long checkEveryMinutes
     ) {
         this(repo, auth, reminderService, checkEveryMinutes, Clock.systemDefaultZone());
     }
 
+    /**
+     * Creates a scheduler.
+     *
+     * @param repo             repository used to read appointments
+     * @param auth             authentication service used to determine the current logged-in user
+     * @param reminderService  reminder service used to send reminder emails
+     * @param checkEveryMinutes interval in minutes between checks
+     * @param clock            clock used for time computations (useful for testing)
+     */
     public EmailReminderScheduler(
-        DataRepository repo,
-        AuthService auth,
-        BookingEmailReminderService reminderService,
-        long checkEveryMinutes,
-        Clock clock
+            DataRepository repo,
+            AuthService auth,
+            BookingEmailReminderService reminderService,
+            long checkEveryMinutes,
+            Clock clock
     ) {
         this.repo = repo;
         this.auth = auth;
@@ -53,15 +79,24 @@ public class EmailReminderScheduler {
         this.clock = clock;
     }
 
+    /**
+     * Starts the periodic reminder check.
+     */
     public void start() {
         exec.scheduleAtFixedRate(this::safeCheck, 0, checkEveryMinutes, TimeUnit.MINUTES);
     }
 
+    /**
+     * Stops the scheduler and clears in-memory tracking state.
+     */
     public void stop() {
         exec.shutdownNow();
         emailedAppointmentIds.clear();
     }
 
+    /**
+     * Executes a reminder check safely, preventing scheduler thread crashes.
+     */
     private void safeCheck() {
         try {
             checkAndSend();
@@ -70,11 +105,15 @@ public class EmailReminderScheduler {
         }
     }
 
+    /**
+     * Performs one check cycle and triggers reminders when eligible.
+     */
     private void checkAndSend() {
-        if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) return;
+        boolean loggedIn = (auth != null && auth.isLoggedIn() && auth.getCurrentUser() != null);
+        if (!loggedIn) return;
 
         String username = auth.getCurrentUser().getUsername();
-        LocalDateTime now = LocalDateTime.now(clock); // إذا أردت تزوير الوقت باختبار
+        LocalDateTime now = LocalDateTime.now(clock);
 
         for (Appointment a : repo.getAppointments()) {
             if (a == null) continue;
@@ -83,17 +122,16 @@ public class EmailReminderScheduler {
             if (!a.getUser().getUsername().equalsIgnoreCase(username)) continue;
 
             if (emailedAppointmentIds.contains(a.getId())) continue;
+
             if (a.getSlot() == null || a.getSlot().getStartDateTime() == null) continue;
 
             LocalDateTime start = a.getSlot().getStartDateTime();
             if (!start.isAfter(now)) continue;
 
             Duration until = Duration.between(now, start);
+            if (until.compareTo(Duration.ofHours(24)) > 0) continue;
 
-            // Trigger when it enters the < 24 hour window
-            if (until.compareTo(Duration.ofHours(24)) >= 0) continue;
-
-            reminderService.send24hReminderIfNeeded(a); // ← هنا سيستدعى SmtpEmailSender إذا استخدمته
+            reminderService.send24hReminderIfNeeded(a);
             emailedAppointmentIds.add(a.getId());
         }
     }

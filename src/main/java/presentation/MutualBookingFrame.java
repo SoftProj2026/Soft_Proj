@@ -20,11 +20,23 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Booking window that shows only mutual slots.
+ * Booking window that displays only mutual slots for a selected {@link Category}.
  *
- * NOTE: Logic is unchanged except:
- * - Past time slots are NOT selectable (radio disabled / skipped)
- * - Booking is blocked if user somehow selects a past slot
+ * <p>A mutual slot is considered bookable when:</p>
+ * <ul>
+ *   <li>The slot belongs to the selected category</li>
+ *   <li>The company slot is available</li>
+ *   <li>The current user is not busy (no overlap with confirmed appointments)</li>
+ *   <li>The slot is not blocked by {@link BlockedSlotsRule}</li>
+ *   <li>The slot start time is not in the past</li>
+ * </ul>
+ *
+ * <p>This screen enforces the MAIN + EMERGENCY workflow:</p>
+ * <ul>
+ *   <li>First confirmed booking in a category is treated as MAIN.</li>
+ *   <li>Second confirmed booking in the same category must be EMERGENCY.</li>
+ *   <li>If a user has exactly one confirmed booking, closing the window is blocked until EMERGENCY is booked.</li>
+ * </ul>
  */
 public class MutualBookingFrame extends JFrame {
 
@@ -33,7 +45,6 @@ public class MutualBookingFrame extends JFrame {
     private static final Color ROW_OK_BG = new Color(220, 252, 231);
     private static final Color ROW_OK_FG = new Color(20, 83, 45);
 
-    // NEW: Past row style
     private static final Color ROW_PAST_BG = new Color(240, 240, 240);
     private static final Color ROW_PAST_FG = new Color(120, 120, 120);
 
@@ -52,6 +63,16 @@ public class MutualBookingFrame extends JFrame {
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private final BlockedSlotsRule blockedRule = new BlockedSlotsRule();
 
+    /**
+     * Creates a mutual booking window.
+     *
+     * @param auth         authentication service
+     * @param booking      booking service
+     * @param repo         repository
+     * @param category     selected category
+     * @param companyFrame company window (if any) to close together
+     * @param myFreeFrame  free-slots window (if any) to close together
+     */
     public MutualBookingFrame(AuthService auth,
                               BookingService booking,
                               DataRepository repo,
@@ -119,6 +140,9 @@ public class MutualBookingFrame extends JFrame {
         load();
     }
 
+    /**
+     * Attempts to close the window, blocking the close action if the user must still complete EMERGENCY booking.
+     */
     private void attemptClose() {
         long confirmed = countConfirmedForThisCategory();
 
@@ -136,12 +160,20 @@ public class MutualBookingFrame extends JFrame {
         closeAll();
     }
 
+    /**
+     * Disposes this window and any related windows passed to the constructor.
+     */
     private void closeAll() {
         if (companyFrame != null && companyFrame.isDisplayable()) companyFrame.dispose();
         if (myFreeFrame != null && myFreeFrame.isDisplayable()) myFreeFrame.dispose();
         if (this.isDisplayable()) this.dispose();
     }
 
+    /**
+     * Counts confirmed appointments for the current user within the selected category.
+     *
+     * @return count of confirmed appointments
+     */
     private long countConfirmedForThisCategory() {
         if (!auth.isLoggedIn()) return 0;
         String user = auth.getCurrentUser().getUsername();
@@ -154,6 +186,12 @@ public class MutualBookingFrame extends JFrame {
                 .count();
     }
 
+    /**
+     * Checks whether the current user is busy during the given slot based on overlap with confirmed appointments.
+     *
+     * @param slot target slot
+     * @return {@code true} if the user is busy during this slot
+     */
     private boolean isUserBusy(TimeSlot slot) {
         if (slot == null) return false;
         if (!auth.isLoggedIn()) return false;
@@ -177,7 +215,8 @@ public class MutualBookingFrame extends JFrame {
 
     /**
      * Loads and renders the list of mutual slots.
-     * Logic unchanged EXCEPT: past slots are not selectable.
+     *
+     * <p>Past slots are displayed but not selectable.</p>
      */
     private void load() {
         listPanel.removeAll();
@@ -228,7 +267,6 @@ public class MutualBookingFrame extends JFrame {
             if (isUserBusy(slot)) continue;
             if (blockedRule.getBlockMessageIfBlocked(slot) != null) continue;
 
-            // NEW: disable past slots
             if (slot.getStartDateTime() != null && slot.getStartDateTime().isBefore(now)) {
                 JLabel past = new JLabel(slot.getStartDateTime().format(fmt) + "  (Past - Not bookable)");
                 past.setOpaque(true);
@@ -268,6 +306,15 @@ public class MutualBookingFrame extends JFrame {
         listPanel.repaint();
     }
 
+    /**
+     * Prompts the user for an integer value within a specified range.
+     *
+     * @param title   dialog title
+     * @param message dialog message
+     * @param min     minimum accepted value
+     * @param max     maximum accepted value
+     * @return selected value, or {@code null} if cancelled
+     */
     private Integer promptIntInRange(String title, String message, int min, int max) {
         while (true) {
             String input = JOptionPane.showInputDialog(
@@ -301,6 +348,9 @@ public class MutualBookingFrame extends JFrame {
         }
     }
 
+    /**
+     * Creates a booking for the selected mutual slot.
+     */
     private void bookSelected() {
         if (selectedSlot == null) {
             DialogUtil.show(this, "No Slot Selected", "Please select a slot first!", DialogUtil.Type.WARNING);

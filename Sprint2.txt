@@ -1,84 +1,90 @@
-/*In Sprint 2, we implemented the appointment booking workflow and enforced key business rules. The booking flow starts from the UI (MainDashboardFrame), where the user selects a slot and inputs participants and duration. The system then creates an Appointment and submits it to BookingService.book().
-US2.1 (Book appointment) is completed by confirming the appointment through Appointment.confirm(), which sets the appointment status to CONFIRMED and marks the selected TimeSlot as booked, followed by saving the appointment in the repository.
-US2.2 (Enforce visit duration rule) is implemented in DurationRule, rejecting appointments that exceed the allowed maximum duration. US2.3 (Enforce participant limit) is implemented in ParticipantLimitRule, rejecting bookings that exceed the maximum number of participants. The booking service applies these rules using the Strategy pattern (BookingRuleStrategy) and returns a clear success or failure message to the user.
+Sprint 2 – Booking & Business Rules (Week 3–4)
+In Sprint 2, we implemented the booking workflow and the main booking rules. Booking is designed as a two-step approval process: the user submits a booking request for a selected mutual slot, and the request must be approved first by a category administrator, then by the big admin (“admin”). Once the big admin approves a request, the system creates an Appointment, confirms it, and marks the slot as booked.
 
-*/
-
-/*
- *  Sprint 2 – User Stories Summary
-US2.1 – Book an appointment
-Story: As a user, I want to book an appointment for a chosen time slot so that I can reserve it.
+In addition to the booking workflow, the UI enforces critical constraints such as blocking break-time slots (12:00–13:00), preventing booking past times, and restricting duration/participants input to valid ranges. Business rules were also implemented as strategy classes (e.g., duration, participant limit, overlap prevention) to support rule-based validation and future extensibility.
+_____________________________________________________________________________________________
+ User Stories Summary (Booking & Business Rules)
+US2.1 – Book appointment (request + approval workflow)
+Story: As a user, I want to book an appointment for a specific date and time so that I can reserve a visit/meeting.
 Acceptance:
 
-User can choose a mutual available slot and submit a booking.
-If all validation rules pass, the booking is saved in the repository.
-User receives a success message; otherwise an error message is shown.
-Code evidence: MutualBookingFrame.bookSelected(), BookingService.book(), DataRepository.addAppointment().
+User selects a mutual available slot and submits a booking request.
+The selected slot becomes held (not available to others) while the request is pending.
+Category admin approves/rejects; if approved → forwarded to big admin.
+Big admin approval creates a CONFIRMED appointment and books the slot.
+Implemented in:
+Service.BookingRequestService.submitRequest(...) (creates request + holds slot)
+presentation.UnifiedBookingFrame (UI selection + submit request)
+presentation.AdminRequestsFrame (approve/reject UI)
+persistence.DataRepository.approveByCategoryAdmin(...) and approveByBigAdmin(...)
 
-US2.2 – Confirm booking marks slot unavailable
-Story: As a system, I want confirmed appointments to mark the time slot as booked so that no one else can select it.
+
+
+US2.2 – Enforce visit duration rule
+Story: As a system, I want to limit appointment duration so that no booking exceeds the allowed time.
 Acceptance:
 
-When booking succeeds, appointment status becomes CONFIRMED.
-The associated TimeSlot becomes unavailable (isAvailable() == false).
-Booked slots do not appear in “available slots” lists.
-Code evidence: Appointment.confirm(), TimeSlot.book(), availability filters in UI frames.
+Duration must be within allowed limits (not exceeding slot length).
+Invalid durations are rejected with an error message.
+Implemented in:
+presentation.UnifiedBookingFrame (duration input range: 1 .. slotMinutes)
+Service.DurationRule (rule class available for validation)
 
-US2.3 – Enforce duration rule (max duration)
-Story: As a system, I want to limit appointment duration so that bookings do not exceed the allowed time.
-Acceptance:
 
-If appointment duration is greater than the configured max (currently 60 minutes), booking is rejected.
-User receives an error message explaining the duration rule.
-Code evidence: DurationRule(60) in BookingService.
 
-US2.4 – Enforce participant limit
+US2.3 – Enforce participant limit
 Story: As a system, I want to limit the number of participants per appointment so that capacity rules are respected.
 Acceptance:
 
-If participants exceed the configured maximum (currently 5), booking is rejected.
-User receives an error message explaining the limit.
-Code evidence: ParticipantLimitRule(5) in BookingService, participants prompt in MutualBookingFrame.
+Participant count must be within the allowed maximum.
+If the limit is exceeded, the user is blocked and an error is shown.
+Implemented in:
+presentation.UnifiedBookingFrame (participants restricted, e.g., 1–5)
+Service.ParticipantLimitRule (rule class available for validation)
 
-US2.5 – Prevent booking during blocked break time (12:00–13:00)
-Story: As a system, I want to block bookings during break time (12:00–13:00) so that no appointments are scheduled during that period.
+
+US2.4 – Prevent booking past time slots
+Story: As a system, I want to prevent booking time slots in the past so that users can only request future appointments.
 Acceptance:
 
-Any slot starting at 12:00 up to before 13:00 is blocked.
-Booking attempts in that window are rejected with a clear message.
-Break-blocked slots are visually highlighted in the company availability view.
-Code evidence: BlockedSlotsRule, used in BookingService and in CompanyAvailableSlotsFrame and MutualBookingFrame filtering.
+Past slots are not selectable in the UI.
+If a past slot is somehow selected, the system rejects the booking request.
+Implemented in:
+presentation.UnifiedBookingFrame (renders past slots as “Past - Not bookable”)
+presentation.MutualBookingFrame (past slots disabled / blocked)
+Service.NotInPastRule (rule class)
 
-US2.6 – Prevent overlapping bookings
-Story: As a system, I want to prevent overlapping appointments so that schedules stay consistent.
+
+US2.5 – Block break interval (12:00–13:00)
+Story: As a system, I want to block booking during break time so that users cannot reserve appointments during the defined break interval.
 Acceptance:
 
-Booking is rejected if the chosen slot overlaps any existing appointment in the repository.
-User receives an overlap error message.
-Code evidence: OverlapRule(repo) in BookingService.
+Slots starting between 12:00 and 13:00 are blocked and not bookable.
+The UI shows break time clearly and prevents selection.
+Implemented in:
+Service.BlockedSlotsRule
+presentation.UnifiedBookingFrame + presentation.CompanyAvailableSlotsFrame (break rows highlighted/disabled)
 
-Note: your OverlapRule currently checks overlap against all appointments in repo.getAppointments() (it doesn’t filter by status). That’s how the code behaves.
 
-US2.7 – Show mutual slots only (company available + user free + not break-blocked)
-Story: As a user, I want to see only mutual time slots so that I can quickly book times that work for me and the company.
+US2.6 – “MAIN + EMERGENCY” booking limit per category (max 2 active)
+Story: As a system, I want to limit each user to a maximum of two active bookings (MAIN + EMERGENCY) per category so that capacity is controlled and emergency booking is enforced.
 Acceptance:
 
-Mutual booking screen shows slots only when:
-Slot matches selected category.
-Slot is available (not booked).
-Slot does not overlap with the user’s confirmed bookings.
-Slot is not within the break-blocked period.
-If no mutual slots exist, show a “no mutual slots available” message.
-Code evidence: MutualBookingFrame.load(), isUserBusy(...), BlockedSlotsRule.getBlockMessageIfBlocked(...).
+User cannot exceed 2 active bookings (confirmed + pending requests) within the same category.
+After submitting MAIN, the user is required to submit EMERGENCY before closing the booking window.
+Implemented in:
+Service.BookingRequestService.submitRequest(...) (checks confirmed + pending count)
+presentation.UnifiedBookingFrame (enforces required emergency flow)
+persistence.DataRepository.countConfirmedForUserCategory(...) and countPendingRequestsForUserCategory(...)
 
-US2.8 – Require an Emergency booking after the Main booking (per category)
-Story: As a user, I want the system to require an Emergency booking after I book the Main appointment so that I always have a backup reservation.
+
+US2.7 – Mark ended appointments as COMPLETED (after time passes)
+Story: As a user, I want appointments that have already ended to be marked as COMPLETED so that my bookings list reflects which appointments are finished.
 Acceptance:
 
-If user has 0 confirmed bookings in the category → next booking is MAIN.
-If user has 1 confirmed booking in the category → next booking must be EMERGENCY.
-User cannot close the mutual booking window after MAIN until EMERGENCY is booked.
-After MAIN + EMERGENCY (2 confirmed) → no more bookings allowed in that category and closing is permitted.
-Code evidence: MutualBookingFrame.countConfirmedForThisCategory(), attemptClose(), booking flow messages.
- */
-
+If an appointment is CONFIRMED and its end time is before the current time, it is displayed as COMPLETED.
+COMPLETED bookings remain visible as history (not cancelled).
+Implemented in:
+domain.AppointmentStatus (added COMPLETED)
+domain.Appointment.complete()
+presentation.MyBookingsFrame (marks past confirmed appointments as completed before displaying)

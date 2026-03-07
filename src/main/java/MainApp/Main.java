@@ -22,17 +22,25 @@ import java.util.List;
 /**
  * Application entry point.
  *
- * <p>This class loads persisted data, seeds initial data on first run, initializes services, and launches the UI.</p>
+ * <p>This class bootstraps the application by applying the UI theme, loading persisted repository data,
+ * seeding initial data on first run, and launching the Swing login window.</p>
  */
 public class Main {
 
     /**
      * Starts the application.
      *
+     * <p>Startup flow:</p>
+     * <ul>
+     *   <li>Apply the UI theme.</li>
+     *   <li>Load repository data from disk (or create a new repository if not found).</li>
+     *   <li>If the repository looks empty, seed initial accounts, categories, and time slots.</li>
+     *   <li>Create core services and open the {@link LoginFrame}.</li>
+     * </ul>
+     *
      * @param args command-line arguments (not used)
      */
     public static void main(String[] args) {
-
         UITheme.apply();
 
         DataRepository repo = RepoStorage.loadOrNew();
@@ -47,16 +55,15 @@ public class Main {
                 && repo.getAuditEvents().isEmpty();
 
         if (looksEmpty) {
-
             repo.addUser(new Administrator("admin", "Admin@123"));
 
             repo.addProvider(new Provider(
                     "qrbooking",
                     "Comp@1234",
                     "QR Booking",
-                    "", 
+                    "",
                     "remaajomaa842@gmail.com",
-                    ""  
+                    ""
             ));
 
             List<Category> categories = buildCategories();
@@ -80,6 +87,13 @@ public class Main {
         });
     }
 
+    /**
+     * Seeds one administrator account per category using a deterministic username derived from the
+     * category name.
+     *
+     * @param repo       repository to insert users into
+     * @param categories categories used to derive category-admin usernames
+     */
     private static void seedCategoryAdmins(DataRepository repo, List<Category> categories) {
         String pass = "Admin@123";
         for (Category c : categories) {
@@ -88,6 +102,11 @@ public class Main {
         }
     }
 
+    /**
+     * Builds the list of predefined categories used by the application.
+     *
+     * @return list of categories
+     */
     private static List<Category> buildCategories() {
         List<Category> categories = new ArrayList<>();
 
@@ -119,8 +138,17 @@ public class Main {
         return categories;
     }
 
+    /**
+     * Seeds time slots for each category for a given number of days ahead.
+     *
+     * <p>Slots are generated as 1-hour intervals from 09:00 to 16:00 (inclusive start times).
+     * Fridays are skipped.</p>
+     *
+     * @param repo       repository to insert slots into
+     * @param categories categories to create slots for
+     * @param daysAhead  number of days to generate slots for starting from today
+     */
     private static void seedTimeSlots(DataRepository repo, List<Category> categories, int daysAhead) {
-
         int durationMinutes = 60;
 
         LocalTime start = LocalTime.of(9, 0);
@@ -129,7 +157,6 @@ public class Main {
         LocalDate today = LocalDate.now();
 
         for (int d = 0; d < daysAhead; d++) {
-
             LocalDate date = today.plusDays(d);
             DayOfWeek dow = date.getDayOfWeek();
 

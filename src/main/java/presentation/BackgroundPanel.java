@@ -17,7 +17,6 @@ public class BackgroundPanel extends JPanel {
         this.background = background;
         setLayout(new GridBagLayout());
 
-        // IMPORTANT: background panel should not block child mouse events
         setOpaque(false);
         setFocusable(false);
         setEnabled(true);

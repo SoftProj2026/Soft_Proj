@@ -14,32 +14,38 @@ import java.time.LocalDate;
 /**
  * Sign-up window used to create a new user account.
  *
- * Collects first/last name, username, strong password, email, and date of birth,
- * then calls {@link AuthService#register(String, String, String, String, LocalDate, String)}.
+ * <p>This screen collects first name, last name, username, password, email, and date of birth,
+ * then delegates account creation to {@link AuthService#register(String, String, String, String, LocalDate, String)}.</p>
+ *
+ * <p>The UI enforces:</p>
+ * <ul>
+ *   <li>Required fields (first name, last name, username, email, password, date of birth)</li>
+ *   <li>Basic email format validation</li>
+ *   <li>Strong password rules (8+ chars, uppercase, lowercase, digit, and symbol)</li>
+ * </ul>
  */
 public class SignUpFrame extends JFrame {
 
-    private JTextField firstNameF = new JTextField(22);
-    private JTextField lastNameF = new JTextField(22);
+    private final JTextField firstNameF = new JTextField(22);
+    private final JTextField lastNameF = new JTextField(22);
 
-    private JTextField userF = new JTextField(22);
-    private JPasswordField passF = new JPasswordField(22);
+    private final JTextField userF = new JTextField(22);
+    private final JPasswordField passF = new JPasswordField(22);
 
-    // NEW: user email (required)
-    private JTextField emailF = new JTextField(22);
+    private final JTextField emailF = new JTextField(22);
 
-    private JCheckBox showPassword = new JCheckBox("Show Password");
+    private final JCheckBox showPassword = new JCheckBox("Show Password");
 
-    private JComboBox<Integer> dayBox = new JComboBox<>();
-    private JComboBox<Integer> monthBox = new JComboBox<>();
-    private JComboBox<Integer> yearBox = new JComboBox<>();
+    private final JComboBox<Integer> dayBox = new JComboBox<>();
+    private final JComboBox<Integer> monthBox = new JComboBox<>();
+    private final JComboBox<Integer> yearBox = new JComboBox<>();
 
-    private JLabel strongHint = new JLabel(
+    private final JLabel strongHint = new JLabel(
             "<html>Password must be strong:<br/>8+ chars, uppercase, lowercase, number, and symbol.</html>"
     );
 
-    private JButton signBtn = new JButton("Sign Up");
-    private JButton backBtn = new JButton("Back to Login");
+    private final JButton signBtn = new JButton("Sign Up");
+    private final JButton backBtn = new JButton("Back to Login");
 
     /**
      * Creates the sign-up frame.
@@ -47,7 +53,6 @@ public class SignUpFrame extends JFrame {
      * @param auth authentication service used for registration
      */
     public SignUpFrame(AuthService auth) {
-
         setTitle("Sign Up");
         setSize(650, 670);
         setMinimumSize(new Dimension(600, 600));
@@ -68,13 +73,13 @@ public class SignUpFrame extends JFrame {
         installPlaceholder(firstNameF, "First Name");
         installPlaceholder(lastNameF, "Last Name");
         installPlaceholder(userF, "Username");
-        installPlaceholder(emailF, "Email"); // NEW
+        installPlaceholder(emailF, "Email");
         installPasswordPlaceholder(passF, "Password");
 
         styleField(firstNameF);
         styleField(lastNameF);
         styleField(userF);
-        styleField(emailF); // NEW
+        styleField(emailF);
         styleField(passF);
 
         initDobCombos();
@@ -109,8 +114,11 @@ public class SignUpFrame extends JFrame {
             String text = new String(passF.getPassword());
             boolean isPlaceholder = text.equals("Password") && passF.getEchoChar() == 0;
 
-            if (showPassword.isSelected()) passF.setEchoChar((char) 0);
-            else passF.setEchoChar(isPlaceholder ? (char) 0 : '•');
+            if (showPassword.isSelected()) {
+                passF.setEchoChar((char) 0);
+            } else {
+                passF.setEchoChar(isPlaceholder ? (char) 0 : '•');
+            }
         });
 
         stylePrimaryButton(signBtn);
@@ -124,11 +132,8 @@ public class SignUpFrame extends JFrame {
         card.add(Box.createVerticalStrut(10));
         card.add(userF);
         card.add(Box.createVerticalStrut(10));
-
-        // NEW: email field in UI
         card.add(emailF);
         card.add(Box.createVerticalStrut(10));
-
         card.add(passF);
         card.add(Box.createVerticalStrut(8));
         card.add(strongHint);
@@ -147,69 +152,82 @@ public class SignUpFrame extends JFrame {
 
         root.add(card, new GridBagConstraints());
 
-        signBtn.addActionListener(e -> {
-            String firstName = firstNameF.getText().trim();
-            String lastName = lastNameF.getText().trim();
-            String username = userF.getText().trim();
-            String email = emailF.getText().trim(); // NEW
-            String password = new String(passF.getPassword());
-
-            if (firstName.equals("First Name")) firstName = "";
-            if (lastName.equals("Last Name")) lastName = "";
-            if (username.equals("Username")) username = "";
-            if (email.equals("Email")) email = "";
-            if (password.equals("Password")) password = "";
-
-            if (firstName.isEmpty()) { warn("First name is required."); return; }
-            if (lastName.isEmpty())  { warn("Last name is required."); return; }
-            if (username.isEmpty())  { warn("Username is required."); return; }
-
-            // NEW: require real email
-            if (email.isEmpty()) { warn("Email is required."); return; }
-            if (!isValidEmail(email)) { warn("Please enter a valid email address."); return; }
-
-            if (!isStrongPassword(password)) {
-                warn("Weak password!\nUse 8+ chars with uppercase, lowercase, number, and symbol.");
-                return;
-            }
-
-            LocalDate dob = readDobOrNull();
-            if (dob == null) {
-                warn("Please select a valid date of birth.");
-                return;
-            }
-
-            AuthService.RegisterResult result =
-                    auth.register(firstName, lastName, username, password, dob, email);
-
-            if (result == AuthService.RegisterResult.SUCCESS) {
-                JOptionPane.showMessageDialog(this, "Account created successfully!");
-                dispose();
-            } else if (result == AuthService.RegisterResult.USERNAME_TAKEN) {
-                JOptionPane.showMessageDialog(this,
-                        "This username is already taken.\nPlease choose another one.",
-                        "Username exists",
-                        JOptionPane.WARNING_MESSAGE);
-            } else if (result == AuthService.RegisterResult.UNDER_18) {
-                JOptionPane.showMessageDialog(this,
-                        "Registration rejected.\nYou must be at least 18 years old.",
-                        "Under 18",
-                        JOptionPane.WARNING_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this,
-                        "Invalid input.\nPlease check your data and try again.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
+        signBtn.addActionListener(e -> onSignUp(auth));
         backBtn.addActionListener(e -> dispose());
     }
 
+    /**
+     * Handles form submission, validates inputs, then calls {@link AuthService#register(String, String, String, String, LocalDate, String)}.
+     *
+     * @param auth authentication service used for registration
+     */
+    private void onSignUp(AuthService auth) {
+        String firstName = firstNameF.getText().trim();
+        String lastName = lastNameF.getText().trim();
+        String username = userF.getText().trim();
+        String email = emailF.getText().trim();
+        String password = new String(passF.getPassword());
+
+        if (firstName.equals("First Name")) firstName = "";
+        if (lastName.equals("Last Name")) lastName = "";
+        if (username.equals("Username")) username = "";
+        if (email.equals("Email")) email = "";
+        if (password.equals("Password")) password = "";
+
+        if (firstName.isEmpty()) { warn("First name is required."); return; }
+        if (lastName.isEmpty())  { warn("Last name is required."); return; }
+        if (username.isEmpty())  { warn("Username is required."); return; }
+
+        if (email.isEmpty()) { warn("Email is required."); return; }
+        if (!isValidEmail(email)) { warn("Please enter a valid email address."); return; }
+
+        if (!isStrongPassword(password)) {
+            warn("Weak password!\nUse 8+ chars with uppercase, lowercase, number, and symbol.");
+            return;
+        }
+
+        LocalDate dob = readDobOrNull();
+        if (dob == null) {
+            warn("Please select a valid date of birth.");
+            return;
+        }
+
+        AuthService.RegisterResult result =
+                auth.register(firstName, lastName, username, password, dob, email);
+
+        if (result == AuthService.RegisterResult.SUCCESS) {
+            JOptionPane.showMessageDialog(this, "Account created successfully!");
+            dispose();
+        } else if (result == AuthService.RegisterResult.USERNAME_TAKEN) {
+            JOptionPane.showMessageDialog(this,
+                    "This username is already taken.\nPlease choose another one.",
+                    "Username exists",
+                    JOptionPane.WARNING_MESSAGE);
+        } else if (result == AuthService.RegisterResult.UNDER_18) {
+            JOptionPane.showMessageDialog(this,
+                    "Registration rejected.\nYou must be at least 18 years old.",
+                    "Under 18",
+                    JOptionPane.WARNING_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Invalid input.\nPlease check your data and try again.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Shows a warning dialog.
+     *
+     * @param msg warning message
+     */
     private void warn(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Warning", JOptionPane.WARNING_MESSAGE);
     }
 
+    /**
+     * Initializes the day/month/year selection combos.
+     */
     private void initDobCombos() {
         dayBox.addItem(null);
         for (int d = 1; d <= 31; d++) dayBox.addItem(d);
@@ -222,6 +240,11 @@ public class SignUpFrame extends JFrame {
         for (int y = currentYear; y >= currentYear - 100; y--) yearBox.addItem(y);
     }
 
+    /**
+     * Reads the selected date of birth from the UI.
+     *
+     * @return date of birth, or {@code null} if selection is incomplete/invalid
+     */
     private LocalDate readDobOrNull() {
         Integer d = (Integer) dayBox.getSelectedItem();
         Integer m = (Integer) monthBox.getSelectedItem();
@@ -235,19 +258,26 @@ public class SignUpFrame extends JFrame {
         }
     }
 
+    /**
+     * Builds the central UI card panel.
+     *
+     * @return card panel
+     */
     private JPanel buildCard() {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(24, 36, 22, 36));
-
         card.setBackground(new Color(70, 140, 210, 235));
         card.setBorder(new LineBorder(new Color(255, 255, 255, 70), 1, true));
-
-        // slightly taller because we added an Email field
         card.setPreferredSize(new Dimension(540, 520));
         return card;
     }
 
+    /**
+     * Applies consistent styling to input fields.
+     *
+     * @param f component to style
+     */
     private void styleField(JComponent f) {
         f.setMaximumSize(new Dimension(420, 38));
         f.setPreferredSize(new Dimension(420, 38));
@@ -256,12 +286,22 @@ public class SignUpFrame extends JFrame {
         f.setBackground(new Color(255, 255, 255, 235));
     }
 
+    /**
+     * Applies consistent styling to combo boxes.
+     *
+     * @param c combo box to style
+     */
     private void styleCombo(JComboBox<?> c) {
         c.setPreferredSize(new Dimension(92, 30));
         c.setBackground(new Color(255, 255, 255, 235));
         c.setFont(c.getFont().deriveFont(13.5f));
     }
 
+    /**
+     * Applies the primary button style to the given button.
+     *
+     * @param b button to style
+     */
     private void stylePrimaryButton(JButton b) {
         Color normal = new Color(40, 95, 170);
         Color hover = new Color(55, 120, 205);
@@ -286,6 +326,11 @@ public class SignUpFrame extends JFrame {
         });
     }
 
+    /**
+     * Applies the link-button style to the given button.
+     *
+     * @param b button to style
+     */
     private void styleLinkButton(JButton b) {
         b.setOpaque(false);
         b.setContentAreaFilled(false);
@@ -295,6 +340,12 @@ public class SignUpFrame extends JFrame {
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
+    /**
+     * Validates a password using the application's strong-password rules.
+     *
+     * @param p password text
+     * @return {@code true} if password meets strength requirements
+     */
     private boolean isStrongPassword(String p) {
         if (p == null) return false;
         if (p.length() < 8) return false;
@@ -307,7 +358,12 @@ public class SignUpFrame extends JFrame {
         return hasUpper && hasLower && hasDigit && hasSymbol;
     }
 
-    // NEW: email validation (basic)
+    /**
+     * Validates email format using a basic regex.
+     *
+     * @param email email string
+     * @return {@code true} if email looks valid
+     */
     private boolean isValidEmail(String email) {
         if (email == null) return false;
         String e = email.trim();
@@ -315,18 +371,27 @@ public class SignUpFrame extends JFrame {
         return e.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     }
 
+    /**
+     * Installs a placeholder for a text field (simple hint text).
+     *
+     * @param field       target field
+     * @param placeholder placeholder text
+     */
     private void installPlaceholder(JTextField field, String placeholder) {
         field.setForeground(new Color(120, 120, 120));
         field.setText(placeholder);
 
         field.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) {
+            @Override
+            public void focusGained(FocusEvent e) {
                 if (field.getText().equals(placeholder)) {
                     field.setText("");
                     field.setForeground(new Color(30, 30, 30));
                 }
             }
-            @Override public void focusLost(FocusEvent e) {
+
+            @Override
+            public void focusLost(FocusEvent e) {
                 if (field.getText().trim().isEmpty()) {
                     field.setText(placeholder);
                     field.setForeground(new Color(120, 120, 120));
@@ -335,13 +400,20 @@ public class SignUpFrame extends JFrame {
         });
     }
 
+    /**
+     * Installs a placeholder behavior for a password field.
+     *
+     * @param field       password field
+     * @param placeholder placeholder text
+     */
     private void installPasswordPlaceholder(JPasswordField field, String placeholder) {
         field.setForeground(new Color(120, 120, 120));
         field.setEchoChar((char) 0);
         field.setText(placeholder);
 
         field.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) {
+            @Override
+            public void focusGained(FocusEvent e) {
                 String text = new String(field.getPassword());
                 if (text.equals(placeholder)) {
                     field.setText("");
@@ -349,7 +421,9 @@ public class SignUpFrame extends JFrame {
                     field.setEchoChar(showPassword.isSelected() ? (char) 0 : '•');
                 }
             }
-            @Override public void focusLost(FocusEvent e) {
+
+            @Override
+            public void focusLost(FocusEvent e) {
                 String text = new String(field.getPassword()).trim();
                 if (text.isEmpty()) {
                     field.setEchoChar((char) 0);
@@ -360,7 +434,16 @@ public class SignUpFrame extends JFrame {
         });
     }
 
+    /**
+     * A label styled with a white, semi-transparent foreground for use on the blue card background.
+     */
     static class JLabelWhite extends JLabel {
+
+        /**
+         * Creates a white label.
+         *
+         * @param text label text
+         */
         JLabelWhite(String text) {
             super(text);
             setForeground(new Color(255, 255, 255, 235));

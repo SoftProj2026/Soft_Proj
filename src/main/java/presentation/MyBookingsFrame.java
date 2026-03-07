@@ -9,6 +9,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ public class MyBookingsFrame extends JFrame {
 
     private static final Color CANCELLED_FG = new Color(180, 30, 30);
     private static final Color CONFIRMED_FG = new Color(20, 83, 45);
+    private static final Color COMPLETED_FG = new Color(120, 120, 120);
 
     /**
      * Creates the "My Bookings" window.
@@ -46,7 +48,6 @@ public class MyBookingsFrame extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
 
-        // Removed "Reminder" column
         String[] cols = {"ID", "Category", "Start", "Duration", "Participants", "Status"};
         model = new DefaultTableModel(cols, 0) {
             @Override
@@ -82,7 +83,7 @@ public class MyBookingsFrame extends JFrame {
     }
 
     /**
-     * Installs a custom renderer to color the status text for CONFIRMED and CANCELLED.
+     * Installs a custom renderer to color the status text for CONFIRMED, CANCELLED, COMPLETED.
      * (No "SOON" highlighting / reminders.)
      */
     private void installRowRenderer() {
@@ -104,13 +105,14 @@ public class MyBookingsFrame extends JFrame {
                     c.setForeground(Color.BLACK);
                 }
 
-                // Status column index is now 5 (last column)
                 if (!isSelected && column == 5 && row >= 0 && row < visibleAppointments.size()) {
                     Appointment a = visibleAppointments.get(row);
                     if (a.getStatus() == AppointmentStatus.CANCELLED) {
                         c.setForeground(CANCELLED_FG);
                     } else if (a.getStatus() == AppointmentStatus.CONFIRMED) {
                         c.setForeground(CONFIRMED_FG);
+                    } else if (a.getStatus() == AppointmentStatus.COMPLETED) {
+                        c.setForeground(COMPLETED_FG);
                     }
                 }
 
@@ -120,6 +122,28 @@ public class MyBookingsFrame extends JFrame {
 
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        }
+    }
+
+    /**
+     * Updates any CONFIRMED appointments that have already ended to COMPLETED.
+     */
+    private void markPastAppointmentsCompleted(String username) {
+        if (username == null || username.trim().isEmpty()) return;
+
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Appointment a : repo.getAppointments()) {
+            if (a == null) continue;
+            if (a.getStatus() != AppointmentStatus.CONFIRMED) continue;
+            if (a.getUser() == null || a.getUser().getUsername() == null) continue;
+            if (!a.getUser().getUsername().equalsIgnoreCase(username)) continue;
+
+            if (a.getSlot() == null || a.getSlot().getEndDateTime() == null) continue;
+
+            if (a.getSlot().getEndDateTime().isBefore(now)) {
+                a.complete();
+            }
         }
     }
 
@@ -137,6 +161,9 @@ public class MyBookingsFrame extends JFrame {
         }
 
         String username = auth.getCurrentUser().getUsername();
+
+        markPastAppointmentsCompleted(username);
+
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         for (Appointment a : repo.getAppointments()) {
