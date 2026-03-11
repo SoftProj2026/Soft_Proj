@@ -53,7 +53,7 @@ public class Main {
                 && repo.getBookingRequests().isEmpty()
                 && repo.getContactRequests().isEmpty()
                 && repo.getAuditEvents().isEmpty();
-
+//
         if (looksEmpty) {
             repo.addUser(new Administrator("admin", "Admin@123"));
 
