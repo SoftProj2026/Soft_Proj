@@ -12,12 +12,12 @@ import java.awt.*;
 
 /**
  * Admin dashboard window for both the big admin and category admins.
- * <p>
- * The dashboard displays basic repository statistics and provides navigation to:
- * </p>
+ *
+ * <p>The dashboard displays basic repository statistics and provides navigation to:</p>
  * <ul>
  *   <li>Requests approval screen</li>
  *   <li>User activity screen</li>
+ *   <li>Manage reservations screen</li>
  *   <li>Logout</li>
  * </ul>
  */
@@ -46,7 +46,7 @@ public class AdminDashboardFrame extends JFrame {
         this.booking = booking;
 
         setTitle("Admin Dashboard");
-        setSize(860, 460);
+        setSize(860, 480);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -81,6 +81,9 @@ public class AdminDashboardFrame extends JFrame {
         JButton activityBtn = new JButton("User Activity");
         activityBtn.addActionListener(e -> new AdminActivityFrame(repo).setVisible(true));
 
+        JButton manageBtn = new JButton("Manage Reservations");
+        manageBtn.addActionListener(e -> openManageReservations());
+
         JButton logout = new JButton("Logout");
         logout.addActionListener(e -> {
             RepoStorage.save(repo);
@@ -92,6 +95,7 @@ public class AdminDashboardFrame extends JFrame {
 
         actions.add(requestsBtn);
         actions.add(activityBtn);
+        actions.add(manageBtn);
         actions.add(logout);
 
         JPanel south = new JPanel(new BorderLayout());
@@ -117,6 +121,23 @@ public class AdminDashboardFrame extends JFrame {
 
         Administrator a = (Administrator) auth.getCurrentUser();
         new AdminRequestsFrame(repo, a).setVisible(true);
+    }
+
+    /**
+     * Opens the reservations management screen for administrators.
+     */
+    private void openManageReservations() {
+        if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) {
+            DialogUtil.show(this, "Login Required", "You must login first.", DialogUtil.Type.WARNING);
+            return;
+        }
+
+        if (!(auth.getCurrentUser() instanceof Administrator)) {
+            DialogUtil.show(this, "Not Admin", "Only Administrator accounts can manage reservations.", DialogUtil.Type.WARNING);
+            return;
+        }
+
+        new AdminManageReservationsFrame(auth, repo).setVisible(true);
     }
 
     /**

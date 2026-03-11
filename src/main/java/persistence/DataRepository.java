@@ -11,6 +11,7 @@ import domain.Provider;
 import domain.TimeSlot;
 import domain.User;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,9 +20,8 @@ import java.util.stream.Collectors;
 
 /**
  * In-memory repository that stores the application's runtime data.
- * <p>
- * This repository replaces a database for learning/demo purposes. It stores:
- * </p>
+ *
+ * <p>This repository replaces a database for learning/demo purposes. It stores:</p>
  * <ul>
  *   <li>Users and Providers (providers are also stored as users for login)</li>
  *   <li>Time slots</li>
@@ -33,9 +33,7 @@ import java.util.stream.Collectors;
  * </ul>
  *
  * <h2>Booking Policy</h2>
- * <p>
- * For each user within the same category:
- * </p>
+ * <p>For each user within the same category:</p>
  * <ul>
  *   <li>At most <b>two</b> confirmed bookings are allowed.</li>
  *   <li>The first confirmed booking is considered <b>MAIN</b>.</li>
@@ -89,9 +87,6 @@ public class DataRepository {
 
     /**
      * Returns all users.
-     * <p>
-     * Warning: returns the underlying list.
-     * </p>
      *
      * @return users list
      */
@@ -100,8 +95,7 @@ public class DataRepository {
     }
 
     /**
-     * Adds a provider account and also registers it as a user
-     * (so the provider can login using the same auth logic).
+     * Adds a provider account and also registers it as a user.
      *
      * @param provider provider account to add (may be null)
      */
@@ -389,10 +383,6 @@ public class DataRepository {
 
     /**
      * Approves a request by the big admin, confirms the appointment, and books the slot.
-     * <p>
-     * This method enforces the policy of at most two confirmed bookings per user per category.
-     * The first is labeled MAIN and the second is labeled Emergency (طوارئ) in the audit details.
-     * </p>
      *
      * @param requestId     booking request id
      * @param adminUsername acting admin username (may be null)
@@ -523,6 +513,7 @@ public class DataRepository {
      * <ul>
      *   <li>Only appointments stored in the repository can be cancelled</li>
      *   <li>Only CONFIRMED appointments can be cancelled</li>
+     *   <li>Only future appointments can be cancelled</li>
      *   <li>One cancellation per user per category</li>
      * </ul>
      * The cancellation is also logged as an audit event.
@@ -536,6 +527,14 @@ public class DataRepository {
 
         if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
             return "Only CONFIRMED bookings can be cancelled.";
+        }
+
+        if (appointment.getSlot() == null || appointment.getSlot().getStartDateTime() == null) {
+            return "Cannot cancel booking (missing slot time).";
+        }
+
+        if (!appointment.getSlot().getStartDateTime().isAfter(LocalDateTime.now())) {
+            return "Only FUTURE bookings can be cancelled.";
         }
 
         String username = appointment.getUser() != null ? appointment.getUser().getUsername() : null;
@@ -568,5 +567,135 @@ public class DataRepository {
         ));
 
         return "Booking cancelled successfully (one cancellation used for category \"" + categoryName + "\").";
+    }
+
+    /**
+     * Allows an administrator to cancel a confirmed appointment.
+     *
+     * <p>Rules:</p>
+     * <ul>
+     *   <li>Appointment must exist in repository.</li>
+     *   <li>Appointment must be CONFIRMED.</li>
+     *   <li>Only future appointments can be cancelled.</li>
+     * </ul>
+     *
+     * @param appointment appointment to cancel
+     * @param adminUsername acting admin username (may be null)
+     * @return user-friendly result message
+     */
+    public String adminCancelAppointment(Appointment appointment, String adminUsername) {
+        if (appointment == null) return "Invalid booking.";
+        if (!appointments.contains(appointment)) return "Booking not found.";
+
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            return "Only CONFIRMED bookings can be cancelled.";
+        }
+
+        if (appointment.getSlot() == null || appointment.getSlot().getStartDateTime() == null) {
+            return "Cannot cancel booking (missing slot time).";
+        }
+
+        if (!appointment.getSlot().getStartDateTime().isAfter(LocalDateTime.now())) {
+            return "Only FUTURE bookings can be cancelled.";
+        }
+
+        String categoryName = (appointment.getSlot() != null && appointment.getSlot().getCategory() != null)
+                ? appointment.getSlot().getCategory().getName()
+                : "N/A";
+
+        String user = (appointment.getUser() != null && appointment.getUser().getUsername() != null)
+                ? appointment.getUser().getUsername()
+                : "unknown";
+
+        appointment.cancel();
+
+        auditEvents.add(new AuditEvent(
+                AuditEvent.Type.APPOINTMENT_CANCELLED,
+                adminUsername != null ? adminUsername.trim() : "admin",
+                categoryName,
+                "Admin cancelled appointment #" + appointment.getId() + " for user @" + user
+        ));
+
+        return "Appointment cancelled by admin.";
+    }
+
+    /**
+     * Allows a user or administrator to modify an existing confirmed appointment.
+     *
+     * <p>Rules:</p>
+     * <ul>
+     *   <li>Appointment must exist in repository.</li>
+     *   <li>Only CONFIRMED appointments can be modified.</li>
+     *   <li>Only future appointments can be modified.</li>
+     *   <li>New slot must be available.</li>
+     *   <li>New duration and participants must be positive.</li>
+     *   <li>The old slot is released and the new slot is booked.</li>
+     * </ul>
+     *
+     * @param appointment appointment to modify
+     * @param newSlot new slot to move to
+     * @param newDurationInMinutes new duration
+     * @param newParticipants new participants
+     * @param actorUsername acting username (user or admin)
+     * @return user-friendly result message
+     */
+    public String modifyAppointment(Appointment appointment,
+                                   TimeSlot newSlot,
+                                   int newDurationInMinutes,
+                                   int newParticipants,
+                                   String actorUsername) {
+
+        if (appointment == null || newSlot == null) return "Invalid modification.";
+        if (!appointments.contains(appointment)) return "Booking not found.";
+
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            return "Only CONFIRMED bookings can be modified.";
+        }
+
+        if (appointment.getSlot() == null || appointment.getSlot().getStartDateTime() == null) {
+            return "Cannot modify booking (missing current slot time).";
+        }
+
+        if (!appointment.getSlot().getStartDateTime().isAfter(LocalDateTime.now())) {
+            return "Only FUTURE bookings can be modified.";
+        }
+
+        if (newSlot.getStartDateTime() == null || !newSlot.getStartDateTime().isAfter(LocalDateTime.now())) {
+            return "You cannot move a booking to a past time slot.";
+        }
+
+        if (!newSlot.isAvailable()) {
+            return "Selected new time slot is not available.";
+        }
+
+        if (newDurationInMinutes <= 0) return "Invalid duration.";
+        if (newParticipants <= 0) return "Invalid participants.";
+
+        TimeSlot oldSlot = appointment.getSlot();
+
+        oldSlot.cancel();
+        newSlot.book();
+
+        Appointment updated = new Appointment(
+                appointment.getUser(),
+                newSlot,
+                newDurationInMinutes,
+                newParticipants
+        );
+        updated.confirm();
+
+        int idx = appointments.indexOf(appointment);
+        appointments.set(idx, updated);
+
+        String categoryName = (newSlot.getCategory() != null) ? newSlot.getCategory().getName() : "N/A";
+
+        auditEvents.add(new AuditEvent(
+                AuditEvent.Type.APPOINTMENT_CONFIRMED,
+                actorUsername != null ? actorUsername.trim() : "system",
+                categoryName,
+                "Modified appointment #" + appointment.getId() + " -> new appointment #" + updated.getId()
+        ));
+
+        return "Booking modified successfully.";
     }
 }
