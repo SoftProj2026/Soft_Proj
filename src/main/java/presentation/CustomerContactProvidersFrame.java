@@ -5,7 +5,6 @@ import Service.EmailSender;
 import Service.SmtpEmailSender;
 import domain.ContactRequest;
 import domain.Provider;
-import domain.User;
 import persistence.DataRepository;
 
 import javax.swing.*;
@@ -15,13 +14,13 @@ import java.awt.*;
 /**
  * Customer UI window that lists providers and allows sending a message as a {@link ContactRequest}.
  *
- * <p>This screen supports two actions:</p>
+ * <p>This screen performs two actions when the user clicks Send:</p>
  * <ul>
- *   <li>Storing the message internally as a {@link ContactRequest} in {@link DataRepository}.</li>
- *   <li>Sending the message by email to the company inbox address.</li>
+ *   <li>Stores the message internally as a {@link ContactRequest} in {@link DataRepository}.</li>
+ *   <li>Sends the message by email to the company inbox address only.</li>
  * </ul>
  *
- * <p>If the logged-in user has an email address, a copy of the message is also sent to the user.</p>
+ * <p>No copy is sent to the user's email.</p>
  */
 public class CustomerContactProvidersFrame extends JFrame {
 
@@ -141,16 +140,6 @@ public class CustomerContactProvidersFrame extends JFrame {
     }
 
     /**
-     * Trims a string safely.
-     *
-     * @param s string (may be {@code null})
-     * @return trimmed string, or empty string if {@code s} is {@code null}
-     */
-    private static String safeTrim(String s) {
-        return s == null ? "" : s.trim();
-    }
-
-    /**
      * Sends the message to the company inbox email and stores it as a {@link ContactRequest}.
      *
      * <p>The message is always stored in the repository. Email sending is best-effort: if email fails,
@@ -186,29 +175,20 @@ public class CustomerContactProvidersFrame extends JFrame {
 
             String companyTo = "remaajomaa842@gmail.com";
 
-            User current = auth.getCurrentUser();
-            String userEmail = safeTrim(current.getEmail());
-
-            String subject = "New message from @" + current.getUsername();
+            String subject = "New message from @" + auth.getCurrentUser().getUsername();
             String body =
-                    "From (username): @" + current.getUsername() + "\n" +
-                            "From (email): " + (userEmail.isEmpty() ? "N/A" : userEmail) + "\n" +
+                    "From (username): @" + auth.getCurrentUser().getUsername() + "\n" +
                             "Provider selected in app: @" + selected.getUsername() + " (" + selected.getDisplayName() + ")\n\n" +
                             "Message:\n" + msg + "\n";
 
             sender.send(companyTo, companyTo, subject, body);
-
-            if (!userEmail.isEmpty()) {
-                sender.send(companyTo, userEmail, "Copy: " + subject, body);
-            }
 
             messageArea.setText("");
 
             DialogUtil.show(
                     this,
                     "Sent",
-                    "Message saved + email sent to company: " + companyTo
-                            + (userEmail.isEmpty() ? "" : ("\nCopy sent to you: " + userEmail)),
+                    "Message saved + email sent to company: " + companyTo,
                     DialogUtil.Type.SUCCESS
             );
         } catch (Exception ex) {

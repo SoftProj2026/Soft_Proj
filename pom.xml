@@ -12,7 +12,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
 
-    <!-- Keep versions centralized -->
     <junit.version>5.10.2</junit.version>
     <mockito.version>5.11.0</mockito.version>
     <jakarta.mail.version>2.0.1</jakarta.mail.version>
@@ -22,7 +21,6 @@
   </properties>
 
   <dependencies>
-    <!-- Tests: JUnit 5 -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -30,7 +28,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Tests: Mockito -->
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
@@ -44,21 +41,18 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- .env support -->
     <dependency>
       <groupId>io.github.cdimascio</groupId>
       <artifactId>dotenv-java</artifactId>
       <version>${dotenv.version}</version>
     </dependency>
 
-    <!-- SMTP email (Jakarta Mail) -->
     <dependency>
       <groupId>com.sun.mail</groupId>
       <artifactId>jakarta.mail</artifactId>
       <version>${jakarta.mail.version}</version>
     </dependency>
 
-    <!-- JSON persistence (Jackson) -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
@@ -78,8 +72,11 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven.surefire.version}</version>
         <configuration>
-          <!-- Helps on some JDK/module-path setups -->
           <useModulePath>false</useModulePath>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*_Test.java</include>
+          </includes>
         </configuration>
       </plugin>
     </plugins>

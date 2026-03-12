@@ -13,23 +13,20 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Admin UI window that displays system-wide user activity.
- * <p>
- * This frame shows three tabs:
+ *
+ * <p>This frame shows three tabs:</p>
  * <ol>
  *   <li><b>Messages</b>: all {@link ContactRequest} messages sent by customers</li>
  *   <li><b>Appointments</b>: all appointments and their timestamps/status</li>
  *   <li><b>Audit Log</b>: summarized events written into {@link AuditEvent}</li>
  * </ol>
- * </p>
  *
- * <p>
- * This makes it possible for the admin to monitor:
+ * <p>This makes it possible for the admin to monitor:</p>
  * <ul>
  *   <li>Who sent which messages and when</li>
  *   <li>Who booked which category and when booking was confirmed</li>
  *   <li>Who cancelled and in which category</li>
  * </ul>
- * </p>
  */
 public class AdminActivityFrame extends JFrame {
 
@@ -93,11 +90,16 @@ public class AdminActivityFrame extends JFrame {
 
     /**
      * Builds Messages tab showing all contact requests.
+     *
+     * @return panel containing the messages table
      */
     private JPanel buildMessagesPanel() {
-        String[] cols = {"ID", "From", "To Provider", "Date", "Read", "Message"};
+        String[] cols = {"ID", "From", "To Provider", "Date", "Message"};
         DefaultTableModel m = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
         JTable t = new JTable(m);
 
@@ -107,7 +109,6 @@ public class AdminActivityFrame extends JFrame {
                     r.getFromUsername(),
                     r.getToProviderUsername(),
                     r.getCreatedAt().format(fmt),
-                    r.isRead() ? "YES" : "NO",
                     r.getMessage()
             });
         }
@@ -119,11 +120,16 @@ public class AdminActivityFrame extends JFrame {
 
     /**
      * Builds Appointments tab showing all appointments with status and timestamps.
+     *
+     * @return panel containing the appointments table
      */
     private JPanel buildAppointmentsPanel() {
         String[] cols = {"ID", "User", "Category", "Slot Start", "Created At", "Confirmed At", "Cancelled At", "Status"};
         DefaultTableModel m = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
         JTable t = new JTable(m);
 
@@ -159,11 +165,16 @@ public class AdminActivityFrame extends JFrame {
 
     /**
      * Builds Audit Log tab showing summarized events.
+     *
+     * @return panel containing the audit log table
      */
     private JPanel buildAuditPanel() {
         String[] cols = {"ID", "Type", "Actor", "Target", "Date", "Details"};
         DefaultTableModel m = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
         JTable t = new JTable(m);
 
