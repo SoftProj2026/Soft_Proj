@@ -1,0 +1,58 @@
+Sprint 4 – Advanced Management Rules (Week 5–6)
+In Sprint 4, we implemented advanced management capabilities for both users and administrators to handle real-world scheduling exceptions.
+Users can now modify or cancel their upcoming confirmed appointments directly from “My Bookings”,
+while administrators can manage all reservations system-wide through a dedicated admin screen. These actions are restricted to future appointments only,
+and cancel/modify operations correctly update slot availability (release old slots and book new ones when modified).
+
+In addition, Sprint 4 enhances transparency and monitoring through an admin activity view that shows messages,
+appointments, and audit log events, allowing administrators to review user actions such as booking confirmations, cancellations, and sent messages.
+____________________________________________________________________________________________
+Sprint 4: User Stories Summary (Advanced Management Rules)
+US4.1 – Modify or cancel appointment
+Story: As a user, I want to modify or cancel my upcoming appointment so that I can adjust my schedule.
+Acceptance:
+
+Only future appointments can be modified.
+Only future confirmed appointments can be cancelled.
+After cancellation, the slot becomes available again.
+When modifying, the booking moves to a new available future slot, and the old slot is released.
+Implemented in:
+presentation.MyBookingsFrame
+cancelSelected() (cancel future CONFIRMED appointment)
+modifySelected() + promptNewSlot(...) (choose new available slot + update duration/participants)
+persistence.DataRepository.cancelAppointment(Appointment) (cancels + releases slot + enforces future + status checks)
+persistence.DataRepository.modifyAppointment(...) (releases old slot, books new slot, creates updated confirmed appointment)
+_______________________________________________________________________________________________
+US4.2 – Manage reservations
+Story: As an administrator, I want to modify or cancel reservations so that exceptional cases can be handled.
+Acceptance:
+Only Administrator accounts can access reservation management.
+Admin can view all appointments in the repository.
+Admin can cancel future confirmed appointments.
+Admin can modify future confirmed appointments by moving them to a new available future slot (with updated duration/participants).
+All changes are reflected immediately in the system data.
+Implemented in:
+presentation.AdminDashboardFrame
+openManageReservations() (blocks access unless current user is Administrator)
+presentation.AdminManageReservationsFrame
+Loads all appointments into a table (load())
+cancelSelected() (admin cancel future confirmed appointment)
+modifySelected() (admin modify future confirmed appointment)
+persistence.DataRepository.adminCancelAppointment(Appointment, adminUsername) (admin cancel + audit log)
+persistence.DataRepository.modifyAppointment(...) (admin/user modification logic via actor username)
+________________________________________________________________________________________________
+(Sprint 4 – Additional Implemented Features in Code)
+US4.3 – Admin activity monitoring (Messages / Appointments / Audit Log)
+Story: As an administrator, I want to view system-wide user activity so that I can monitor messages, bookings, and cancellations.
+Acceptance:
+Admin can view all customer messages (contact requests).
+Admin can view all appointments including timestamps/status.
+Admin can view summarized audit events (confirm/cancel/message events).
+Admin can refresh the activity view.
+Implemented in:
+presentation.AdminActivityFrame
+Tabs: Messages / Appointments / Audit Log
+Refresh button reloads by reopening the frame
+persistence.DataRepository.getContactRequests()
+persistence.DataRepository.getAppointments()
+persistence.DataRepository.getAuditEvents()
