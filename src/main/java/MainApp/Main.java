@@ -17,13 +17,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Application entry point.
  *
  * <p>This class bootstraps the application by applying the UI theme, loading persisted repository data,
- * seeding initial data on first run, and launching the Swing login window.</p>
+ * purging removed categories from existing saved data, seeding initial data on first run, and launching
+ * the Swing login window.</p>
  */
 public class Main {
 
@@ -34,6 +37,7 @@ public class Main {
      * <ul>
      *   <li>Apply the UI theme.</li>
      *   <li>Load repository data from disk (or create a new repository if not found).</li>
+     *   <li>Purge removed categories from persisted data (to keep saved data consistent with new requirements).</li>
      *   <li>If the repository looks empty, seed initial accounts, categories, and time slots.</li>
      *   <li>Create core services and open the {@link LoginFrame}.</li>
      * </ul>
@@ -45,6 +49,8 @@ public class Main {
 
         DataRepository repo = RepoStorage.loadOrNew();
 
+        purgeRemovedCategories(repo);
+
         boolean looksEmpty = repo.getUsers().isEmpty()
                 && repo.getProviders().isEmpty()
                 && repo.getCategories().isEmpty()
@@ -53,7 +59,7 @@ public class Main {
                 && repo.getBookingRequests().isEmpty()
                 && repo.getContactRequests().isEmpty()
                 && repo.getAuditEvents().isEmpty();
-//
+
         if (looksEmpty) {
             repo.addUser(new Administrator("admin", "Admin@123"));
 
@@ -88,6 +94,39 @@ public class Main {
     }
 
     /**
+     * Purges removed categories from the repository (categories, slots, appointments, requests,
+     * category-admin users, cancel tracking, and audit events).
+     *
+     * <p>This is safe to call multiple times and is intended to handle existing saved data.</p>
+     *
+     * @param repo repository to purge
+     */
+    private static void purgeRemovedCategories(DataRepository repo) {
+        if (repo == null) return;
+
+        Set<String> toRemove = new HashSet<>();
+        toRemove.add("Doctor Appointment");
+        toRemove.add("Airport Pickup");
+        toRemove.add("Private Tutor");
+        toRemove.add("Driver Service");
+        toRemove.add("Academic Advisor Meeting");
+        toRemove.add("Equipment Rental (Projector, Laptop)");
+        toRemove.add("Shared Workspace");
+        toRemove.add("Event Planner Meeting");
+        toRemove.add("Bus Reservation");
+        toRemove.add("Delivery Vehicle");
+        toRemove.add("Gym Session");
+        toRemove.add("Exam Hall");
+        toRemove.add("Lab Reservation");
+        toRemove.add("Library Study Room");
+
+        int removed = repo.purgeCategories(toRemove);
+        if (removed > 0) {
+            RepoStorage.save(repo);
+        }
+    }
+
+    /**
      * Seeds one administrator account per category using a deterministic username derived from the
      * category name.
      *
@@ -110,30 +149,18 @@ public class Main {
     private static List<Category> buildCategories() {
         List<Category> categories = new ArrayList<>();
 
-        categories.add(new Category("Bus Reservation"));
-        categories.add(new Category("Driver Service"));
-        categories.add(new Category("Airport Pickup"));
-        categories.add(new Category("Delivery Vehicle"));
-
         categories.add(new Category("Conference Hall"));
         categories.add(new Category("Training Room"));
-        categories.add(new Category("Shared Workspace"));
-        categories.add(new Category("Equipment Rental (Projector, Laptop)"));
 
         categories.add(new Category("Wedding Hall"));
         categories.add(new Category("Birthday Venue"));
         categories.add(new Category("Photography Studio"));
-        categories.add(new Category("Event Planner Meeting"));
 
-        categories.add(new Category("Doctor Appointment"));
         categories.add(new Category("Legal Consultation"));
-        categories.add(new Category("Private Tutor"));
-        categories.add(new Category("Gym Session"));
 
-        categories.add(new Category("Lab Reservation"));
-        categories.add(new Category("Library Study Room"));
-        categories.add(new Category("Exam Hall"));
-        categories.add(new Category("Academic Advisor Meeting"));
+        categories.add(new Category("Apartment for rent"));
+        categories.add(new Category("Car for rent"));
+        categories.add(new Category("Meeting with a building contractor"));
 
         return categories;
     }

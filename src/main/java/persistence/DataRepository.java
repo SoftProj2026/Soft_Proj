@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -56,9 +57,7 @@ public class DataRepository {
     private final List<Category> categories = new LinkedList<>();
 
     private final List<ContactRequest> contactRequests = new LinkedList<>();
-
     private final List<AuditEvent> auditEvents = new LinkedList<>();
-
     private final List<BookingRequest> bookingRequests = new LinkedList<>();
 
     private final Map<String, Boolean> cancelUsedByUserCategory = new HashMap<>();
@@ -77,102 +76,189 @@ public class DataRepository {
     }
 
     /**
-     * Adds a new user to the repository.
+     * Purges the given categories (by name) from the repository.
      *
-     * @param user user to add (may be null)
+     * <p>This method removes, for the categories being purged:</p>
+     * <ul>
+     *   <li>{@link Category} objects from {@link #getCategories()}</li>
+     *   <li>{@link TimeSlot} objects whose category matches</li>
+     *   <li>{@link Appointment} objects whose slot category matches</li>
+     *   <li>{@link BookingRequest} objects whose slot category matches</li>
+     *   <li>Cancellation-usage entries for the category (one-cancel rule)</li>
+     *   <li>Seeded category-admin users derived from those categories</li>
+     *   <li>{@link AuditEvent} entries that reference those categories (best-effort string match)</li>
+     * </ul>
+     *
+     * <p>This operation is idempotent (safe to call multiple times).</p>
+     *
+     * <p><b>Important:</b> Category matching is case-insensitive and based on trimmed names.</p>
+     *
+     * @param categoryNamesToRemove category names to remove
+     * @return number of {@link Category} entries removed from the categories list
      */
+    public int purgeCategories(Set<String> categoryNamesToRemove) {
+        if (categoryNamesToRemove == null || categoryNamesToRemove.isEmpty()) return 0;
+
+        Set<String> norm = categoryNamesToRemove.stream()
+                .filter(s -> s != null && !s.trim().isEmpty())
+                .map(s -> s.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        if (norm.isEmpty()) return 0;
+
+        Set<String> matchedNames = categories.stream()
+                .filter(c -> c != null && c.getName() != null)
+                .map(c -> c.getName().trim())
+                .filter(n -> norm.contains(n.toLowerCase()))
+                .collect(Collectors.toSet());
+
+        int beforeCats = categories.size();
+        categories.removeIf(c ->
+                c != null
+                        && c.getName() != null
+                        && norm.contains(c.getName().trim().toLowerCase())
+        );
+        int removedCats = beforeCats - categories.size();
+
+        slots.removeIf(s ->
+                s != null
+                        && s.getCategory() != null
+                        && s.getCategory().getName() != null
+                        && norm.contains(s.getCategory().getName().trim().toLowerCase())
+        );
+
+        appointments.removeIf(a ->
+                a != null
+                        && a.getSlot() != null
+                        && a.getSlot().getCategory() != null
+                        && a.getSlot().getCategory().getName() != null
+                        && norm.contains(a.getSlot().getCategory().getName().trim().toLowerCase())
+        );
+
+        bookingRequests.removeIf(r ->
+                r != null
+                        && r.getSlot() != null
+                        && r.getSlot().getCategory() != null
+                        && r.getSlot().getCategory().getName() != null
+                        && norm.contains(r.getSlot().getCategory().getName().trim().toLowerCase())
+        );
+
+        cancelUsedByUserCategory.keySet().removeIf(k -> {
+            if (k == null) return false;
+            String[] parts = k.split("\\|", 2);
+            if (parts.length < 2) return false;
+            String cat = parts[1] != null ? parts[1].trim().toLowerCase() : "";
+            return norm.contains(cat);
+        });
+
+        Set<String> categoryAdminUsernames = matchedNames.stream()
+                .map(DataRepository::deriveCategoryAdminUsername)
+                .collect(Collectors.toSet());
+
+        users.removeIf(u ->
+                u != null
+                        && u.getUsername() != null
+                        && categoryAdminUsernames.contains(u.getUsername().trim().toLowerCase())
+        );
+
+        providers.removeIf(p ->
+                p != null
+                        && p.getUsername() != null
+                        && categoryAdminUsernames.contains(p.getUsername().trim().toLowerCase())
+        );
+
+        auditEvents.removeIf(e -> {
+            if (e == null) return false;
+
+            String target = e.getTarget() != null ? e.getTarget().trim().toLowerCase() : "";
+            String details = e.getDetails() != null ? e.getDetails().trim().toLowerCase() : "";
+
+            for (String cat : norm) {
+                if (cat.isEmpty()) continue;
+                if (target.equals(cat)) return true;
+                if (details.contains(cat)) return true;
+            }
+            return false;
+        });
+
+        return removedCats;
+    }
+
+    /**
+     * Derives the seeded category-admin username for a category name using the same logic as
+     * {@code BookingRequestService.categoryAdminUsername(Category)} but without depending on Service layer code.
+     *
+     * <p>The derived username is:</p>
+     * <ul>
+     *   <li>Acronym of the category words (letters/numbers only), uppercased</li>
+     *   <li>Concatenated with {@code "123"}</li>
+     *   <li>Lower-cased as a username</li>
+     * </ul>
+     *
+     * @param categoryName category name
+     * @return derived category admin username (never null)
+     */
+    private static String deriveCategoryAdminUsername(String categoryName) {
+        String raw = categoryName != null ? categoryName : "";
+        String cleaned = raw
+                .replaceAll("[^A-Za-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        if (cleaned.isEmpty()) return "ca123";
+
+        String[] words = cleaned.split(" ");
+        StringBuilder acronym = new StringBuilder();
+        for (String w : words) {
+            if (!w.isEmpty()) acronym.append(Character.toUpperCase(w.charAt(0)));
+        }
+
+        if (acronym.length() == 0) acronym.append("CA");
+        return (acronym + "123").toLowerCase();
+    }
+
     public void addUser(User user) {
         users.add(user);
     }
 
-    /**
-     * Returns all users.
-     *
-     * @return users list
-     */
     public List<User> getUsers() {
         return users;
     }
 
-    /**
-     * Adds a provider account and also registers it as a user.
-     *
-     * @param provider provider account to add (may be null)
-     */
     public void addProvider(Provider provider) {
         if (provider == null) return;
         providers.add(provider);
         users.add(provider);
     }
 
-    /**
-     * Returns the list of provider accounts.
-     *
-     * @return providers list
-     */
     public List<Provider> getProviders() {
         return providers;
     }
 
-    /**
-     * Returns all time slots.
-     *
-     * @return slots list
-     */
     public List<TimeSlot> getSlots() {
         return slots;
     }
 
-    /**
-     * Adds a new time slot.
-     *
-     * @param slot slot to add (may be null)
-     */
     public void addSlot(TimeSlot slot) {
         slots.add(slot);
     }
 
-    /**
-     * Adds a new appointment.
-     *
-     * @param appointment appointment to add (may be null)
-     */
     public void addAppointment(Appointment appointment) {
         appointments.add(appointment);
     }
 
-    /**
-     * Returns all appointments.
-     *
-     * @return appointments list
-     */
     public List<Appointment> getAppointments() {
         return appointments;
     }
 
-    /**
-     * Adds a new category.
-     *
-     * @param c category to add (may be null)
-     */
     public void addCategory(Category c) {
         categories.add(c);
     }
 
-    /**
-     * Returns all categories.
-     *
-     * @return categories list
-     */
     public List<Category> getCategories() {
         return categories;
     }
 
-    /**
-     * Adds a new contact request and logs a corresponding audit event.
-     *
-     * @param req contact request to add (may be null)
-     */
     public void addContactRequest(ContactRequest req) {
         if (req == null) return;
         contactRequests.add(req);
@@ -185,21 +271,10 @@ public class DataRepository {
         ));
     }
 
-    /**
-     * Returns all contact requests.
-     *
-     * @return contact requests list
-     */
     public List<ContactRequest> getContactRequests() {
         return contactRequests;
     }
 
-    /**
-     * Returns contact requests addressed to a specific provider.
-     *
-     * @param providerUsername provider username
-     * @return list of requests addressed to that provider
-     */
     public List<ContactRequest> getRequestsForProvider(String providerUsername) {
         String u = providerUsername != null ? providerUsername.trim() : "";
         return contactRequests.stream()
@@ -207,12 +282,6 @@ public class DataRepository {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Marks a contact request as read by id.
-     *
-     * @param requestId request id
-     * @return true if found and marked read; false otherwise
-     */
     public boolean markRequestRead(int requestId) {
         for (ContactRequest r : contactRequests) {
             if (r.getId() == requestId) {
@@ -223,30 +292,15 @@ public class DataRepository {
         return false;
     }
 
-    /**
-     * Returns all audit events.
-     *
-     * @return audit events list
-     */
     public List<AuditEvent> getAuditEvents() {
         return auditEvents;
     }
 
-    /**
-     * Adds an audit event.
-     *
-     * @param e audit event to add (may be null)
-     */
     public void addAuditEvent(AuditEvent e) {
         if (e == null) return;
         auditEvents.add(e);
     }
 
-    /**
-     * Adds a booking request and logs an audit entry.
-     *
-     * @param r booking request (may be null)
-     */
     public void addBookingRequest(BookingRequest r) {
         if (r == null) return;
         bookingRequests.add(r);
@@ -264,21 +318,10 @@ public class DataRepository {
         ));
     }
 
-    /**
-     * Returns all booking requests.
-     *
-     * @return booking requests list
-     */
     public List<BookingRequest> getBookingRequests() {
         return bookingRequests;
     }
 
-    /**
-     * Finds a booking request by id.
-     *
-     * @param id request id
-     * @return request if found; otherwise null
-     */
     private BookingRequest findRequest(int id) {
         for (BookingRequest r : bookingRequests) {
             if (r.getId() == id) return r;
@@ -286,12 +329,6 @@ public class DataRepository {
         return null;
     }
 
-    /**
-     * Returns requests visible to a category admin (strictly assigned to that admin username).
-     *
-     * @param adminUsername category admin username
-     * @return list of pending requests assigned to this admin
-     */
     public List<BookingRequest> getRequestsForCategoryAdmin(String adminUsername) {
         String u = adminUsername != null ? adminUsername.trim() : "";
         return bookingRequests.stream()
@@ -301,24 +338,12 @@ public class DataRepository {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Returns requests visible to the big admin.
-     *
-     * @return list of requests pending big admin approval
-     */
     public List<BookingRequest> getRequestsForBigAdmin() {
         return bookingRequests.stream()
                 .filter(r -> r.getStatus() == BookingRequestStatus.PENDING_BIG_ADMIN)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Approves a request by its assigned category admin and forwards it to the big admin.
-     *
-     * @param requestId     booking request id
-     * @param adminUsername acting admin username
-     * @return user-friendly result message
-     */
     public String approveByCategoryAdmin(int requestId, String adminUsername) {
         BookingRequest r = findRequest(requestId);
         if (r == null) return "Request not found.";
@@ -345,14 +370,6 @@ public class DataRepository {
         return "Approved by category admin. Sent to big admin.";
     }
 
-    /**
-     * Rejects a request by its assigned category admin and releases the slot hold.
-     *
-     * @param requestId     booking request id
-     * @param adminUsername acting admin username
-     * @param reason        optional reject reason (may be null)
-     * @return user-friendly result message
-     */
     public String rejectByCategoryAdmin(int requestId, String adminUsername, String reason) {
         BookingRequest r = findRequest(requestId);
         if (r == null) return "Request not found.";
@@ -381,13 +398,6 @@ public class DataRepository {
         return "Rejected by category admin. Slot is available again.";
     }
 
-    /**
-     * Approves a request by the big admin, confirms the appointment, and books the slot.
-     *
-     * @param requestId     booking request id
-     * @param adminUsername acting admin username (may be null)
-     * @return user-friendly result message
-     */
     public String approveByBigAdmin(int requestId, String adminUsername) {
         BookingRequest r = findRequest(requestId);
         if (r == null) return "Request not found.";
@@ -439,14 +449,6 @@ public class DataRepository {
         return "Final approval done. Appointment confirmed (" + label + ").";
     }
 
-    /**
-     * Rejects a request by the big admin and releases the slot hold.
-     *
-     * @param requestId     booking request id
-     * @param adminUsername acting admin username (may be null)
-     * @param reason        optional reject reason (may be null)
-     * @return user-friendly result message
-     */
     public String rejectByBigAdmin(int requestId, String adminUsername, String reason) {
         BookingRequest r = findRequest(requestId);
         if (r == null) return "Request not found.";
@@ -469,13 +471,6 @@ public class DataRepository {
         return "Rejected by big admin. Slot is available again.";
     }
 
-    /**
-     * Counts confirmed appointments for a user within a given category.
-     *
-     * @param username     username
-     * @param categoryName category name
-     * @return number of confirmed appointments
-     */
     public long countConfirmedForUserCategory(String username, String categoryName) {
         String u = username != null ? username.trim() : "";
         String cat = categoryName != null ? categoryName.trim() : "";
@@ -488,13 +483,6 @@ public class DataRepository {
                 .count();
     }
 
-    /**
-     * Counts pending requests for a user within a given category.
-     *
-     * @param username     username
-     * @param categoryName category name
-     * @return number of pending requests
-     */
     public long countPendingRequestsForUserCategory(String username, String categoryName) {
         String u = username != null ? username.trim() : "";
         String cat = categoryName != null ? categoryName.trim() : "";
@@ -508,19 +496,6 @@ public class DataRepository {
                 .count();
     }
 
-    /**
-     * Cancels a confirmed appointment and enforces:
-     * <ul>
-     *   <li>Only appointments stored in the repository can be cancelled</li>
-     *   <li>Only CONFIRMED appointments can be cancelled</li>
-     *   <li>Only future appointments can be cancelled</li>
-     *   <li>One cancellation per user per category</li>
-     * </ul>
-     * The cancellation is also logged as an audit event.
-     *
-     * @param appointment appointment to cancel
-     * @return user-friendly result message
-     */
     public String cancelAppointment(Appointment appointment) {
         if (appointment == null) return "Invalid booking.";
         if (!appointments.contains(appointment)) return "Booking not found.";
@@ -569,20 +544,6 @@ public class DataRepository {
         return "Booking cancelled successfully (one cancellation used for category \"" + categoryName + "\").";
     }
 
-    /**
-     * Allows an administrator to cancel a confirmed appointment.
-     *
-     * <p>Rules:</p>
-     * <ul>
-     *   <li>Appointment must exist in repository.</li>
-     *   <li>Appointment must be CONFIRMED.</li>
-     *   <li>Only future appointments can be cancelled.</li>
-     * </ul>
-     *
-     * @param appointment appointment to cancel
-     * @param adminUsername acting admin username (may be null)
-     * @return user-friendly result message
-     */
     public String adminCancelAppointment(Appointment appointment, String adminUsername) {
         if (appointment == null) return "Invalid booking.";
         if (!appointments.contains(appointment)) return "Booking not found.";
@@ -619,26 +580,6 @@ public class DataRepository {
         return "Appointment cancelled by admin.";
     }
 
-    /**
-     * Allows a user or administrator to modify an existing confirmed appointment.
-     *
-     * <p>Rules:</p>
-     * <ul>
-     *   <li>Appointment must exist in repository.</li>
-     *   <li>Only CONFIRMED appointments can be modified.</li>
-     *   <li>Only future appointments can be modified.</li>
-     *   <li>New slot must be available.</li>
-     *   <li>New duration and participants must be positive.</li>
-     *   <li>The old slot is released and the new slot is booked.</li>
-     * </ul>
-     *
-     * @param appointment appointment to modify
-     * @param newSlot new slot to move to
-     * @param newDurationInMinutes new duration
-     * @param newParticipants new participants
-     * @param actorUsername acting username (user or admin)
-     * @return user-friendly result message
-     */
     public String modifyAppointment(Appointment appointment,
                                    TimeSlot newSlot,
                                    int newDurationInMinutes,
