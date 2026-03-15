@@ -10,6 +10,9 @@ import java.time.LocalDateTime;
  *
  * <p>This DTO is designed for serialization/persistence and later restoration into the domain
  * {@code ContactRequest} object.</p>
+ *
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class ContactRequestDTO {
 

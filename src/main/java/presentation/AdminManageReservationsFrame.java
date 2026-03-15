@@ -27,6 +27,8 @@ import java.util.List;
  * </ul>
  *
  * <p>Only {@link Administrator} accounts should be able to open this screen.</p>
+ * @author remaa
+ * @version 1.0
  */
 public class AdminManageReservationsFrame extends JFrame {
 

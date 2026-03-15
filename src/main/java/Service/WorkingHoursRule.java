@@ -6,6 +6,8 @@ import java.time.LocalTime;
 
 /**
  * Restricts bookings to working hours (default: 9:00 AM to 5:00 PM).
+ * @author Qussai 
+ * @version 1.0
  */
 public class WorkingHoursRule implements BookingRuleStrategy {
 

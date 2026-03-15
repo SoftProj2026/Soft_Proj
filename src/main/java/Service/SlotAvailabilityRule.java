@@ -4,7 +4,9 @@ import domain.Appointment;
 
 /**
  * Validates that the selected slot is still available (not already booked).
- */
+ * @author remaa
+ * @version 1.0
+ *  */
 public class SlotAvailabilityRule implements BookingRuleStrategy {
 
     /**

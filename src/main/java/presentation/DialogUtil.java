@@ -6,6 +6,8 @@ import java.awt.*;
 
 /**
  * Utility helper to display consistent styled dialogs (info/success/warning/error).
+ * @author remaa
+ * @version 1.0
  */
 public final class DialogUtil {
 

@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 /**
  * Ensures bookings are made a minimum time in advance (e.g., 1 hour).
+ * @author remaa
+ * @version 1.0
  */
 public class MinimumNoticeRule implements BookingRuleStrategy {
 

@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 
 /**
  * Provides scheduling operations (e.g., listing available slots).
+ * @author remaa
+ * @version 1.0
  */
 public class ScheduleService {
 

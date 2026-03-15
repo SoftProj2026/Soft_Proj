@@ -17,6 +17,9 @@ import java.time.LocalDate;
  *
  * <p>Some fields are only applicable depending on the user type. For example, provider-related fields
  * such as {@link #displayName}, {@link #phone}, and {@link #address} are relevant when {@code type="Provider"}.</p>
+ *
+ * @author remaa
+ * @version 1.0
  */
 public class UserDTO {
 

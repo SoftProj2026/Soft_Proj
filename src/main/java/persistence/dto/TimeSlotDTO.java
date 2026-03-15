@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
  *   <li>{@link #heldRequestId} to identify the request holding the slot (when {@code held == true})</li>
  * </ul>
  * </p>
+ *
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class TimeSlotDTO {
 

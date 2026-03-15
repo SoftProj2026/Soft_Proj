@@ -37,6 +37,8 @@ import java.time.format.DateTimeFormatter;
  *   <li>Second confirmed booking in the same category must be EMERGENCY.</li>
  *   <li>If a user has exactly one confirmed booking, closing the window is blocked until EMERGENCY is booked.</li>
  * </ul>
+ * @author remaa
+ * @version 1.0
  */
 public class MutualBookingFrame extends JFrame {
 

@@ -12,28 +12,50 @@ import java.awt.*;
 
 /**
  * Admin dashboard window for both the big admin and category admins.
+ * Displays basic repository statistics and navigation to various admin panels.
  *
- * <p>The dashboard displays basic repository statistics and provides navigation to:</p>
- * <ul>
- *   <li>Requests approval screen</li>
- *   <li>User activity screen</li>
- *   <li>Manage reservations screen</li>
- *   <li>Logout</li>
- * </ul>
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class AdminDashboardFrame extends JFrame {
 
+    /**
+     * Label for users count.
+     */
     private final JLabel users;
+
+    /**
+     * Label for providers count.
+     */
     private final JLabel providers;
+
+    /**
+     * Label for time slots count.
+     */
     private final JLabel slots;
+
+    /**
+     * Label for appointments count.
+     */
     private final JLabel appts;
 
+    /**
+     * The repository instance.
+     */
     private final DataRepository repo;
+
+    /**
+     * Authentication service.
+     */
     private final AuthService auth;
+
+    /**
+     * Booking service.
+     */
     private final BookingService booking;
 
     /**
-     * Creates the admin dashboard window.
+     * Constructs the admin dashboard window.
      *
      * @param auth    authentication service
      * @param booking booking service

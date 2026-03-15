@@ -6,10 +6,15 @@ import java.time.LocalDateTime;
  * Data transfer object representing an audit event for persistence/serialization.
  *
  * <p>This DTO is used inside repository snapshots to store audit log entries in a JSON-friendly structure.</p>
+ *
+ * @author remaa
+ * @version 1.0
  */
 public class AuditEventDTO {
 
-    /** Audit event identifier as stored in the snapshot. */
+    /**
+     * Audit event identifier as stored in the snapshot.
+     */
     public int id;
 
     /**
@@ -20,15 +25,23 @@ public class AuditEventDTO {
      */
     public String type;
 
-    /** Username of the actor who triggered the event. */
+    /**
+     * Username of the actor who triggered the event.
+     */
     public String actorUsername;
 
-    /** Target identifier or label related to the event (best-effort, depends on event type). */
+    /**
+     * Target identifier or label related to the event (best-effort, depends on event type).
+     */
     public String target;
 
-    /** Additional event details. */
+    /**
+     * Additional event details.
+     */
     public String details;
 
-    /** Timestamp when the event occurred. */
+    /**
+     * Timestamp when the event occurred.
+     */
     public LocalDateTime at;
 }

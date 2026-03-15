@@ -20,6 +20,8 @@ import java.time.format.DateTimeFormatter;
  * <p>
  * Note: No "Close" button (close via window X or by closing the parent window).
  * </p>
+ * @author remaa
+ * @version 1.0
  */
 public class CompanyAvailableSlotsFrame extends JFrame {
 

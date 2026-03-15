@@ -7,6 +7,8 @@ import java.time.LocalTime;
 
 /**
  * Blocks booking during a defined break interval (e.g., 12:00 to 13:00).
+ * @author remaa
+ * @version 1.0
  */
 public class BlockedSlotsRule implements BookingRuleStrategy {
 

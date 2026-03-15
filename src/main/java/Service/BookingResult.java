@@ -2,6 +2,8 @@ package Service;
 
 /**
  * Represents the outcome of a booking attempt.
+ * @author remaa
+ * @version 1.0
  */
 public class BookingResult {
 

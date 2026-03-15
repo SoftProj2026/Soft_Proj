@@ -4,52 +4,100 @@ import java.time.LocalDateTime;
 
 /**
  * Represents a booking request that must be approved through a two-step workflow.
- * <p>
- * Workflow:
- * </p>
+ *
+ * <p>Workflow:</p>
  * <ol>
- *   <li>Category admin approves or rejects the request.</li>
- *   <li>If approved, the request is forwarded to the big admin for final approval or rejection.</li>
- *   <li>If the big admin approves, the request becomes confirmed and an appointment is created.</li>
+ *   <li>Category administrator approves or rejects the request.</li>
+ *   <li>If approved, the request is forwarded to the big administrator for final approval or rejection.</li>
+ *   <li>If the big administrator approves, the request becomes confirmed and an appointment is created.</li>
  * </ol>
  *
- * <p>
- * A request is associated with a {@link TimeSlot}. While pending, the slot is expected to be held
- * (reserved temporarily) to prevent other bookings.
- * </p>
+ * <p>A request is associated with a {@link TimeSlot}. While pending, the slot is expected to be held
+ * (reserved temporarily) to prevent other bookings.</p>
+ *
+ * @author s12219530-cpu (remaa)
+ * @version 1.0
  */
 public class BookingRequest {
 
+    /**
+     * Static counter used to generate unique request identifiers.
+     */
     private static int counter = 1;
 
+    /**
+     * Unique request identifier.
+     */
     private final int id;
 
+    /**
+     * User who submitted the request.
+     */
     private final User requester;
+
+    /**
+     * Requested time slot.
+     */
     private final TimeSlot slot;
+
+    /**
+     * Requested duration in minutes.
+     */
     private final int durationInMinutes;
+
+    /**
+     * Number of participants for the requested booking.
+     */
     private final int participants;
 
+    /**
+     * Username of the assigned category administrator responsible for the first approval step.
+     */
     private final String categoryAdminUsername;
 
+    /**
+     * Current status of the request in the approval workflow.
+     */
     private BookingRequestStatus status;
 
+    /**
+     * Timestamp when the request was created.
+     */
     private final LocalDateTime createdAt;
+
+    /**
+     * Timestamp when the category administrator made a decision.
+     */
     private LocalDateTime categoryDecisionAt;
+
+    /**
+     * Timestamp when the big administrator made a decision.
+     */
     private LocalDateTime bigAdminDecisionAt;
 
+    /**
+     * Username of the category administrator who acted on the request (if any).
+     */
     private String categoryAdminActor;
+
+    /**
+     * Username of the big administrator who acted on the request (if any).
+     */
     private String bigAdminActor;
 
+    /**
+     * Rejection reason (if rejected), otherwise empty.
+     */
     private String rejectReason;
 
     /**
      * Creates a new booking request.
      *
-     * @param requester             request owner
-     * @param slot                  requested slot
+     * @param requester             the user who submitted the request
+     * @param slot                  the requested time slot
      * @param durationInMinutes     requested duration in minutes
      * @param participants          number of participants
-     * @param categoryAdminUsername assigned category admin username
+     * @param categoryAdminUsername assigned category administrator username
      */
     public BookingRequest(User requester,
                           TimeSlot slot,
@@ -77,7 +125,7 @@ public class BookingRequest {
     }
 
     /**
-     * Returns the request id.
+     * Returns the request identifier.
      *
      * @return request id
      */
@@ -86,9 +134,9 @@ public class BookingRequest {
     }
 
     /**
-     * Returns the user who created the request.
+     * Returns the user who submitted the request.
      *
-     * @return requester
+     * @return requester user
      */
     public User getRequester() {
         return requester;
@@ -97,7 +145,7 @@ public class BookingRequest {
     /**
      * Returns the requested time slot.
      *
-     * @return time slot
+     * @return requested slot
      */
     public TimeSlot getSlot() {
         return slot;
@@ -115,16 +163,16 @@ public class BookingRequest {
     /**
      * Returns the number of participants.
      *
-     * @return participants
+     * @return participants count
      */
     public int getParticipants() {
         return participants;
     }
 
     /**
-     * Returns the assigned category admin username.
+     * Returns the assigned category administrator username.
      *
-     * @return category admin username
+     * @return category admin username (may be empty)
      */
     public String getCategoryAdminUsername() {
         return categoryAdminUsername;
@@ -133,41 +181,41 @@ public class BookingRequest {
     /**
      * Returns the current request status.
      *
-     * @return status
+     * @return booking request status
      */
     public BookingRequestStatus getStatus() {
         return status;
     }
 
     /**
-     * Returns request creation time.
+     * Returns the request creation timestamp.
      *
-     * @return creation date/time
+     * @return created at timestamp
      */
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Returns the category-admin decision time, if any.
+     * Returns the category administrator decision timestamp.
      *
-     * @return decision date/time or null if not decided yet
+     * @return category decision timestamp, or {@code null} if not decided
      */
     public LocalDateTime getCategoryDecisionAt() {
         return categoryDecisionAt;
     }
 
     /**
-     * Returns the big-admin decision time, if any.
+     * Returns the big administrator decision timestamp.
      *
-     * @return decision date/time or null if not decided yet
+     * @return big admin decision timestamp, or {@code null} if not decided
      */
     public LocalDateTime getBigAdminDecisionAt() {
         return bigAdminDecisionAt;
     }
 
     /**
-     * Returns the username of the category admin who acted on the request.
+     * Returns the username of the category administrator who acted on the request.
      *
      * @return category admin actor username (may be empty)
      */
@@ -176,7 +224,7 @@ public class BookingRequest {
     }
 
     /**
-     * Returns the username of the big admin who acted on the request.
+     * Returns the username of the big administrator who acted on the request.
      *
      * @return big admin actor username (may be empty)
      */
@@ -185,18 +233,18 @@ public class BookingRequest {
     }
 
     /**
-     * Returns the reject reason if the request was rejected.
+     * Returns the rejection reason if the request was rejected.
      *
-     * @return reject reason (may be empty)
+     * @return rejection reason (may be empty)
      */
     public String getRejectReason() {
         return rejectReason;
     }
 
     /**
-     * Approves the request by the category admin and forwards it to the big admin.
+     * Approves the request by the category administrator and forwards it to the big administrator.
      *
-     * @param adminUsername acting category admin username
+     * @param adminUsername the acting category administrator username
      */
     public void approveByCategoryAdmin(String adminUsername) {
         this.status = BookingRequestStatus.PENDING_BIG_ADMIN;
@@ -206,10 +254,10 @@ public class BookingRequest {
     }
 
     /**
-     * Rejects the request by the category admin.
+     * Rejects the request by the category administrator.
      *
-     * @param adminUsername acting category admin username
-     * @param reason        reject reason (may be null)
+     * @param adminUsername the acting category administrator username
+     * @param reason        rejection reason (may be {@code null})
      */
     public void rejectByCategoryAdmin(String adminUsername, String reason) {
         this.status = BookingRequestStatus.REJECTED_CATEGORY_ADMIN;
@@ -219,9 +267,9 @@ public class BookingRequest {
     }
 
     /**
-     * Approves the request by the big admin and marks it as confirmed.
+     * Approves the request by the big administrator and marks it as confirmed.
      *
-     * @param adminUsername acting big admin username
+     * @param adminUsername the acting big administrator username
      */
     public void approveByBigAdmin(String adminUsername) {
         this.status = BookingRequestStatus.APPROVED_AND_CONFIRMED;
@@ -231,10 +279,10 @@ public class BookingRequest {
     }
 
     /**
-     * Rejects the request by the big admin.
+     * Rejects the request by the big administrator.
      *
-     * @param adminUsername acting big admin username
-     * @param reason        reject reason (may be null)
+     * @param adminUsername the acting big administrator username
+     * @param reason        rejection reason (may be {@code null})
      */
     public void rejectByBigAdmin(String adminUsername, String reason) {
         this.status = BookingRequestStatus.REJECTED_BIG_ADMIN;

@@ -8,6 +8,8 @@ import domain.Appointment;
  * Each rule validates an {@link Appointment} and provides an error message
  * if validation fails.
  * </p>
+ * @author Qussaialaw
+ * @version 1.0
  */
 public interface BookingRuleStrategy {
 

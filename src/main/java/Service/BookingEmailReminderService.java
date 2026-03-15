@@ -22,6 +22,8 @@ import java.time.LocalDateTime;
  *
  * <p>Email delivery is performed via the injected {@link EmailSender} abstraction to support mocking in tests
  * and swapping the underlying email transport.</p>
+ * @author qussaialaw
+ * @version 1.0
  */
 public class BookingEmailReminderService {
 

@@ -20,6 +20,8 @@ import java.time.Period;
  *   <li>Unique username</li>
  *   <li>Minimum age of 18 years</li>
  * </ul>
+ * @author Qussai @ remaa
+ * @version 1.0
  */
 public class AuthService {
 

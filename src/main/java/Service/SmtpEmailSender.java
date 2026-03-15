@@ -26,6 +26,8 @@ import java.util.Properties;
  *   <li>Port: 587</li>
  *   <li>STARTTLS enabled</li>
  * </ul>
+ * @author Qussai
+ * @version 1.0
  */
 public class SmtpEmailSender implements EmailSender {
 

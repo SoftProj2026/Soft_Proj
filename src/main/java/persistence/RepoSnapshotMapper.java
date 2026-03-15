@@ -17,6 +17,9 @@ import java.util.Map;
  *
  * <p>In addition to mapping entities, it also restores internal/static ID counters and certain repository-private
  * state using reflection.</p>
+ *
+ * @author Qussaialaw
+ * @version 1.0
  */
 public final class RepoSnapshotMapper {
 
@@ -60,6 +63,7 @@ public final class RepoSnapshotMapper {
             dto.firstName = u.getFirstName();
             dto.lastName = u.getLastName();
             dto.dateOfBirth = u.getDateOfBirth();
+            dto.email = u.getEmail();
 
             if (u instanceof Provider) {
                 Provider p = (Provider) u;
@@ -116,6 +120,11 @@ public final class RepoSnapshotMapper {
             dto.createdAt = a.getCreatedAt();
             dto.confirmedAt = a.getConfirmedAt();
             dto.cancelledAt = a.getCancelledAt();
+
+            dto.appointmentType = (a.getAppointmentType() != null) ? a.getAppointmentType().name() : null;
+            dto.groupSize = a.getGroupSize();
+            dto.reviewTargetSlotStart = a.getReviewTargetSlotStart();
+            dto.emergencyPreferredSlotStart = a.getEmergencyPreferredSlotStart();
 
             s.appointments.add(dto);
         }
@@ -181,16 +190,6 @@ public final class RepoSnapshotMapper {
     /**
      * Reconstructs a {@link DataRepository} from a previously created {@link RepoSnapshot}.
      *
-     * <p>This method restores:
-     * <ul>
-     *   <li>All domain objects (categories, users/providers, slots, requests, appointments, events)</li>
-     *   <li>Slot state (booked/held)</li>
-     *   <li>Request/appointment states using reflection</li>
-     *   <li>Repository private state for cancellation usage</li>
-     *   <li>Static ID counters for multiple domain classes</li>
-     * </ul>
-     * </p>
-     *
      * @param s the snapshot to restore from
      * @return a reconstructed repository instance
      */
@@ -214,12 +213,14 @@ public final class RepoSnapshotMapper {
                         u.username, u.password,
                         u.displayName, u.phone, u.email, u.address
                 );
+                created.setEmail(u.email);
                 repo.addUser(created);
             } else if ("Administrator".equalsIgnoreCase(type)) {
                 created = new Administrator(u.username, u.password);
+                created.setEmail(u.email);
                 repo.addUser(created);
             } else {
-                created = new User(u.firstName, u.lastName, u.username, u.password, u.dateOfBirth);
+                created = new User(u.firstName, u.lastName, u.username, u.password, u.dateOfBirth, u.email);
                 repo.addUser(created);
             }
 
@@ -318,33 +319,31 @@ public final class RepoSnapshotMapper {
     }
 
     /**
-     * Normalizes a string for use as a map key by trimming and lower-casing.
+     * Normalizes a string for use as a map key or comparison.
      *
-     * @param s input string (may be {@code null})
-     * @return normalized string, or empty string if {@code s} is {@code null}
+     * @param s string
+     * @return normalized string (lowercase, trimmed, or "" if null)
      */
     private static String norm(String s) {
         return s == null ? "" : s.trim().toLowerCase();
     }
 
     /**
-     * Creates a stable key for slot lookup based on category name and slot start time.
+     * Constructs a composite key identifying a slot in serialization.
      *
-     * @param categoryName the category name (may be {@code null})
-     * @param start the slot start time (may be {@code null})
-     * @return key in the form {@code "<normalizedCategory>|<startIsoString>"} (start part may be empty)
+     * @param categoryName category name
+     * @param start        slot start datetime
+     * @return key string
      */
     private static String slotKey(String categoryName, java.time.LocalDateTime start) {
         return norm(categoryName) + "|" + (start != null ? start.toString() : "");
     }
 
     /**
-     * Reads the internal cancellation-usage map from {@link DataRepository} using reflection.
+     * Reads the cancel-used map using reflection.
      *
-     * <p>If the field cannot be read or is not a {@link Map}, an empty map is returned.</p>
-     *
-     * @param repo repository to inspect
-     * @return a defensive copy of the cancellation-usage map
+     * @param repo repository
+     * @return cancel map copy
      */
     @SuppressWarnings("unchecked")
     private static Map<String, Boolean> readCancelMap(DataRepository repo) {
@@ -360,10 +359,10 @@ public final class RepoSnapshotMapper {
     }
 
     /**
-     * Writes the internal cancellation-usage map into {@link DataRepository} using reflection.
+     * Writes the cancel-used map using reflection.
      *
-     * @param repo repository to modify
-     * @param map map to set
+     * @param repo repository
+     * @param map  cancel-used state
      */
     private static void writeCancelMap(DataRepository repo, Map<String, Boolean> map) {
         try {
@@ -374,11 +373,11 @@ public final class RepoSnapshotMapper {
     }
 
     /**
-     * Sets a static integer counter field (e.g., {@code counter}) on a domain class using reflection.
+     * Sets a static counter field for restoring IDs.
      *
-     * @param cls the class that declares the static counter field
-     * @param field the field name
-     * @param nextValue the next value that should be assigned
+     * @param cls       class with counter
+     * @param field     field name
+     * @param nextValue new value
      */
     private static void setStaticCounter(Class<?> cls, String field, int nextValue) {
         try {
@@ -389,10 +388,10 @@ public final class RepoSnapshotMapper {
     }
 
     /**
-     * Forces the internal state of an {@link Appointment} to match the snapshot DTO, using reflection.
+     * Restores appointment state from its DTO.
      *
-     * @param a appointment to mutate
-     * @param dto snapshot DTO containing the desired state
+     * @param a   appointment
+     * @param dto source DTO
      */
     private static void forceAppointmentState(Appointment a, AppointmentDTO dto) {
         try {
@@ -400,13 +399,22 @@ public final class RepoSnapshotMapper {
             setField(a, "confirmedAt", dto.confirmedAt);
             setField(a, "cancelledAt", dto.cancelledAt);
         } catch (Exception ignored) {}
+
+        try {
+            if (dto.appointmentType != null && !dto.appointmentType.trim().isEmpty()) {
+                a.setAppointmentType(AppointmentType.valueOf(dto.appointmentType.trim()));
+            }
+            a.setGroupSize(dto.groupSize);
+            a.setReviewTargetSlotStart(dto.reviewTargetSlotStart);
+            a.setEmergencyPreferredSlotStart(dto.emergencyPreferredSlotStart);
+        } catch (Exception ignored) {}
     }
 
     /**
-     * Forces the internal state of a {@link BookingRequest} to match the snapshot DTO, using reflection.
+     * Restores booking request state from its DTO.
      *
-     * @param r booking request to mutate
-     * @param dto snapshot DTO containing the desired state
+     * @param r   booking request
+     * @param dto source DTO
      */
     private static void forceBookingRequestState(BookingRequest r, BookingRequestDTO dto) {
         try {
@@ -420,10 +428,10 @@ public final class RepoSnapshotMapper {
     }
 
     /**
-     * Forces the internal state of a {@link ContactRequest} to match the snapshot DTO, using reflection.
+     * Restores contact request state from its DTO.
      *
-     * @param r contact request to mutate
-     * @param dto snapshot DTO containing the desired state
+     * @param r   contact request
+     * @param dto source DTO
      */
     private static void forceContactRequestState(ContactRequest r, ContactRequestDTO dto) {
         try {
@@ -432,12 +440,10 @@ public final class RepoSnapshotMapper {
     }
 
     /**
-     * Forces the internal state of an {@link AuditEvent} to match the snapshot DTO.
+     * Restores audit event state from its DTO.
      *
-     * <p>Currently does not set any extra fields beyond what is set in the constructor.</p>
-     *
-     * @param e audit event to mutate
-     * @param dto snapshot DTO containing the desired state
+     * @param e   audit event
+     * @param dto source DTO
      */
     private static void forceAuditEventState(AuditEvent e, AuditEventDTO dto) {
         try {
@@ -445,12 +451,12 @@ public final class RepoSnapshotMapper {
     }
 
     /**
-     * Sets a declared field value on the given object using reflection.
+     * Sets a private field using reflection.
      *
-     * @param obj object to modify
-     * @param name declared field name on {@code obj.getClass()}
-     * @param value value to assign
-     * @throws Exception if the field cannot be found or set
+     * @param obj  object
+     * @param name field name
+     * @param value value to set
+     * @throws Exception reflection error
      */
     private static void setField(Object obj, String name, Object value) throws Exception {
         Field f = obj.getClass().getDeclaredField(name);

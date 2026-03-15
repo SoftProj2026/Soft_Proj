@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 
 /**
  * Prevents two confirmed appointments from having the exact same start time.
+ * @author remaa
+ * @version 1.0
  */
 public class UniqueStartTimeRule implements BookingRuleStrategy {
 

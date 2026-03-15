@@ -9,6 +9,9 @@ package persistence.dto;
  *
  * <p>Values are typically stored normalized (trimmed/lower-cased) by the persistence layer, but this DTO
  * itself does not enforce normalization.</p>
+ *
+ * @author remaa
+ * @version 1.0
  */
 public class CancelUsedDTO {
 

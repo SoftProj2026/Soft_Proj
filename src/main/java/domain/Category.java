@@ -1,18 +1,22 @@
 package domain;
 
 /**
- * Represents a booking category (e.g., "Doctor Appointment", "Conference Hall", etc.).
+ * Represents a booking category (for example, "Doctor Appointment", "Conference Hall", etc.).
+ *
+ * <p>A category is used to group {@link TimeSlot} entries and bookings under a specific service type.</p>
+ *
+ * @author s12219530-cpu (remaa)
+ * @version 1.0
  */
 public class Category {
 
+    /**
+     * Category name.
+     */
     private final String name;
 
     /**
-     * Optional parent/related category reference.
-     * <p>
-     * Note: In the current implementation this field is never set through the constructor.
-     * It remains {@code null} unless you add a setter or a constructor parameter.
-     * </p>
+     * Optional parent or related category reference (may be {@code null}).
      */
     private Category category;
 
@@ -27,9 +31,9 @@ public class Category {
     }
 
     /**
-     * Returns the parent/related category (if any).
+     * Returns the parent or related category reference.
      *
-     * @return the category reference (may be null)
+     * @return related category (may be {@code null})
      */
     public Category getCategory() {
         return category;
@@ -45,9 +49,9 @@ public class Category {
     }
 
     /**
-     * Returns the category name.
+     * Returns the category name as a string.
      *
-     * @return category name as string
+     * @return category name
      */
     @Override
     public String toString() {

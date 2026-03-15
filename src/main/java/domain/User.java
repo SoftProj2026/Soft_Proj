@@ -5,21 +5,45 @@ import java.time.LocalDate;
 /**
  * Represents an application user account.
  *
- * <p>A {@code User} stores authentication credentials and optional profile information
- * used across the system, such as name, date of birth, and email address.</p>
+ * <p>A {@code User} stores authentication credentials and optional profile information used across the
+ * system, such as name, date of birth, and email address.</p>
  *
- * <p>The email field is mutable to allow collecting/updating a user's email after account creation
- * (e.g., for reminder notifications).</p>
+ * <p>The email field is mutable to allow collecting and updating a user's email after account creation
+ * (for example, to enable reminder notifications).</p>
+ *
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class User {
 
+    /**
+     * Unique username used for login.
+     */
     private final String username;
+
+    /**
+     * Password used for login.
+     */
     private final String password;
 
+    /**
+     * User first name (may be empty).
+     */
     private final String firstName;
+
+    /**
+     * User last name (may be empty).
+     */
     private final String lastName;
+
+    /**
+     * User date of birth (may be {@code null} for system accounts).
+     */
     private final LocalDate dateOfBirth;
 
+    /**
+     * User email address used for notifications (never {@code null}; may be empty).
+     */
     private String email;
 
     /**

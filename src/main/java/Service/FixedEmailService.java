@@ -5,6 +5,8 @@ package Service;
  *
  * <p>This class is typically used for demonstrations or constrained environments where recipient addressing
  * is not dynamic.</p>
+ * @author Qussai
+ * @version 1.0
  */
 public class FixedEmailService {
 

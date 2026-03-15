@@ -4,31 +4,56 @@ import java.time.LocalDateTime;
 
 /**
  * Represents a contact request (message) sent by a customer to a provider.
- * <p>
- * This is used for internal in-app messaging:
+ *
+ * <p>This class is used for internal in-app messaging:</p>
  * <ul>
- *   <li>Customer sends a message to a {@link Provider}</li>
- *   <li>Provider views messages in inbox</li>
- *   <li>Admin can also review messages (via repository/admin screens)</li>
+ *   <li>A customer sends a message to a {@link Provider}.</li>
+ *   <li>The provider views messages in their inbox.</li>
+ *   <li>An administrator can review messages through admin/repository screens.</li>
  * </ul>
- * </p>
+ *
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class ContactRequest {
 
-    /** Counter for generating unique request IDs. */
+    /**
+     * Static counter used to generate unique request identifiers.
+     */
     private static int counter = 1;
 
+    /**
+     * Unique contact request identifier.
+     */
     private final int id;
+
+    /**
+     * Username of the sender (customer).
+     */
     private final String fromUsername;
+
+    /**
+     * Username of the recipient provider.
+     */
     private final String toProviderUsername;
+
+    /**
+     * Message content.
+     */
     private final String message;
+
+    /**
+     * Timestamp when the request was created.
+     */
     private final LocalDateTime createdAt;
 
-    /** True if the provider has marked this message as read. */
+    /**
+     * Indicates whether the provider has marked this message as read.
+     */
     private boolean read;
 
     /**
-     * Creates a new contact request and sets {@link #createdAt} to now.
+     * Creates a new contact request and sets the creation time to now.
      *
      * @param fromUsername       sender username (customer)
      * @param toProviderUsername recipient provider username
@@ -44,7 +69,7 @@ public class ContactRequest {
     }
 
     /**
-     * Returns request id.
+     * Returns the contact request identifier.
      *
      * @return request id
      */
@@ -53,45 +78,45 @@ public class ContactRequest {
     }
 
     /**
-     * Returns sender username.
+     * Returns the sender username.
      *
-     * @return from username
+     * @return sender username
      */
     public String getFromUsername() {
         return fromUsername;
     }
 
     /**
-     * Returns recipient provider username.
+     * Returns the recipient provider username.
      *
-     * @return to provider username
+     * @return provider username
      */
     public String getToProviderUsername() {
         return toProviderUsername;
     }
 
     /**
-     * Returns message text.
+     * Returns the message content.
      *
-     * @return message
+     * @return message text
      */
     public String getMessage() {
         return message;
     }
 
     /**
-     * Returns message creation time.
+     * Returns the creation timestamp of this message.
      *
-     * @return createdAt timestamp
+     * @return created at timestamp
      */
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Indicates whether the message was marked as read.
+     * Indicates whether this message was marked as read.
      *
-     * @return true if read
+     * @return {@code true} if read; otherwise {@code false}
      */
     public boolean isRead() {
         return read;

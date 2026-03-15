@@ -32,6 +32,8 @@ import java.util.List;
  *   <li>This frame expects the user to already be logged in via {@link AuthService}.</li>
  *   <li>Reminder popups are managed by {@link ReminderService} which is stopped on logout.</li>
  * </ul>
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class MainDashboardFrame extends JFrame {
 

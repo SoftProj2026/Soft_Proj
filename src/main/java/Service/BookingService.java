@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
  * Provides booking operations for {@link Appointment} objects.
  *
  * <p>This service validates booking requests and prevents creating bookings in the past.</p>
+ * @author Qussai
+ *@version 1.0
  */
 public class BookingService {
 

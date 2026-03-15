@@ -21,6 +21,8 @@ import java.awt.*;
  * </ul>
  *
  * <p>No copy is sent to the user's email.</p>
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class CustomerContactProvidersFrame extends JFrame {
 

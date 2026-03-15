@@ -5,6 +5,8 @@ import persistence.DataRepository;
 
 /**
  * Prevents a user from having more than one confirmed booking in the same category.
+ * @author Qussai
+ * @version 1.0
  */
 public class OneBookingPerCategoryRule implements BookingRuleStrategy {
 

@@ -5,6 +5,9 @@ package persistence.dto;
  *
  * <p>This DTO is used inside repository snapshots (e.g., {@code RepoSnapshot}) to persist the list
  * of available categories without carrying full domain behavior.</p>
+ *
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class CategoryDTO {
 

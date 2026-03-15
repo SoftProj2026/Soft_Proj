@@ -5,6 +5,8 @@ import java.awt.*;
 
 /**
  * A custom {@link JPanel} that paints a rounded rectangle background.
+ * @author remaa
+ * @version 1.0
  */
 public class RoundedPanel extends JPanel {
 

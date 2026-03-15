@@ -30,6 +30,8 @@ import java.util.List;
  *   <li>Category admins see only {@link BookingRequestStatus#PENDING_CATEGORY_ADMIN} requests assigned to their username.</li>
  *   <li>The big admin (username {@code admin}) sees only {@link BookingRequestStatus#PENDING_BIG_ADMIN} requests.</li>
  * </ul>
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class AdminRequestsFrame extends JFrame {
 

@@ -7,6 +7,8 @@ import domain.Appointment;
  * <p>
  * (US2.3) Prevent booking if participants exceed allowed limit.
  * </p>
+ * @author Qussai
+ * @version 1.0
  */
 
 public class ParticipantLimitRule implements BookingRuleStrategy {

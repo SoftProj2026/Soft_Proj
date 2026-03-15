@@ -23,6 +23,8 @@ import java.time.LocalDate;
  *   <li>Basic email format validation</li>
  *   <li>Strong password rules (8+ chars, uppercase, lowercase, digit, and symbol)</li>
  * </ul>
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class SignUpFrame extends JFrame {
 

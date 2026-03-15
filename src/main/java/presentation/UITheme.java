@@ -10,6 +10,8 @@ import java.awt.*;
  * Call {@link #apply()} once early in application startup to set the preferred
  * Look & Feel and shared UI defaults.
  * </p>
+ * @author remaa
+ * @version 1.0
  */
 public final class UITheme {
 

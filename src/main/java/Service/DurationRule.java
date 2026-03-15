@@ -7,6 +7,9 @@ import domain.Appointment;
  * <p>
  * (US2.2) Prevent booking if duration exceeds allowed limit.
  * </p>
+ * @author remaa
+ * @version 1.0
+ 
  */
 
 public class DurationRule implements BookingRuleStrategy {

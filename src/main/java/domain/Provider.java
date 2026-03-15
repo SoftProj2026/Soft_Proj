@@ -1,29 +1,37 @@
 package domain;
 
 /**
- * Represents a service provider account (company/property owner).
- * <p>
- * A provider can login to the system (because it extends {@link User}) and can
- * receive messages from customers via {@link ContactRequest}.
- * </p>
+ * Represents a service provider account (company or property owner).
  *
- * <p>
- * Provider accounts store additional contact information that can be displayed
- * to customers/admins.
- * </p>
+ * <p>A {@code Provider} can log in to the system (because it extends {@link User}) and can receive
+ * messages from customers via {@link ContactRequest}.</p>
+ *
+ * <p>Provider accounts store additional contact information that can be displayed to customers
+ * and administrators.</p>
+ *
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class Provider extends User {
 
-    /** Display name shown to customers (e.g., company/property name). */
+    /**
+     * Display name shown to customers (for example, company or property name).
+     */
     private final String displayName;
 
-    /** Provider phone number (optional). */
+    /**
+     * Provider phone number (optional).
+     */
     private final String phone;
 
-    /** Provider email address (optional). */
+    /**
+     * Provider email address (optional).
+     */
     private final String email;
 
-    /** Provider address/location (optional). */
+    /**
+     * Provider address or location (optional).
+     */
     private final String address;
 
     /**
@@ -31,10 +39,10 @@ public class Provider extends User {
      *
      * @param username    provider login username
      * @param password    provider login password
-     * @param displayName name shown in the UI (company/property name)
-     * @param phone       contact phone (optional)
-     * @param email       contact email (optional)
-     * @param address     address/location (optional)
+     * @param displayName name shown in the UI (company or property name)
+     * @param phone       contact phone number (optional)
+     * @param email       contact email address (optional)
+     * @param address     address or location (optional)
      */
     public Provider(String username,
                     String password,
@@ -51,7 +59,7 @@ public class Provider extends User {
     }
 
     /**
-     * Returns provider display name (company/property name).
+     * Returns the provider display name.
      *
      * @return display name
      */
@@ -60,7 +68,7 @@ public class Provider extends User {
     }
 
     /**
-     * Returns provider phone.
+     * Returns the provider phone number.
      *
      * @return phone number
      */
@@ -69,18 +77,18 @@ public class Provider extends User {
     }
 
     /**
-     * Returns provider email.
+     * Returns the provider email address.
      *
-     * @return email
+     * @return email address
      */
     public String getEmail() {
         return email;
     }
 
     /**
-     * Returns provider address/location.
+     * Returns the provider address or location.
      *
-     * @return address
+     * @return address/location
      */
     public String getAddress() {
         return address;

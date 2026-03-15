@@ -16,6 +16,8 @@ import java.util.List;
  *
  * <p>A reminder is generated for each {@link AppointmentStatus#CONFIRMED} appointment that starts in the future
  * and within the next 24 hours.</p>
+ * @author remaa
+ * @version 1.0
  */
 public class UpcomingBookingReminderService {
 

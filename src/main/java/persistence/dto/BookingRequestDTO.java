@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
  *   <li>Status is stored as a string (typically the enum {@code name()})</li>
  * </ul>
  * </p>
+ *
+ * @author remaa
+ * @version 1.0
  */
 public class BookingRequestDTO {
 

@@ -36,6 +36,8 @@ import java.util.List;
  * <p>
  * If opened without a valid logged-in provider, the frame shows a warning and closes itself.
  * </p>
+ * @author remaa
+ * @version 1.0
  */
 public class ProviderInboxFrame extends JFrame {
 

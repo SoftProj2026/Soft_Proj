@@ -9,6 +9,8 @@ package Service;
  *   <li>Console/logging-based sending (development)</li>
  *   <li>Mock/fake implementations (unit tests)</li>
  * </ul>
+ * @author remaa
+ * @version 1.0
  */
 public interface EmailSender {
 

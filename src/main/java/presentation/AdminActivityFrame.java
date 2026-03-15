@@ -27,6 +27,9 @@ import java.time.format.DateTimeFormatter;
  *   <li>Who booked which category and when booking was confirmed</li>
  *   <li>Who cancelled and in which category</li>
  * </ul>
+ *
+ * @author remaa
+ * @version 1.0
  */
 public class AdminActivityFrame extends JFrame {
 

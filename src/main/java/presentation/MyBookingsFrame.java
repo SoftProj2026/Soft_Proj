@@ -1,6 +1,8 @@
 package presentation;
 
+import Service.AppointmentTypeService;
 import Service.AuthService;
+import Service.SmtpEmailSender;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.BookingRequest;
@@ -9,9 +11,12 @@ import domain.TimeSlot;
 import persistence.DataRepository;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -20,17 +25,18 @@ import java.util.List;
 /**
  * Displays the currently logged-in user's appointments and booking requests in a single table.
  *
- * <p>This view includes:</p>
+ * <p>
+ * UI Update:
  * <ul>
- *   <li>Confirmed/cancelled/completed {@link Appointment} rows.</li>
- *   <li>All {@link BookingRequest} rows (pending/approved/rejected), including rejection actor and reason.</li>
+ *   <li>Uses UITheme colors/background (consistent look)</li>
+ *   <li>Buttons styled using UITheme helper methods</li>
+ *   <li>Adds header (title + subtitle)</li>
+ *   <li>Fixes formatting/line breaks (no "one-line" messy code)</li>
  * </ul>
+ * </p>
  *
- * <p>The user can:</p>
- * <ul>
- *   <li>Cancel a future confirmed appointment.</li>
- *   <li>Modify a future confirmed appointment by selecting a new available slot and updating duration/participants.</li>
- * </ul>
+ * @author Qussaialaw & قثةشش
+ * @version 1.0
  */
 public class MyBookingsFrame extends JFrame {
 
@@ -50,20 +56,19 @@ public class MyBookingsFrame extends JFrame {
     private static final Color REQUEST_APPROVED_FG = new Color(20, 83, 45);
     private static final Color REQUEST_REJECTED_FG = new Color(180, 30, 30);
 
-    /**
-     * Creates the "My Bookings" window.
-     *
-     * @param auth authentication service
-     * @param repo data repository
-     */
     public MyBookingsFrame(AuthService auth, DataRepository repo) {
         this.auth = auth;
         this.repo = repo;
 
         setTitle("My Bookings");
-        setSize(1200, 480);
+        setSize(1300, 560);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout(10, 10));
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout(12, 12));
+
+        getContentPane().setBackground(UITheme.BG);
+
+        add(buildHeader(), BorderLayout.NORTH);
 
         String[] cols = {
                 "Type",
@@ -73,6 +78,8 @@ public class MyBookingsFrame extends JFrame {
                 "Duration",
                 "Participants",
                 "Status",
+                "Appointment Type",
+                "Group Size",
                 "Rejected By",
                 "Reject Reason"
         };
@@ -86,49 +93,64 @@ public class MyBookingsFrame extends JFrame {
 
         table = new JTable(model);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setRowHeight(24);
 
         installRowRenderer();
+        installOpenOptionsOnSingleClick();
 
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
+        scroll.getViewport().setBackground(UITheme.BG);
+        add(scroll, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        add(buildActions(), BorderLayout.SOUTH);
 
-        JButton refreshBtn = new JButton("Refresh");
-        JButton modifyBtn = new JButton("Modify Booking");
-        JButton cancelBtn = new JButton("Cancel Booking");
-        JButton closeBtn = new JButton("Close");
+        loadMyBookings();
+    }
 
-        actions.add(refreshBtn);
-        actions.add(modifyBtn);
-        actions.add(cancelBtn);
-        actions.add(closeBtn);
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(Color.WHITE);
+        header.setBorder(new EmptyBorder(14, 14, 14, 14));
 
-        add(actions, BorderLayout.SOUTH);
+        JLabel title = new JLabel("My Bookings");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        header.add(title, BorderLayout.NORTH);
+
+        JLabel subtitle = new JLabel("View your appointments and requests. Click a CONFIRMED appointment to set options.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitle.setForeground(new Color(90, 100, 115));
+        header.add(subtitle, BorderLayout.SOUTH);
+
+        return header;
+    }
+
+    private JPanel buildActions() {
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        actions.setBackground(UITheme.BG);
+
+        JButton refreshBtn = UITheme.secondaryButton("Refresh");
+        JButton modifyBtn = UITheme.primaryButton("Modify Booking");
+        JButton cancelBtn = UITheme.secondaryButton("Cancel Booking");
+        JButton closeBtn = UITheme.secondaryButton("Close");
 
         refreshBtn.addActionListener(e -> loadMyBookings());
         modifyBtn.addActionListener(e -> modifySelected());
         cancelBtn.addActionListener(e -> cancelSelected());
         closeBtn.addActionListener(e -> dispose());
 
-        loadMyBookings();
+        actions.add(refreshBtn);
+        actions.add(modifyBtn);
+        actions.add(cancelBtn);
+        actions.add(closeBtn);
+
+        return actions;
     }
 
-    /**
-     * Internal row item for table selection mapping.
-     */
     private static class RowItem {
 
-        /**
-         * Row kind.
-         */
         enum Kind {
-            /**
-             * Appointment row.
-             */
             APPOINTMENT,
-            /**
-             * Booking request row.
-             */
             REQUEST
         }
 
@@ -136,59 +158,31 @@ public class MyBookingsFrame extends JFrame {
         private final Appointment appointment;
         private final BookingRequest request;
 
-        /**
-         * Creates an appointment row item.
-         *
-         * @param a appointment
-         */
         RowItem(Appointment a) {
             this.kind = Kind.APPOINTMENT;
             this.appointment = a;
             this.request = null;
         }
 
-        /**
-         * Creates a booking request row item.
-         *
-         * @param r booking request
-         */
         RowItem(BookingRequest r) {
             this.kind = Kind.REQUEST;
             this.request = r;
             this.appointment = null;
         }
 
-        /**
-         * Returns the row kind.
-         *
-         * @return kind
-         */
         Kind getKind() {
             return kind;
         }
 
-        /**
-         * Returns appointment if this row is appointment.
-         *
-         * @return appointment or null
-         */
         Appointment getAppointment() {
             return appointment;
         }
 
-        /**
-         * Returns booking request if this row is request.
-         *
-         * @return request or null
-         */
         BookingRequest getRequest() {
             return request;
         }
     }
 
-    /**
-     * Installs a renderer that colors the Status column based on each row type/status.
-     */
     private void installRowRenderer() {
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
@@ -208,6 +202,7 @@ public class MyBookingsFrame extends JFrame {
                     c.setForeground(Color.BLACK);
                 }
 
+                // Status column index = 6
                 if (!isSelected && column == 6 && row >= 0 && row < visibleItems.size()) {
                     RowItem item = visibleItems.get(row);
 
@@ -246,11 +241,38 @@ public class MyBookingsFrame extends JFrame {
         }
     }
 
-    /**
-     * Updates any CONFIRMED appointments that have already ended to COMPLETED.
-     *
-     * @param username current username
-     */
+    private void installOpenOptionsOnSingleClick() {
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() != 1) return;
+
+                int row = table.getSelectedRow();
+                if (row < 0 || row >= visibleItems.size()) return;
+
+                RowItem item = visibleItems.get(row);
+                if (item.getKind() != RowItem.Kind.APPOINTMENT || item.getAppointment() == null) return;
+
+                Appointment selected = item.getAppointment();
+                if (selected.getStatus() != AppointmentStatus.CONFIRMED) return;
+
+                AppointmentTypeService typeService = new AppointmentTypeService(repo, new SmtpEmailSender());
+
+                AppointmentOptionsFrame f =
+                        new AppointmentOptionsFrame(MyBookingsFrame.this, repo, selected, typeService);
+
+                f.addWindowListener(new java.awt.event.WindowAdapter() {
+                    @Override
+                    public void windowClosed(java.awt.event.WindowEvent e) {
+                        loadMyBookings();
+                    }
+                });
+
+                f.setVisible(true);
+            }
+        });
+    }
+
     private void markPastAppointmentsCompleted(String username) {
         if (username == null || username.trim().isEmpty()) return;
 
@@ -270,9 +292,6 @@ public class MyBookingsFrame extends JFrame {
         }
     }
 
-    /**
-     * Loads the current user's booking requests and appointments into the table.
-     */
     private void loadMyBookings() {
         model.setRowCount(0);
         visibleItems.clear();
@@ -289,6 +308,7 @@ public class MyBookingsFrame extends JFrame {
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+        // Requests first
         for (BookingRequest r : repo.getBookingRequests()) {
             if (r == null || r.getRequester() == null || r.getRequester().getUsername() == null) continue;
             if (!r.getRequester().getUsername().equalsIgnoreCase(username)) continue;
@@ -323,11 +343,14 @@ public class MyBookingsFrame extends JFrame {
                     r.getDurationInMinutes(),
                     r.getParticipants(),
                     r.getStatus().name(),
+                    "",
+                    "",
                     rejectedBy,
                     rejectReason
             });
         }
 
+        
         for (Appointment a : repo.getAppointments()) {
             if (a == null || a.getUser() == null || a.getUser().getUsername() == null) continue;
             if (!a.getUser().getUsername().equalsIgnoreCase(username)) continue;
@@ -344,6 +367,9 @@ public class MyBookingsFrame extends JFrame {
                 }
             }
 
+            String type = (a.getAppointmentType() != null) ? a.getAppointmentType().name() : "";
+            String groupSize = (a.getGroupSize() != null) ? String.valueOf(a.getGroupSize()) : "";
+
             visibleItems.add(new RowItem(a));
             model.addRow(new Object[]{
                     "APPOINTMENT",
@@ -353,6 +379,8 @@ public class MyBookingsFrame extends JFrame {
                     a.getDurationInMinutes(),
                     a.getParticipants(),
                     a.getStatus().name(),
+                    type,
+                    groupSize,
                     "",
                     ""
             });
@@ -361,9 +389,6 @@ public class MyBookingsFrame extends JFrame {
         table.repaint();
     }
 
-    /**
-     * Cancels the selected booking if it is a future confirmed appointment.
-     */
     private void cancelSelected() {
         int row = table.getSelectedRow();
         if (row < 0 || row >= visibleItems.size()) {
@@ -400,9 +425,6 @@ public class MyBookingsFrame extends JFrame {
         loadMyBookings();
     }
 
-    /**
-     * Modifies the selected booking if it is a future confirmed appointment.
-     */
     private void modifySelected() {
         int row = table.getSelectedRow();
         if (row < 0 || row >= visibleItems.size()) {
@@ -464,12 +486,6 @@ public class MyBookingsFrame extends JFrame {
         loadMyBookings();
     }
 
-    /**
-     * Prompts the user to select a new slot for the same category that is available and in the future.
-     *
-     * @param selected appointment being modified
-     * @return chosen slot or null if cancelled
-     */
     private TimeSlot promptNewSlot(Appointment selected) {
         if (selected == null || selected.getSlot() == null || selected.getSlot().getCategory() == null) {
             JOptionPane.showMessageDialog(this, "Cannot modify (missing category).");
@@ -518,15 +534,6 @@ public class MyBookingsFrame extends JFrame {
         return null;
     }
 
-    /**
-     * Prompts the user for an integer value within a specified range.
-     *
-     * @param title   dialog title
-     * @param message dialog message
-     * @param min     minimum accepted value
-     * @param max     maximum accepted value
-     * @return selected value, or null if cancelled
-     */
     private Integer promptIntInRange(String title, String message, int min, int max) {
         while (true) {
             String input = JOptionPane.showInputDialog(this, message, title, JOptionPane.QUESTION_MESSAGE);
@@ -555,24 +562,12 @@ public class MyBookingsFrame extends JFrame {
         }
     }
 
-    /**
-     * Computes slot length in minutes.
-     *
-     * @param slot slot
-     * @return minutes between start and end, or 60 if missing
-     */
     private int minutesBetween(TimeSlot slot) {
         if (slot == null || slot.getStartDateTime() == null || slot.getEndDateTime() == null) return 60;
         long mins = java.time.Duration.between(slot.getStartDateTime(), slot.getEndDateTime()).toMinutes();
         return (int) Math.max(1, mins);
     }
 
-    /**
-     * Safely trims a possibly-null string.
-     *
-     * @param s input string
-     * @return trimmed string or empty string if null
-     */
     private static String safe(String s) {
         return s == null ? "" : s.trim();
     }

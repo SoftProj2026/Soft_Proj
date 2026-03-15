@@ -4,58 +4,84 @@ import java.time.LocalDateTime;
 
 /**
  * Represents a single audit log entry in the system.
- * <p>
- * The audit log is used by the admin to review important user actions such as:
- * <ul>
- *   <li>Sending a message (contact request) to a provider</li>
- *   <li>Confirming (booking) an appointment</li>
- *   <li>Cancelling an appointment</li>
- * </ul>
- * </p>
  *
- * <p>
- * Each event contains:
- * <ul>
- *   <li>a unique ID</li>
- *   <li>an event {@link Type}</li>
- *   <li>the actor username (who did it)</li>
- *   <li>a target (who/what was affected)</li>
- *   <li>free-text details</li>
- *   <li>a timestamp</li>
- * </ul>
- * </p>
+ * <p>The audit log is used by administrators to review important actions performed by users,
+ * such as sending messages, confirming appointments, and cancelling appointments.</p>
+ *
+ * <p>Each event contains a unique id, an event {@link Type}, actor username, target identifier,
+ * free-text details, and a timestamp.</p>
+ *
+ * @author s12219530-cpu (remaa)
+ * @version 1.0
  */
 public class AuditEvent {
 
     /**
      * Supported audit event types.
+     *
+     * @author Qussaialaw
+     * @version 1.0
      */
     public enum Type {
-        /** A customer sent a message/contact request. */
+
+        /**
+         * A customer sent a message/contact request.
+         */
         MESSAGE_SENT,
-        /** A user confirmed (booked) an appointment. */
+
+        /**
+         * A user confirmed (booked) an appointment.
+         */
         APPOINTMENT_CONFIRMED,
-        /** A user cancelled an appointment. */
+
+        /**
+         * A user cancelled an appointment.
+         */
         APPOINTMENT_CANCELLED
     }
 
-    /** Counter for generating unique event IDs. */
+    /**
+     * Counter for generating unique event identifiers.
+     */
     private static int counter = 1;
 
+    /**
+     * Unique audit event identifier.
+     */
     private final int id;
+
+    /**
+     * The event type.
+     */
     private final Type type;
+
+    /**
+     * Username of the actor who performed the action.
+     */
     private final String actorUsername;
+
+    /**
+     * Target that was affected by the action (meaning depends on {@link #type}).
+     */
     private final String target;
+
+    /**
+     * Additional human-readable details.
+     */
     private final String details;
+
+    /**
+     * Timestamp of the event.
+     */
     private final LocalDateTime at;
 
     /**
      * Creates a new audit event with the current timestamp.
      *
-     * @param type          event type
-     * @param actorUsername username who performed the action (may be empty)
-     * @param target        affected target (e.g., provider username, category name, etc.)
-     * @param details       additional human-readable details
+     * @param type          the audit event type
+     * @param actorUsername the username of the actor who performed the action (may be {@code null} or empty)
+     * @param target        the affected target (may be {@code null} or empty)
+     * @param details       additional event details (may be {@code null} or empty)
      */
     public AuditEvent(Type type, String actorUsername, String target, String details) {
         this.id = counter++;
@@ -67,7 +93,7 @@ public class AuditEvent {
     }
 
     /**
-     * Returns unique audit event ID.
+     * Returns the unique audit event id.
      *
      * @return audit event id
      */
@@ -85,9 +111,9 @@ public class AuditEvent {
     }
 
     /**
-     * Returns the username who performed the action.
+     * Returns the username of the actor who performed the action.
      *
-     * @return actor username
+     * @return actor username (may be empty)
      */
     public String getActorUsername() {
         return actorUsername;
@@ -95,33 +121,26 @@ public class AuditEvent {
 
     /**
      * Returns the affected target (meaning depends on {@link #getType()}).
-     * <p>
-     * Examples:
-     * <ul>
-     *   <li>provider username for {@link Type#MESSAGE_SENT}</li>
-     *   <li>category name for appointment-related events</li>
-     * </ul>
-     * </p>
      *
-     * @return target string
+     * @return target string (may be empty)
      */
     public String getTarget() {
         return target;
     }
 
     /**
-     * Returns additional details for the event.
+     * Returns additional details describing the event.
      *
-     * @return details string
+     * @return details string (may be empty)
      */
     public String getDetails() {
         return details;
     }
 
     /**
-     * Returns event timestamp.
+     * Returns the timestamp when the event occurred.
      *
-     * @return time of the event
+     * @return event timestamp
      */
     public LocalDateTime getAt() {
         return at;

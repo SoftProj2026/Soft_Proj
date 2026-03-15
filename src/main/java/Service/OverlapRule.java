@@ -9,6 +9,8 @@ import persistence.DataRepository;
  * <p>
  * (US3.1) Prevent overlapping bookings.
  * </p>
+ * @author remaa
+ * @version 1.0
  */
 public class OverlapRule implements BookingRuleStrategy {
 

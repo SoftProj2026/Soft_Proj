@@ -4,6 +4,8 @@ package Service;
  * {@link EmailSender} implementation that prints email contents to the console instead of sending them.
  *
  * <p>This sender is useful for local development and testing when SMTP credentials are not configured.</p>
+ * @author remaa
+ * @version 1.0
  */
 public class ConsoleEmailSender implements EmailSender {
 

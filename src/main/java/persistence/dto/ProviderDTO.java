@@ -8,6 +8,9 @@ package persistence.dto;
  *
  * <p>It is primarily used to reconstruct the repository's provider collection (e.g., {@code repo.getProviders()})
  * when restoring a repository snapshot.</p>
+ *
+ * @author remaa
+ * @version 1.0
  */
 public class ProviderDTO {
 

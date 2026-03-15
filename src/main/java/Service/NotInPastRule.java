@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 
 /**
  * Prevents booking appointments in the past (any time before "now").
+ * @author Qussai
+ * @version 1.0
  */
 public class NotInPastRule implements BookingRuleStrategy {
 

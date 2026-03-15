@@ -20,6 +20,8 @@ import java.util.Properties;
  *
  * <p>For local usage, the demo runner loads credentials from a {@code .env} file using {@link Dotenv}
  * and sends a test reminder email.</p>
+ * @author remaa
+ * @version 1.0
  */
 public class EmailService {
 

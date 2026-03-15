@@ -6,52 +6,35 @@ import domain.TimeSlot;
 import domain.User;
 import persistence.DataRepository;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
- * Service responsible for creating booking requests and enforcing request-time business rules.
+ * Service responsible for creating booking requests and enforcing booking rules.
+ * Only one active booking or request per user+category (confirmed + pending) is allowed.
  *
- * <p>This service supports the request-based booking workflow:</p>
- * <ul>
- *   <li>A user selects a mutual available slot.</li>
- *   <li>The system creates a {@link BookingRequest}.</li>
- *   <li>The selected {@link TimeSlot} is held while the request is pending approvals.</li>
- * </ul>
- *
- * <p>Key rules enforced during request submission:</p>
- * <ul>
- *   <li>Requests cannot be submitted for past time slots.</li>
- *   <li>Only available (not booked / not held) slots can be requested.</li>
- *   <li>Duration and participants must be positive values.</li>
- *   <li>MAIN + EMERGENCY rule: a user cannot exceed two active items (confirmed + pending) per category.</li>
- * </ul>
+ * @author Qussaialaw
+ * @version 1.0
  */
 public class BookingRequestService {
 
+    /**
+     * The repository handling data storage.
+     */
     private final DataRepository repo;
 
     /**
-     * Creates a booking request service.
-     *
-     * @param repo repository used to store requests and query active bookings
+     * Constructs a BookingRequestService.
+     * @param repo the repository instance
      */
     public BookingRequestService(DataRepository repo) {
         this.repo = repo;
     }
 
     /**
-     * Generates a category-admin key based on the category name.
-     *
-     * <p>The key is created as:</p>
-     * <ul>
-     *   <li>Take the acronym from the category name words (letters only)</li>
-     *   <li>Append {@code "123"}</li>
-     * </ul>
-     *
-     * <p>If category name is missing/empty, a default {@code "CA123"} is returned.</p>
-     *
-     * @param category category
-     * @return category admin key
+     * Generates a key for a category admin username, e.g. "Math" -> "M123".
+     * @param category the category
+     * @return the generated key, e.g. "CA123" for empty names
      */
     public static String categoryAdminKey(Category category) {
         String raw = (category != null && category.getName() != null) ? category.getName() : "";
@@ -73,25 +56,27 @@ public class BookingRequestService {
     }
 
     /**
-     * Derives the category-admin username from {@link #categoryAdminKey(Category)} by lower-casing the key.
-     *
-     * @param category category
-     * @return username used for the category admin account
+     * Generates a category admin username in lowercase (e.g. "Math" -> "m123").
+     * @param category the category
+     * @return the username for admin
      */
     public static String categoryAdminUsername(Category category) {
         return categoryAdminKey(category).toLowerCase();
     }
 
     /**
-     * Submits a booking request for a slot and holds the slot during the approval process.
+     * Submits a booking request for the specified slot. The slot will be held during approval.
+     * Enforces:
+     * - No past slots.
+     * - Must be available.
+     * - Duration in range.
+     * - One active item per user+category.
      *
-     * <p>Returns a {@link BookingResult} describing whether the request was accepted and the reason/result message.</p>
-     *
-     * @param requester        requesting user
-     * @param slot             requested slot
-     * @param durationInMinutes requested duration in minutes
-     * @param participants     participants count
-     * @return booking result
+     * @param requester the user making the request
+     * @param slot the time slot to book
+     * @param durationInMinutes the appointment duration
+     * @param participants number of participants (1-5)
+     * @return BookingResult describing success/failure
      */
     public BookingResult submitRequest(User requester,
                                        TimeSlot slot,
@@ -110,8 +95,24 @@ public class BookingRequestService {
             return new BookingResult(false, "This slot is not available (already booked or pending approval).");
         }
 
-        if (durationInMinutes <= 0) return new BookingResult(false, "Invalid duration.");
-        if (participants <= 0) return new BookingResult(false, "Invalid participants.");
+        if (participants < 1 || participants > 5) {
+            return new BookingResult(false, "Participants must be between 1 and 5.");
+        }
+
+        if (durationInMinutes <= 0) {
+            return new BookingResult(false, "Invalid duration.");
+        }
+
+        if (slot.getStartDateTime() == null || slot.getEndDateTime() == null) {
+            return new BookingResult(false, "Invalid slot time.");
+        }
+
+        int slotMinutes = (int) Duration.between(slot.getStartDateTime(), slot.getEndDateTime()).toMinutes();
+        if (slotMinutes <= 0) slotMinutes = 60;
+
+        if (durationInMinutes > slotMinutes) {
+            return new BookingResult(false, "Invalid duration. Max allowed for this slot is " + slotMinutes + " minutes.");
+        }
 
         String username = requester.getUsername();
         String categoryName = slot.getCategory().getName();
@@ -119,10 +120,11 @@ public class BookingRequestService {
         long confirmed = repo.countConfirmedForUserCategory(username, categoryName);
         long pending = repo.countPendingRequestsForUserCategory(username, categoryName);
 
-        if (confirmed + pending >= 2) {
+        if (confirmed + pending >= 1) {
             return new BookingResult(
                     false,
-                    "Not allowed: you already have MAIN + EMERGENCY (confirmed or pending) in this category."
+                    "Not allowed: you already have an active booking/request in this category. " +
+                            "Please wait for approval or cancel the existing booking."
             );
         }
 

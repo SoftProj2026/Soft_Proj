@@ -27,6 +27,9 @@ import java.util.Set;
  * <p>This class bootstraps the application by applying the UI theme, loading persisted repository data,
  * purging removed categories from existing saved data, seeding initial data on first run, and launching
  * the Swing login window.</p>
+ *
+ * @author Qussaialaw & s12219530-cpu (remaa)
+ * @version 1.0
  */
 public class Main {
 
@@ -39,7 +42,7 @@ public class Main {
      *   <li>Load repository data from disk (or create a new repository if not found).</li>
      *   <li>Purge removed categories from persisted data (to keep saved data consistent with new requirements).</li>
      *   <li>If the repository looks empty, seed initial accounts, categories, and time slots.</li>
-     *   <li>Create core services and open the {@link LoginFrame}.</li>
+     *   <li>Create core services and open the login window.</li>
      * </ul>
      *
      * @param args command-line arguments (not used)
@@ -88,21 +91,21 @@ public class Main {
 
         new BookingRequestService(repo);
 
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            new LoginFrame(authService, bookingService, repo).setVisible(true);
-        });
+        javax.swing.SwingUtilities.invokeLater(() ->
+                new LoginFrame(authService, bookingService, repo).setVisible(true)
+        );
     }
 
     /**
      * Purges removed categories from the repository (categories, slots, appointments, requests,
      * category-admin users, cancel tracking, and audit events).
      *
-     * <p>This is safe to call multiple times and is intended to handle existing saved data.</p>
-     *
      * @param repo repository to purge
      */
     private static void purgeRemovedCategories(DataRepository repo) {
-        if (repo == null) return;
+        if (repo == null) {
+            return;
+        }
 
         Set<String> toRemove = new HashSet<>();
         toRemove.add("Doctor Appointment");
@@ -127,8 +130,7 @@ public class Main {
     }
 
     /**
-     * Seeds one administrator account per category using a deterministic username derived from the
-     * category name.
+     * Seeds one administrator account per category using a deterministic username derived from the category name.
      *
      * @param repo       repository to insert users into
      * @param categories categories used to derive category-admin usernames
