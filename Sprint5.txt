@@ -1,0 +1,35 @@
+Sprint 5 – Appointment Types & Polymorphism (Weeks 7–8)
+In Sprint 5, advanced support for multiple appointment types was added, with polymorphic rule enforcement, and emergency notification handling.
+_____________________________________________________________________________________________________________
+Sprint 5: User Stories Summary (Appointment Types & Polymorphism)
+US5.1 – Support multiple appointment types
+Story: As a user, I want to choose from different types of appointments (e.g., urgent, group, individual, review, emergency).
+Acceptance:
+Appointment type is stored and used throughout booking/modification.
+Implemented in:
+presentation.AppointmentOptionsFrame (type selection in UI)
+domain.AppointmentType
+______________________________________________
+US5.2 – Apply different rules for each type
+Story: As a system, I want to enforce type-specific business rules (participants, duration, etc.).
+Acceptance:
+Type-specific rules are enforced, error messages for invalid entries.
+Implemented in:
+Service.AppointmentTypeRules
+Service.AppointmentTypeService.setAppointmentType(...)
+_____________________________________________
+US5.3 – Emergency appointment notifications
+Story: As a system, I want emergency appointments to send instant email notification to user/company.
+Acceptance:
+Emergency appointment triggers special email content.
+Implemented in:
+Service.AppointmentTypeService (emergency logic + email sending)
+______________________________________________________
+US5.4 – Polymorphic handling of types
+Story: As a developer, I want appointment type logic to support future extensibility via polymorphism/enums.
+Acceptance:
+Appointment types and rules can be extended without breaking logic/UI.
+Implemented in:
+domain.AppointmentType
+Service.AppointmentTypeRules
+UI and business logic across modules
