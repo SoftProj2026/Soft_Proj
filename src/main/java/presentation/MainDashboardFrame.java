@@ -12,59 +12,52 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Main booking dashboard UI (Swing).
- * <p>
- * This is the primary home screen shown to a normal (non-admin, non-provider) user
- * after a successful login.
- * </p>
+ * Main dashboard window that lists booking categories and provides navigation
+ * to other presentation screens (contact providers, my bookings, login).
  *
- * <h2>Features</h2>
- * <ul>
- *   <li><b>Categories grid</b>: Displays all {@link Category} entries from {@link DataRepository}.</li>
- *   <li><b>Open booking</b>: Clicking a category opens {@link UnifiedBookingFrame} for that category.</li>
- *   <li><b>Contact Companies</b>: Opens {@link CustomerContactProvidersFrame} to send a message to a provider.</li>
- *   <li><b>My Bookings</b>: Opens {@link MyBookingsFrame} to view and cancel bookings.</li>
- *   <li><b>Logout</b>: Logs out and returns to {@link LoginFrame}. Also stops {@link ReminderService}.</li>
- * </ul>
+ * <p>The frame displays a grid of category buttons loaded from the repository.
+ * Clicking a category opens {@link BookingTypeChoiceDialog} for that category.</p>
  *
- * <h2>Notes</h2>
- * <ul>
- *   <li>This frame expects the user to already be logged in via {@link AuthService}.</li>
- *   <li>Reminder popups are managed by {@link ReminderService} which is stopped on logout.</li>
- * </ul>
- * @author Qussaialaw
+ * @author remaa
  * @version 1.0
  */
 public class MainDashboardFrame extends JFrame {
 
-    /** Authentication service used for logout and to ensure a user is logged in. */
+    /**
+     * Authentication service used to manage login/logout and current user.
+     */
     private final AuthService auth;
 
-    /** Booking service used by booking windows that this dashboard opens. */
+    /**
+     * Booking service used by child screens if needed.
+     */
     private final BookingService booking;
 
-    /** Repository containing categories, slots, appointments, and providers. */
+    /**
+     * Repository providing categories and other persisted data.
+     */
     private final DataRepository repo;
 
-
-    /** Background color used for the dashboard. */
+    /**
+     * Background color used across the frame.
+     */
     private static final Color BG = new Color(245, 248, 255);
 
-    /** Primary accent color used for category buttons. */
+    /**
+     * Primary blue color used for category buttons.
+     */
     private static final Color BLUE = new Color(33, 120, 255);
 
     /**
-     * Creates the main dashboard window.
+     * Create a new dashboard frame.
      *
-     * @param auth     authentication service (used for logout and current user)
-     * @param booking  booking service (passed to booking screens)
-     * @param repo     repository containing categories and bookings data
-     * @param reminder reminder service instance (can be null)
+     * @param auth    authentication service instance (must not be null)
+     * @param booking booking service instance (must not be null)
+     * @param repo    repository instance providing categories (must not be null)
      */
     public MainDashboardFrame(AuthService auth,
                               BookingService booking,
-                              DataRepository repo
-                           ) {
+                              DataRepository repo) {
 
         this.auth = auth;
         this.booking = booking;
@@ -85,7 +78,10 @@ public class MainDashboardFrame extends JFrame {
         List<Category> cats = repo.getCategories();
         for (Category c : cats) {
             JButton btn = createCategoryButton(c.getName());
-            btn.addActionListener(e -> new UnifiedBookingFrame(auth, booking, repo, c).setVisible(true));
+            btn.addActionListener(e -> {
+                BookingTypeChoiceDialog dialog = new BookingTypeChoiceDialog(this, c, repo, auth, booking);
+                dialog.setVisible(true);
+            });
             categoryPanel.add(btn);
         }
 
@@ -109,9 +105,7 @@ public class MainDashboardFrame extends JFrame {
 
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> {
-
             RepoStorage.save(repo);
-
             auth.logout();
             new LoginFrame(auth, booking, repo).setVisible(true);
             dispose();
@@ -125,10 +119,10 @@ public class MainDashboardFrame extends JFrame {
     }
 
     /**
-     * Creates a consistently styled category button used in the grid.
+     * Create a styled JButton used for category entries.
      *
-     * @param text button label (category name)
-     * @return configured Swing button
+     * @param text button label text
+     * @return configured JButton instance
      */
     private JButton createCategoryButton(String text) {
         JButton btn = new JButton(text);

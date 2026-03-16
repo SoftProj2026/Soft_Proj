@@ -115,7 +115,7 @@ public class AppointmentOptionsFrame extends JFrame {
     /**
      * Label for group size.
      */
-    private final JLabel groupSizeLabel = new JLabel("Group size (1 - 5):");
+   // private final JLabel groupSizeLabel = new JLabel("Group size (1 - 5):");
 
     /**
      * Spinner for group size value.
@@ -260,8 +260,8 @@ public class AppointmentOptionsFrame extends JFrame {
         durationRow.add(durationSpinner);
 
         groupRow.setOpaque(false);
-        groupRow.add(groupSizeLabel);
-        groupRow.add(groupSizeSpinner);
+       // groupRow.add(groupSizeLabel);
+      //  groupRow.add(groupSizeSpinner);
 
         JPanel content = new JPanel();
         content.setOpaque(false);

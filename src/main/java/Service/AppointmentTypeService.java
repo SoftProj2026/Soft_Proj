@@ -47,14 +47,15 @@ public class AppointmentTypeService {
 
     /**
      * Sets the type and additional properties of a confirmed appointment.
-     * Also triggers emergency email if type is EMERGENCY.
+     * If the type is EMERGENCY this method will attempt to send an emergency
+     * notification email to the appointment's user and a copy to the company.
      *
-     * @param appointment                  the appointment to update
-     * @param type                         the AppointmentType to assign
+     * @param appointment                  the appointment to update; must not be null
+     * @param type                         the {@link AppointmentType} to assign; must not be null
      * @param groupSize                    group size for GROUP type, or null
-     * @param reviewTargetSlotStart        review slot for REVIEW type, or null
-     * @param emergencyPreferredSlotStart  preferred slot for EMERGENCY, or null
-     * @return "Saved." or an error message
+     * @param reviewTargetSlotStart        review slot start time for REVIEW type, or null
+     * @param emergencyPreferredSlotStart  preferred slot start time for EMERGENCY type, or null
+     * @return "Saved." on success or an error message describing why the operation failed
      */
     public String setAppointmentType(Appointment appointment,
                                      AppointmentType type,
@@ -116,8 +117,8 @@ public class AppointmentTypeService {
     /**
      * Builds the message body for emergency appointment email.
      *
-     * @param appointment appointment marked as emergency
-     * @return the email body text
+     * @param appointment appointment marked as emergency; may not be null
+     * @return the email body text including reference, category, preferred time and company phone
      */
     private String buildEmergencyEmailBody(Appointment appointment) {
         String cat = (appointment.getSlot() != null && appointment.getSlot().getCategory() != null)

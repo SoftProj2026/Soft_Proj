@@ -35,7 +35,7 @@ import java.util.List;
  * </ul>
  * </p>
  *
- * @author Qussaialaw & قثةشش
+ * @author Qussaialaw & remaa
  * @version 1.0
  */
 public class MyBookingsFrame extends JFrame {
@@ -102,7 +102,37 @@ public class MyBookingsFrame extends JFrame {
         scroll.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
         scroll.getViewport().setBackground(UITheme.BG);
         add(scroll, BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
+     // ... يمكنك وضع هنا
 
+     table.addMouseListener(new MouseAdapter() {
+         @Override
+         public void mouseClicked(MouseEvent e) {
+             if (e.getClickCount() == 2) {
+                 int row = table.getSelectedRow();
+                 if (row < 0 || row >= visibleItems.size()) return;
+
+                 RowItem item = visibleItems.get(row);
+                 if (item.getKind() == RowItem.Kind.APPOINTMENT && item.getAppointment() != null) {
+                     Appointment selected = item.getAppointment();
+                     if (selected.getStatus() == AppointmentStatus.CONFIRMED) {
+                         AppointmentTypeService typeService = new AppointmentTypeService(repo, new SmtpEmailSender());
+                         AppointmentOptionsFrame f =
+                             new AppointmentOptionsFrame(MyBookingsFrame.this, repo, selected, typeService);
+
+                         f.addWindowListener(new java.awt.event.WindowAdapter() {
+                             @Override
+                             public void windowClosed(java.awt.event.WindowEvent e) {
+                                 loadMyBookings();
+                             }
+                         });
+
+                         f.setVisible(true);
+                     }
+                 }
+             }
+         }
+     });
         add(buildActions(), BorderLayout.SOUTH);
 
         loadMyBookings();

@@ -13,8 +13,6 @@ import persistence.DataRepository;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,56 +23,59 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Unified booking window displaying company availability, user availability, and mutual bookable slots for a given category.
- * Handles booking request submission and ensures only one active (pending + confirmed) item per (user, category).
+ * Unified booking window displaying company availability, user availability,
+ * and mutual bookable slots for a given {@link Category}.
  *
- * @author remaa
+ * <p>Provides UI to pick a mutual slot and submit a booking request. Ensures
+ * only one active (pending + confirmed) item per (user, category).</p>
+ *
+ * @author remaa & Qussai
  * @version 1.0
  */
 public class UnifiedBookingFrame extends JFrame {
 
     /**
-     * The background color for the window.
+     * Background color used by the frame.
      */
     private static final Color BG = UITheme.BG;
 
     /**
-     * Day button default background color.
+     * Default background color for day buttons.
      */
     private static final Color DAY_BTN_BG = Color.WHITE;
 
     /**
-     * Day button default foreground color.
+     * Default foreground color for day buttons.
      */
     private static final Color DAY_BTN_FG = new Color(25, 35, 45);
 
     /**
-     * Day button background color when selected.
+     * Background color for a selected day button.
      */
     private static final Color DAY_BTN_SELECTED_BG = UITheme.PRIMARY_DARK;
 
     /**
-     * Day button foreground color when selected.
+     * Foreground color for a selected day button.
      */
     private static final Color DAY_BTN_SELECTED_FG = Color.WHITE;
 
     /**
-     * Background color for available slots.
+     * Background color used for available slot rows.
      */
     private static final Color ROW_OK_BG = new Color(220, 252, 231);
 
     /**
-     * Foreground color for available slots.
+     * Foreground color used for available slot rows.
      */
     private static final Color ROW_OK_FG = new Color(20, 83, 45);
 
     /**
-     * Background color for user free slots.
+     * Background color for user's free slot rows.
      */
     private static final Color ROW_FREE_BG = new Color(219, 234, 254);
 
     /**
-     * Foreground color for user free slots.
+     * Foreground color for user's free slot rows.
      */
     private static final Color ROW_FREE_FG = new Color(30, 64, 175);
 
@@ -89,147 +90,205 @@ public class UnifiedBookingFrame extends JFrame {
     private static final Color ROW_BREAK_FG = new Color(113, 63, 18);
 
     /**
-     * Background color for unavailable/busy slots.
+     * Background color used for unavailable or busy rows.
      */
     private static final Color ROW_BAD_BG = new Color(254, 242, 242);
 
     /**
-     * Foreground color for unavailable/busy slots.
+     * Foreground color used for unavailable or busy rows.
      */
     private static final Color ROW_BAD_FG = new Color(180, 30, 30);
 
     /**
-     * Background color for past slots.
+     * Background color for past (non-bookable) rows.
      */
     private static final Color ROW_PAST_BG = new Color(240, 240, 240);
 
     /**
-     * Foreground color for past slots.
+     * Foreground color for past rows.
      */
     private static final Color ROW_PAST_FG = new Color(120, 120, 120);
 
     /**
-     * The starting hour for slot times (inclusive).
+     * Starting hour for the displayed time slots (inclusive).
      */
     private static final LocalTime START_HOUR = LocalTime.of(9, 0);
 
     /**
-     * The ending hour for slot times (inclusive).
+     * Ending hour for the displayed time slots (inclusive).
      */
     private static final LocalTime END_HOUR = LocalTime.of(16, 0);
 
     /**
-     * The break hour (excluded from booking).
+     * Break hour that is excluded from booking.
      */
     private static final LocalTime BREAK_HOUR = LocalTime.of(12, 0);
 
     /**
-     * Current authentication service (for user info).
+     * Authentication service used to get the current user and login state.
      */
     private final AuthService auth;
 
     /**
-     * Booking service for availability/business logic.
+     * Booking service providing availability/business logic.
      */
     private final BookingService booking;
 
     /**
-     * The data repository instance.
+     * Data repository used to read slots, appointments and counts.
      */
     private final DataRepository repo;
 
     /**
-     * The active booking category.
+     * Currently selected booking category for this frame.
      */
     private final Category category;
 
     /**
-     * Booking request service for this frame.
+     * Service used to submit booking requests.
      */
     private final BookingRequestService requestService;
 
     /**
-     * Rule to determine blocked (unbookable) slots.
+     * Rule that determines whether a slot is blocked for booking.
      */
     private final BlockedSlotsRule blockedRule = new BlockedSlotsRule();
 
     /**
-     * Dates shown in the week view (next 7 days).
+     * Next seven dates shown in the week view.
      */
     private final List<LocalDate> weekDates = new ArrayList<>();
 
     /**
-     * Selected date for company column.
+     * Selected company date shown in the left column.
      */
     private LocalDate selectedCompanyDate;
 
     /**
-     * Selected date for my free slots column.
+     * Selected date for the user's free/busy column.
      */
     private LocalDate selectedMyDate;
 
     /**
-     * Selected date for mutual slots column.
+     * Selected date for the mutual slots column.
      */
     private LocalDate selectedMutualDate;
 
     /**
-     * Panel containing company's day bar buttons.
+     * Wrapper for company day bar controls.
      */
     private JPanel companyDayBarWrap;
 
     /**
-     * Panel containing user's day bar buttons.
+     * Wrapper for user day bar controls.
      */
     private JPanel myDayBarWrap;
 
     /**
-     * Panel containing mutual's day bar buttons.
+     * Wrapper for mutual day bar controls.
      */
     private JPanel mutualDayBarWrap;
 
     /**
-     * Panel listing company's available slots.
+     * Panel that lists company available slots.
      */
     private final JPanel companyListPanel = new JPanel();
 
     /**
-     * Panel listing user's free/busy slots.
+     * Panel that lists user free/busy slots.
      */
     private final JPanel myListPanel = new JPanel();
 
     /**
-     * Panel listing mutual slots.
+     * Panel that lists mutual slots available for requests.
      */
     private final JPanel mutualListPanel = new JPanel();
 
     /**
-     * Button group to ensure only one mutual slot is selected.
+     * Button group enforcing single mutual slot selection.
      */
     private final ButtonGroup mutualGroup = new ButtonGroup();
 
     /**
-     * The selected slot in the mutual column.
+     * Currently selected mutual slot (radio selection).
      */
     private TimeSlot selectedMutualSlot;
 
     /**
-     * Formatter for day names.
+     * Formatter for day names (e.g. "Mon").
      */
     private final DateTimeFormatter dayNameFmt = DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH);
 
     /**
-     * Formatter for slot time.
+     * Formatter for displayed times.
      */
     private final DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
 
     /**
-     * Constructs the unified booking frame for a user and category.
+     * If true, treat bookings created from this frame as individual and skip the participant prompt.
+     */
+    private boolean forceIndividual = false;
+
+    /**
+     * Participant count to use when {@link #forceIndividual} is true.
+     */
+    private int forcedParticipantCount = 1;
+
+    /**
+     * Initial appointment type requested by caller (optional).
+     */
+    private domain.AppointmentType initialAppointmentType = null;
+
+    /**
+     * Set an initial appointment type for the frame. Call before {@code setVisible(true)}.
      *
-     * @param auth current authentication service
-     * @param booking booking service
-     * @param repo data repository
-     * @param category selected booking category
+     * @param type appointment type to preselect (may be null)
+     */
+    public void setInitialAppointmentType(domain.AppointmentType type) {
+        this.initialAppointmentType = type;
+        applyInitialAppointmentTypeToUi();
+    }
+
+    /**
+     * Attempt to apply initial appointment type to UI controls if present.
+     * Uses reflection to call an optional update method; safe no-op if not available.
+     */
+    private void applyInitialAppointmentTypeToUi() {
+        if (initialAppointmentType == null) return;
+        try {
+            java.lang.reflect.Method m = this.getClass().getDeclaredMethod("updateUiForType");
+            m.setAccessible(true);
+            m.invoke(this);
+        } catch (Exception ex) {
+            // intentionally ignore when no update method is present
+        }
+    }
+
+    /**
+     * Configure the frame to force individual bookings and skip participant input.
+     *
+     * @param force true to force individual mode
+     */
+    public void setForceIndividual(boolean force) {
+        this.forceIndividual = force;
+    }
+
+    /**
+     * Set the forced participant count when individual mode is enabled.
+     *
+     * @param count participant count (will be clamped to range 1..5)
+     */
+    public void setForcedParticipantCount(int count) {
+        this.forcedParticipantCount = Math.max(1, Math.min(5, count));
+    }
+
+    /**
+     * Create a UnifiedBookingFrame for the given services and category.
+     *
+     * @param auth     authentication service (non-null)
+     * @param booking  booking service (non-null)
+     * @param repo     data repository (non-null)
+     * @param category category to display (non-null)
      */
     public UnifiedBookingFrame(AuthService auth, BookingService booking, DataRepository repo, Category category) {
         this.auth = auth;
@@ -262,9 +321,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds the header panel for the booking UI.
+     * Build header panel containing title and subtitle.
      *
-     * @return the header panel
+     * @return header panel
      */
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
@@ -284,9 +343,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds the three-column view: company, user, mutual slots.
+     * Build the three column layout (company, my slots, mutual).
      *
-     * @return the columns panel
+     * @return columns panel
      */
     private JPanel buildColumns() {
         JPanel cols = new JPanel(new GridLayout(1, 3, 12, 12));
@@ -301,9 +360,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds the company column/card view.
+     * Build company availability card.
      *
-     * @return the panel for company available slots
+     * @return company panel
      */
     private JPanel buildCompanyCard() {
         JPanel card = createCardShell();
@@ -322,9 +381,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds the user column/card view.
+     * Build the user's free slots card.
      *
-     * @return the panel for user's free slots
+     * @return user slots panel
      */
     private JPanel buildMyCard() {
         JPanel card = createCardShell();
@@ -343,9 +402,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds the mutual slots column/card view.
+     * Build the mutual slots card (pick & request).
      *
-     * @return the panel for mutual slots and booking
+     * @return mutual slots panel
      */
     private JPanel buildMutualCard() {
         JPanel card = createCardShell();
@@ -370,9 +429,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Creates the visual shell/container for a column/card.
+     * Create a bordered card shell used by all columns.
      *
-     * @return bordered and padded panel
+     * @return card panel
      */
     private JPanel createCardShell() {
         JPanel outer = new JPanel(new BorderLayout(10, 10));
@@ -385,10 +444,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds a titled header for a column/card.
+     * Create a titled header for a card.
      *
      * @param titleText header text
-     * @return panel containing the header
+     * @return header panel
      */
     private JPanel buildCardHeader(String titleText) {
         JPanel header = new JPanel();
@@ -404,10 +463,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Wraps a list panel in a scroll pane.
+     * Wrap a list panel with a scroll pane.
      *
-     * @param list the panel to wrap
-     * @return scrollable view of the panel
+     * @param list panel to wrap
+     * @return scroll pane
      */
     private JScrollPane wrapScroll(JPanel list) {
         JScrollPane scroll = new JScrollPane(list);
@@ -417,9 +476,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds the bottom action bar with booking and close buttons.
+     * Build bottom action bar with Close and Book buttons.
      *
-     * @return bottom panel
+     * @return bottom bar panel
      */
     private JPanel buildBottomBar() {
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
@@ -437,17 +496,17 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Formats a LocalDate as a button label.
+     * Format a LocalDate to the button label.
      *
-     * @param d the date
-     * @return display string for the button
+     * @param d date
+     * @return formatted label
      */
     private String formatDayButton(LocalDate d) {
         return d.format(dayNameFmt) + " " + d.getDayOfMonth() + "/" + d.getMonthValue();
     }
 
     /**
-     * Renders the day bars for each card.
+     * Render the day bars for all three columns.
      */
     private void renderDayBars() {
         companyDayBarWrap.removeAll();
@@ -478,11 +537,11 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Builds a bar of buttons for each date in the week.
+     * Create a bar of day buttons.
      *
      * @param selected currently selected date
-     * @param onSelect action to perform when a date is clicked
-     * @return the panel containing the bar
+     * @param onSelect callback when a date is chosen
+     * @return panel of buttons
      */
     private JPanel buildDayBarFor(LocalDate selected, java.util.function.Consumer<LocalDate> onSelect) {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
@@ -498,10 +557,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Styles a day selection button.
+     * Style a day selection button.
      *
-     * @param b       the button to style
-     * @param selected whether this day is currently selected
+     * @param b        button to style
+     * @param selected whether selected
      */
     private void styleDayButton(JButton b, boolean selected) {
         b.setFocusPainted(false);
@@ -522,7 +581,7 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Reloads and updates all panels/columns.
+     * Reload all three columns.
      */
     private void reloadAll() {
         renderDayBars();
@@ -532,7 +591,7 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Counts all the user's active (pending/confirmed) items for this category.
+     * Count active (pending + confirmed) bookings/requests for current user in this category.
      *
      * @return count of active items
      */
@@ -547,10 +606,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Checks if the current user is busy during the given slot.
+     * Check whether the current user is busy (has a confirmed appointment overlapping the slot).
      *
-     * @param slot the time slot
-     * @return true if user is busy (overlaps with another confirmed slot)
+     * @param slot timeslot to check
+     * @return true if user has a conflicting confirmed appointment
      */
     private boolean isUserBusy(TimeSlot slot) {
         if (slot == null) return false;
@@ -576,11 +635,11 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Finds a slot in the repository matching the specified date and hour for this category.
+     * Find a slot in the repository for given date/time and this frame's category.
      *
-     * @param date  the date to match
-     * @param hour  the time/hour to match
-     * @return timeslot if found, otherwise null
+     * @param date date to match
+     * @param hour time to match
+     * @return matching TimeSlot or null if none
      */
     private TimeSlot findRepoSlot(LocalDate date, LocalTime hour) {
         for (TimeSlot slot : repo.getSlots()) {
@@ -597,10 +656,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Adds a styled label representing a break row to a panel.
+     * Add a break row label to the given panel.
      *
      * @param panel parent panel
-     * @param label display text
+     * @param label text to display
      */
     private void addBreakRow(JPanel panel, String label) {
         JLabel row = styledLabel(label, ROW_BREAK_BG, ROW_BREAK_FG);
@@ -610,10 +669,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Adds a styled label representing a past (unbookable) row to a panel.
+     * Add a past (not bookable) row to the given panel.
      *
      * @param panel parent panel
-     * @param label display text
+     * @param label text to display
      */
     private void addPastRow(JPanel panel, String label) {
         JLabel row = styledLabel(label, ROW_PAST_BG, ROW_PAST_FG);
@@ -623,7 +682,7 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Reloads the company availability column for the selected date.
+     * Reload company availability for the selected company date.
      */
     private void reloadCompany() {
         companyListPanel.removeAll();
@@ -664,7 +723,7 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Reloads the user free/busy column for the selected date.
+     * Reload user's free/busy column for the selected user date.
      */
     private void reloadMy() {
         myListPanel.removeAll();
@@ -704,7 +763,7 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Reloads the mutual slots column (times where company and user are available), allows booking.
+     * Reload mutual slots (company + user availability) for selected mutual date.
      */
     private void reloadMutual() {
         mutualListPanel.removeAll();
@@ -810,10 +869,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Creates a styled message label.
+     * Create a simple message label.
      *
-     * @param msg the message text
-     * @return styled JLabel
+     * @param msg text to display
+     * @return configured JLabel
      */
     private JLabel simpleMsg(String msg) {
         JLabel l = new JLabel(msg);
@@ -823,12 +882,12 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Creates a styled label with colors.
+     * Create a styled label used for rows.
      *
      * @param text label text
      * @param bg   background color
      * @param fg   foreground color
-     * @return JLabel styled component
+     * @return styled JLabel
      */
     private JLabel styledLabel(String text, Color bg, Color fg) {
         JLabel l = new JLabel(text);
@@ -841,9 +900,9 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Refreshes a panel after modifications.
+     * Refresh a panel after contents change.
      *
-     * @param p the panel to update
+     * @param p panel to refresh
      */
     private void refreshPanel(JPanel p) {
         p.revalidate();
@@ -851,12 +910,12 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Shows an input dialog and returns a value in the given range (inclusive).
+     * Prompt the user for an integer within a range using a modal input dialog.
      *
      * @param title   dialog title
      * @param message dialog message
-     * @param min     min value (inclusive)
-     * @param max     max value (inclusive)
+     * @param min     minimum allowed value (inclusive)
+     * @param max     maximum allowed value (inclusive)
      * @return entered integer or null if cancelled
      */
     private Integer promptIntInRange(String title, String message, int min, int max) {
@@ -890,7 +949,10 @@ public class UnifiedBookingFrame extends JFrame {
     }
 
     /**
-     * Handles booking submission for the selected mutual slot.
+     * Submit a booking request for the currently selected mutual slot.
+     *
+     * <p>If {@link #forceIndividual} is true, the participant prompt is skipped and
+     * {@link #forcedParticipantCount} is used.</p>
      */
     private void bookSelectedMutual() {
         if (!auth.isLoggedIn()) {
@@ -923,8 +985,13 @@ public class UnifiedBookingFrame extends JFrame {
             return;
         }
 
-        Integer participants = promptIntInRange("Participants", "Enter participants (1 - 5):", 1, 5);
-        if (participants == null) return;
+        Integer participants;
+        if (forceIndividual) {
+            participants = forcedParticipantCount;
+        } else {
+            participants = promptIntInRange("Participants", "Enter participants (1 - 5):", 1, 5);
+            if (participants == null) return;
+        }
 
         int slotMinutes = (int) Duration.between(
                 selectedMutualSlot.getStartDateTime(),
