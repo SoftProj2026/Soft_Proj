@@ -1,35 +1,46 @@
-Sprint 5 – Appointment Types & Polymorphism (Weeks 7–8)
-In Sprint 5, advanced support for multiple appointment types was added, with polymorphic rule enforcement, and emergency notification handling.
-_____________________________________________________________________________________________________________
-Sprint 5: User Stories Summary (Appointment Types & Polymorphism)
-US5.1 – Support multiple appointment types
+Sprint 5 — Appointment Types & Polymorphism (Weeks 7–8) Summary In Sprint 5 we added advanced support for multiple appointment types, enforced type‑specific business rules, and implemented immediate emergency notifications. The design uses an enum/polymorphic approach so new types and rules can be added without breaking existing UI or business logic.
+___________________________________________________
+Sprint 5 User Story Summary :
+***************************
+US5.1 — Support multiple appointment types
 Story: As a user, I want to choose from different types of appointments (e.g., urgent, group, individual, review, emergency).
-Acceptance:
-Appointment type is stored and used throughout booking/modification.
-Implemented in:
-presentation.AppointmentOptionsFrame (type selection in UI)
-domain.AppointmentType
-______________________________________________
-US5.2 – Apply different rules for each type
-Story: As a system, I want to enforce type-specific business rules (participants, duration, etc.).
-Acceptance:
-Type-specific rules are enforced, error messages for invalid entries.
-Implemented in:
-Service.AppointmentTypeRules
-Service.AppointmentTypeService.setAppointmentType(...)
-_____________________________________________
-US5.3 – Emergency appointment notifications
-Story: As a system, I want emergency appointments to send instant email notification to user/company.
-Acceptance:
-Emergency appointment triggers special email content.
-Implemented in:
-Service.AppointmentTypeService (emergency logic + email sending)
-______________________________________________________
-US5.4 – Polymorphic handling of types
+Acceptance criteria:
+The appointment type is stored with the booking and used across booking and modification flows.
+UI allows selecting the appointment type during booking.
+Implemented in (where to look):
+domain/AppointmentType.java (enum representing types)
+presentation/AppointmentOptionsFrame.java (type selection UI, if present)
+presentation/BookingTypeChoiceDialog.java (entrypoint for choosing booking type)
+presentation/UnifiedBookingFrame.java (booking UI that reacts to the chosen type)
+_______________________________________________________________
+US5.2 — Apply different rules for each type
+Story: As a system, I want to enforce type‑specific business rules (participants, duration, etc.).
+Acceptance criteria:
+Type‑specific rules (min/max participants, allowed duration, other constraints) are enforced.
+Validation errors are shown when inputs violate rules.
+Implemented in (where to look):
+Service/AppointmentTypeRules.java (centralized rule definitions and validators)
+Service/AppointmentTypeService.java (method setAppointmentType(...) applies rules when type is set)
+Service/BookingRequestService (uses rules when submitting requests)
+presentation/UnifiedBookingFrame.java (prompts/validation before submitting request)
+___________________________________________________________________
+US5.3 — Emergency appointment notifications
+Story: As a system, I want emergency appointments to send instant email notifications to user and company.
+Acceptance criteria:
+Creating/marking an appointment as EMERGENCY triggers an immediate notification email with emergency template/content.
+Notification is sent to both the user and the company (and a console fallback exists for testing).
+Implemented in (where to look):
+Service/AppointmentTypeService.java — emergency handling logic and call to email sender
+presentation/BookingTypeChoiceDialog.java — "Emergency Booking" flow that builds emergency message and sends immediately (no booking created)
+Service/SmtpEmailSender.java — SMTP implementation (send(from, to, subject, body))
+presentation/BookingTypeChoiceDialog.java contains ConsoleEmailSender fallback used during testing
+_________________________________________________________________
+US5.4 — Polymorphic handling of types
 Story: As a developer, I want appointment type logic to support future extensibility via polymorphism/enums.
-Acceptance:
-Appointment types and rules can be extended without breaking logic/UI.
-Implemented in:
-domain.AppointmentType
-Service.AppointmentTypeRules
-UI and business logic across modules
+Acceptance criteria:
+Appointment types and rules are extensible; adding a new type or rule does not require widespread changes across UI or services.
+Implemented in (where to look):
+domain/AppointmentType.java (enum; single source of truth)
+Service/AppointmentTypeRules.java (rule factory / polymorphic rule objects)
+Service.AppointmentTypeService and Service.BookingRequestService (apply rules polymorphically)
+UI: presentation components consult AppointmentType when enabling/disabling fields or deciding prompts
