@@ -1,8 +1,5 @@
 package Test;
 
-
-import domain.BookingRequest;
-import domain.BookingRequestStatus;
 import domain.Category;
 import domain.TimeSlot;
 import domain.User;
@@ -10,95 +7,79 @@ import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
 import Service.BookingRequestService;
 import java.time.LocalDateTime;
-import Service.BookingResult;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class BookingRequestServiceTest {
-
-    @Test
-    void submitRequest_holdsSlot_andCreatesRequest() {
-        DataRepository repo = new DataRepository();
-        BookingRequestService svc = new BookingRequestService(repo);
-
-        Category cat = new Category("Conference Hall");
-        repo.addCategory(cat);
-
-        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0), 60, cat);
-        repo.addSlot(slot);
-
-        User u = new User("user", "pass");
-        repo.addUser(u);
-
-        BookingResult r = svc.submitRequest(u, slot, 30, 2);
-
-        assertTrue(r.isSuccess());
-        assertTrue(slot.isHeld());
-        assertNotNull(slot.getHeldRequestId());
-
-        assertEquals(1, repo.getBookingRequests().size());
-
-        BookingRequest br = repo.getBookingRequests().get(0);
-        assertEquals(BookingRequestStatus.PENDING_CATEGORY_ADMIN, br.getStatus());
-        assertEquals(u.getUsername(), br.getRequester().getUsername());
-        assertEquals(cat.getName(), br.getSlot().getCategory().getName());
-    }
+class BookingRequestServiceTest {
 
     @Test
     void submitRequest_rejectsPastSlot() {
         DataRepository repo = new DataRepository();
+        Category c = new Category("Cat");
+        repo.addCategory(c);
+
+        TimeSlot past = new TimeSlot(LocalDateTime.now().minusDays(1), 60, c);
+        repo.addSlot(past);
+
         BookingRequestService svc = new BookingRequestService(repo);
-
-        Category cat = new Category("Conference Hall");
-        TimeSlot slot = new TimeSlot(LocalDateTime.now().minusHours(2), 60, cat);
-
         User u = new User("user", "pass");
 
-        BookingResult r = svc.submitRequest(u, slot, 30, 2);
-        assertFalse(r.isSuccess());
-        assertTrue(r.getMessage().toLowerCase().contains("past"));
+        var res = svc.submitRequest(u, past, 30, 1);
+        assertFalse(res.isSuccess());
+        assertTrue(res.getMessage().toLowerCase().contains("past"));
     }
 
     @Test
-    void submitRequest_rejectsIfSlotNotAvailable() {
+    void submitRequest_rejectsNonAvailableSlot_and_invalidParticipants_and_duration() {
         DataRepository repo = new DataRepository();
-        BookingRequestService svc = new BookingRequestService(repo);
+        Category c = new Category("Cat");
+        repo.addCategory(c);
 
-        Category cat = new Category("Conference Hall");
-        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0), 60, cat);
+        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1), 60, c);
+        repo.addSlot(slot);
+
+        BookingRequestService svc = new BookingRequestService(repo);
+        User u = new User("user", "pass");
+
         slot.book();
+        var r1 = svc.submitRequest(u, slot, 30, 1);
+        assertFalse(r1.isSuccess());
+        assertTrue(r1.getMessage().toLowerCase().contains("not available"));
 
-        User u = new User("user", "pass");
+        TimeSlot slot2 = new TimeSlot(LocalDateTime.now().plusDays(2), 60, c);
+        repo.addSlot(slot2);
+        var r2 = svc.submitRequest(u, slot2, 30, 0);
+        assertFalse(r2.isSuccess());
+        assertTrue(r2.getMessage().toLowerCase().contains("participants"));
 
-        BookingResult r = svc.submitRequest(u, slot, 30, 2);
-        assertFalse(r.isSuccess());
-        assertTrue(r.getMessage().toLowerCase().contains("not available"));
+        var r3 = svc.submitRequest(u, slot2, 120, 1);
+        assertFalse(r3.isSuccess());
+        assertTrue(r3.getMessage().toLowerCase().contains("invalid duration"));
     }
 
     @Test
-    void submitRequest_blocksThirdActiveItemInCategory() {
+    void submitRequest_disallows_when_alreadyActive_and_allows_when_ok() {
         DataRepository repo = new DataRepository();
-        BookingRequestService svc = new BookingRequestService(repo);
+        Category c = new Category("Cat");
+        repo.addCategory(c);
 
-        Category cat = new Category("Conference Hall");
-        repo.addCategory(cat);
+        TimeSlot s1 = new TimeSlot(LocalDateTime.now().plusDays(1), 60, c);
+        repo.addSlot(s1);
 
-        User u = new User("user", "pass");
+        TimeSlot s2 = new TimeSlot(LocalDateTime.now().plusDays(2), 60, c);
+        repo.addSlot(s2);
+
+        User u = new User("u", "p");
         repo.addUser(u);
 
-        TimeSlot s1 = new TimeSlot(LocalDateTime.now().plusDays(1).withHour(9), 60, cat);
-        TimeSlot s2 = new TimeSlot(LocalDateTime.now().plusDays(1).withHour(10), 60, cat);
-        TimeSlot s3 = new TimeSlot(LocalDateTime.now().plusDays(1).withHour(11), 60, cat);
+        BookingRequestService svc = new BookingRequestService(repo);
 
-        repo.addSlot(s1);
-        repo.addSlot(s2);
-        repo.addSlot(s3);
-
-        assertTrue(svc.submitRequest(u, s1, 30, 1).isSuccess());
-        assertTrue(svc.submitRequest(u, s2, 30, 1).isSuccess());
-
-        BookingResult third = svc.submitRequest(u, s3, 30, 1);
-        assertFalse(third.isSuccess());
-        assertTrue(third.getMessage().toLowerCase().contains("main"));
+        var ok = svc.submitRequest(u, s1, 30, 1);
+        assertTrue(ok.isSuccess());
+        assertTrue(s1.isHeld());
+        assertNotNull(s1.getHeldRequestId());
+        var second = svc.submitRequest(u, s2, 30, 1);
+        assertFalse(second.isSuccess());
+        assertTrue(second.getMessage().toLowerCase().contains("already have an active"));
     }
 }
