@@ -14,20 +14,7 @@ import java.util.Properties;
 /**
  * SMTP implementation of {@link EmailSender} using Jakarta Mail.
  *
- * <p>This sender is intended for production usage. Credentials are taken from:</p>
- * <ul>
- *   <li>Environment variables: {@code EMAIL_USERNAME} and {@code EMAIL_PASSWORD} (default constructor)</li>
- *   <li>Explicit constructor arguments (overload)</li>
- * </ul>
- *
- * <p>Gmail SMTP configuration:</p>
- * <ul>
- *   <li>Host: smtp.gmail.com</li>
- *   <li>Port: 587</li>
- *   <li>STARTTLS enabled</li>
- * </ul>
- * @author Qussai
- * @version 1.0
+ * This implementation allows disabling the real network send per-instance (useful for tests).
  */
 public class SmtpEmailSender implements EmailSender {
 
@@ -35,61 +22,48 @@ public class SmtpEmailSender implements EmailSender {
     private final String smtpPassword;
 
     /**
-     * Creates an SMTP sender using credentials from environment variables.
+     * If true, Transport.send(msg) will be called. Default is determined from env/system property,
+     * but can be overridden by using the constructor overload that accepts performRealSend.
      */
+    private final boolean performRealSend;
+
     public SmtpEmailSender() {
-        this.smtpUsername = System.getenv("EMAIL_USERNAME");
-        this.smtpPassword = System.getenv("EMAIL_PASSWORD");
+        this(System.getenv("EMAIL_USERNAME"), System.getenv("EMAIL_PASSWORD"), isRealSendEnabled());
+    }
+
+    public SmtpEmailSender(String username, String password) {
+        this(username, password, isRealSendEnabled());
     }
 
     /**
-     * Creates an SMTP sender with explicit credentials.
+     * New constructor: explicitly control whether to perform real send for this instance.
      *
      * @param username smtp username
      * @param password smtp password
+     * @param performRealSend whether to call Transport.send (true) or skip (false)
      */
-    public SmtpEmailSender(String username, String password) {
+    public SmtpEmailSender(String username, String password, boolean performRealSend) {
         this.smtpUsername = username;
         this.smtpPassword = password;
+        this.performRealSend = performRealSend;
     }
 
-    /**
-     * Returns the application company email address.
-     *
-     * @return company email address
-     */
-    public static String getCompanyEmail() {
-        return "remaajomaa842@gmail.com";
+    public static String getCompanyEmail() { return "remaajomaa842@gmail.com"; }
+    public static String getEnvCompanyEmail() { return getCompanyEmail(); }
+
+    private static boolean isRealSendEnabled() {
+        String prop = System.getProperty("smtp.send.real");
+        if (prop != null && prop.equalsIgnoreCase("true")) return true;
+        String env = System.getenv("SMTP_SEND_REAL");
+        return env != null && env.equalsIgnoreCase("true");
     }
 
-    /**
-     * Returns the company email as used by other services.
-     *
-     * @return company email address
-     */
-    public static String getEnvCompanyEmail() {
-        return getCompanyEmail();
-    }
-
-    /**
-     * Sends an email using Gmail SMTP.
-     *
-     * <p>The {@code fromIgnored} parameter is ignored because Gmail will always send from the authenticated account.</p>
-     *
-     * @param fromIgnored unused logical sender (ignored)
-     * @param to         recipient email address
-     * @param subject    email subject
-     * @param body       email body
-     */
     @Override
     public void send(String fromIgnored, String to, String subject, String body) {
         if (smtpUsername == null || smtpUsername.trim().isEmpty()
                 || smtpPassword == null || smtpPassword.trim().isEmpty()) {
             throw new IllegalStateException(
-                    "Missing SMTP env vars.\n" +
-                            "Set in Windows/Eclipse:\n" +
-                            "EMAIL_USERNAME=remaajomaa842@gmail.com\n" +
-                            "EMAIL_PASSWORD=<Gmail App Password>"
+                    "Missing SMTP credentials. Set EMAIL_USERNAME and EMAIL_PASSWORD environment variables or use explicit constructor."
             );
         }
 
@@ -126,7 +100,11 @@ public class SmtpEmailSender implements EmailSender {
             msg.setSubject(subject != null ? subject : "");
             msg.setText(body != null ? body : "");
 
-            Transport.send(msg);
+            if (performRealSend) {
+                Transport.send(msg);
+            } else {
+                System.out.println("[SmtpEmailSender] performRealSend=false -> skipping Transport.send()");
+            }
         } catch (MessagingException e) {
             throw new RuntimeException("SMTP failed: " + e.getMessage(), e);
         } catch (Exception e) {
