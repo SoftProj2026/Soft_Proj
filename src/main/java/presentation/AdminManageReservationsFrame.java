@@ -366,4 +366,3 @@ public class AdminManageReservationsFrame extends JFrame {
         return (int) Math.max(1, mins);
     }
 }
-//

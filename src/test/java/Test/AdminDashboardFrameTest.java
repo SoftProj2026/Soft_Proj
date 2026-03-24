@@ -1,0 +1,183 @@
+package Test;
+
+import Service.AuthService;
+import Service.BookingService;
+import domain.Administrator;
+import domain.Provider;
+import domain.User;
+import persistence.DataRepository;
+import persistence.RepoStorage;
+import presentation.AdminDashboardFrame;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import javax.swing.*;
+import java.awt.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class AdminDashboardFrameTest {
+
+    private static void runOnEdt(Runnable r) throws Exception {
+        if (SwingUtilities.isEventDispatchThread()) {
+            r.run();
+        } else {
+            Throwable[] err = new Throwable[1];
+            SwingUtilities.invokeAndWait(() -> {
+                try { r.run(); } catch (Throwable t) { err[0] = t; }
+            });
+            if (err[0] != null) throw new RuntimeException(err[0]);
+        }
+    }
+
+    private JButton findButton(Container root, String text) {
+        for (Component c : root.getComponents()) {
+            if (c instanceof JButton && text.equals(((JButton) c).getText())) return (JButton) c;
+            if (c instanceof Container) {
+                JButton b = findButton((Container)c, text);
+                if (b != null) return b;
+            }
+        }
+        return null;
+    }
+
+    private JLabel findStatsLabelByPrefix(Container root, String prefix) {
+        for (Component c : root.getComponents()) {
+            if (c instanceof JLabel) {
+                String t = ((JLabel) c).getText();
+                if (t != null && t.startsWith(prefix)) return (JLabel) c;
+            }
+            if (c instanceof Container) {
+                JLabel l = findStatsLabelByPrefix((Container)c, prefix);
+                if (l != null) return l;
+            }
+        }
+        return null;
+    }
+
+    AuthService auth;
+    BookingService bookingSvc;
+    DataRepository repo;
+
+    @BeforeEach
+    void setup() {
+        auth = mock(AuthService.class);
+        bookingSvc = mock(BookingService.class);
+        repo = new DataRepository();
+
+        repo.addUser(new User("F", "L", "user1", "pw", java.time.LocalDate.of(1995,1,1), "a@b.com"));
+
+        if(hasAddProvider(repo)) {
+            repo.addProvider(
+                new Provider(
+                    "provider1", "pw", "Provider One",
+                    "0799123456", "prov1@b.com", "Amman"
+                )
+            );
+        } else {
+            repo.getProviders().add(
+                new Provider(
+                    "provider1", "pw", "Provider One",
+                    "0799123456", "prov1@b.com", "Amman"
+                )
+            );
+        }
+
+        System.out.println("DEBUG providers after setup: " + repo.getProviders().size());
+
+        var slot = new domain.TimeSlot(java.time.LocalDateTime.now(), 60, new domain.Category("cat1"));
+        repo.addSlot(slot);
+        repo.addAppointment(new domain.Appointment(
+                repo.getUsers().get(0),
+                repo.getSlots().get(0),
+                60, 1));
+    }
+
+    boolean hasAddProvider(DataRepository repo) {
+        try {
+            repo.getClass().getMethod("addProvider", Provider.class);
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    @Test
+    void refreshCounts_labels_show_correct_counts() throws Exception {
+        final AdminDashboardFrame[] ref = new AdminDashboardFrame[1];
+        runOnEdt(() -> ref[0] = new AdminDashboardFrame(auth, bookingSvc, repo));
+        AdminDashboardFrame frame = ref[0];
+
+        runOnEdt(() -> {
+            JLabel users = findStatsLabelByPrefix(frame.getContentPane(), "Users count:");
+            assertNotNull(users); assertTrue(users.getText().endsWith("2"));
+            JLabel providers = findStatsLabelByPrefix(frame.getContentPane(), "Providers count:");
+            assertNotNull(providers); assertTrue(providers.getText().endsWith("1"));
+            JLabel slots = findStatsLabelByPrefix(frame.getContentPane(), "Slots count:");
+            assertNotNull(slots); assertTrue(slots.getText().endsWith("1"));
+            JLabel appts = findStatsLabelByPrefix(frame.getContentPane(), "Appointments count:");
+            assertNotNull(appts); assertTrue(appts.getText().endsWith("1"));
+        });
+
+        runOnEdt(() -> frame.dispose());
+    }
+
+    @Test
+    void requests_button_opens_requests_for_admin_only() throws Exception {
+        Administrator adminUser = new Administrator("admin", "pw");
+        when(auth.isLoggedIn()).thenReturn(true);
+        when(auth.getCurrentUser()).thenReturn(adminUser);
+
+        final AdminDashboardFrame[] ref = new AdminDashboardFrame[1];
+        runOnEdt(() -> ref[0] = new AdminDashboardFrame(auth, bookingSvc, repo));
+        AdminDashboardFrame frame = ref[0];
+
+        JButton requestsBtn = findButton(frame.getContentPane(), "Requests");
+        assertNotNull(requestsBtn);
+
+        runOnEdt(() -> requestsBtn.doClick());
+
+        runOnEdt(() -> frame.dispose());
+    }
+
+    @Test
+    void logout_calls_logout_and_closes() throws Exception {
+        Administrator adminUser = new Administrator("admin", "pw");
+        when(auth.isLoggedIn()).thenReturn(true);
+        when(auth.getCurrentUser()).thenReturn(adminUser);
+
+        final AdminDashboardFrame[] ref = new AdminDashboardFrame[1];
+        runOnEdt(() -> ref[0] = new AdminDashboardFrame(auth, bookingSvc, repo));
+        AdminDashboardFrame frame = ref[0];
+
+        JButton logoutBtn = findButton(frame.getContentPane(), "Logout");
+        assertNotNull(logoutBtn);
+
+        runOnEdt(() -> logoutBtn.doClick());
+
+        verify(auth, atLeastOnce()).logout();
+    }
+
+    @Test
+    void non_admin_cannot_open_requests_or_manage() throws Exception {
+        User regUser = new User("F", "L", "notadmin", "pw", java.time.LocalDate.of(1995,1,1), "x@b.com");
+        when(auth.isLoggedIn()).thenReturn(true);
+        when(auth.getCurrentUser()).thenReturn(regUser);
+
+        final AdminDashboardFrame[] ref = new AdminDashboardFrame[1];
+        runOnEdt(() -> ref[0] = new AdminDashboardFrame(auth, bookingSvc, repo));
+        AdminDashboardFrame frame = ref[0];
+
+        JButton requests = findButton(frame.getContentPane(), "Requests");
+        JButton manage = findButton(frame.getContentPane(), "Manage Reservations");
+
+        assertNotNull(requests);
+        assertNotNull(manage);
+
+        runOnEdt(requests::doClick);
+        runOnEdt(manage::doClick);
+
+        runOnEdt(frame::dispose);
+    }
+}
