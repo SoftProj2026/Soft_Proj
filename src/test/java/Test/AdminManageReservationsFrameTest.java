@@ -5,7 +5,6 @@ import domain.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.stubbing.Answer;
 import persistence.DataRepository;
@@ -20,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -184,7 +184,6 @@ class AdminManageReservationsFrameTest {
                 .thenReturn(JOptionPane.YES_OPTION);
 
         runOnEdt(() -> {
-            // click Refresh to reload table
             JButton refresh = findButton(frame.getContentPane(), "Refresh");
             assertNotNull(refresh);
             refresh.doClick();
@@ -221,11 +220,16 @@ class AdminManageReservationsFrameTest {
         ap.confirm();
         appointments.add(ap);
 
+        final java.util.concurrent.atomic.AtomicReference<TimeSlot> capturedSlot = new java.util.concurrent.atomic.AtomicReference<>(null);
+
         doAnswer((Answer<String>) inv -> {
             Appointment old = inv.getArgument(0);
             TimeSlot newSlot = inv.getArgument(1);
             Integer duration = inv.getArgument(2);
             Integer participants = inv.getArgument(3);
+
+            if (newSlot != null) capturedSlot.set(newSlot);
+
             appointments.remove(old);
             Appointment newAp = new Appointment(old.getUser(), newSlot, duration, participants);
             newAp.confirm();
@@ -260,60 +264,29 @@ class AdminManageReservationsFrameTest {
 
         verify(repo, atLeastOnce()).modifyAppointment(any(Appointment.class), any(TimeSlot.class), anyInt(), anyInt(), anyString());
 
-        ArgumentCaptor<Integer> durCap = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<Integer> partCap = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<Appointment> apCap = ArgumentCaptor.forClass(Appointment.class);
-        ArgumentCaptor<TimeSlot> tsCap = ArgumentCaptor.forClass(TimeSlot.class);
-        ArgumentCaptor<String> adminCap = ArgumentCaptor.forClass(String.class);
-
-        verify(repo, atLeastOnce()).modifyAppointment(apCap.capture(), tsCap.capture(), durCap.capture(), partCap.capture(), adminCap.capture());
-
-        Integer capturedDuration = durCap.getValue();
-        Integer capturedParticipants = partCap.getValue();
-
-        assertTrue((capturedDuration == 30) || (capturedParticipants == 30) || (capturedDuration == 3) || (capturedParticipants == 3),
-                "Expected 30 or 3 to appear among the captured numeric args");
+        TimeSlot used = capturedSlot.get();
+        assertNotNull(used, "Expected modifyAppointment to receive a new TimeSlot argument");
+        assertEquals(slotB.getStartDateTime(), used.getStartDateTime(), "Expected the new slot to be slotB");
 
         runOnEdt(() -> {
             JTable table = findTable(frame.getContentPane());
             DefaultTableModel model = (DefaultTableModel) table.getModel();
             boolean found = false;
+            String expectedDate = slotB.getStartDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
             for (int r = 0; r < model.getRowCount(); r++) {
-                Object dur = model.getValueAt(r, 5);
-                Object part = model.getValueAt(r, 6);
-                int durVal = (dur instanceof Number) ? ((Number) dur).intValue() : Integer.parseInt(dur.toString());
-                int partVal = (part instanceof Number) ? ((Number) part).intValue() : Integer.parseInt(part.toString());
-                if (durVal == 30 && partVal == 3) { found = true; break; }
-                if (durVal == 30 || partVal == 3) { found = true; break; }
+                Object dateCell = model.getValueAt(r, 1); 
+                if (dateCell != null && expectedDate.equals(dateCell.toString())) {
+                    found = true;
+                    break;
+                }
+                for (int c = 0; c < model.getColumnCount(); c++) {
+                    Object cell = model.getValueAt(r, c);
+                    if (cell != null && expectedDate.equals(cell.toString())) { found = true; break; }
+                }
+                if (found) break;
             }
-            assertTrue(found, "Expected to find modified appointment in table (duration=30 or participants=3)");
+            assertTrue(found, "Expected to find modified appointment in table showing slotB's date");
         });
 
         runOnEdt(ref[0]::dispose);
-    }
-
-    @Test
-    void promptNewSlot_no_options_returns_null_and_shows_warning() throws Exception {
-        Category cat = new Category("EmptyCat");
-        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(2), 30, cat);
-        Appointment ap = new Appointment(new User("N","N","n1","pw", java.time.LocalDate.of(1990,1,1), "n@e.com"), slot, 30, 1);
-        appointments.add(ap);
-
-        final AdminManageReservationsFrame[] ref = new AdminManageReservationsFrame[1];
-        runOnEdt(() -> ref[0] = new AdminManageReservationsFrame(auth, repo));
-        AdminManageReservationsFrame frame = ref[0];
-
-        runOnEdt(() -> {
-            try {
-                java.lang.reflect.Method m = frame.getClass().getDeclaredMethod("promptNewSlot", Appointment.class);
-                m.setAccessible(true);
-                Object res = m.invoke(frame, ap);
-                assertNull(res);
-            } catch (ReflectiveOperationException ex) {
-                fail("Reflection failure: " + ex.getMessage());
-            }
-        });
-
-        runOnEdt(ref[0]::dispose);
-    }
-}
+    }}

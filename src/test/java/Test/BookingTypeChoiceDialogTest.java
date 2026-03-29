@@ -1,4 +1,4 @@
-/*package Test;
+package Test;
 
 import Service.AuthService;
 import Service.BookingService;
@@ -8,19 +8,20 @@ import domain.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import persistence.DataRepository;
 import presentation.BookingTypeChoiceDialog;
+import presentation.DialogUtil;
+import presentation.UITheme;
 
 import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.Method;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 
 public class BookingTypeChoiceDialogTest {
 
@@ -32,152 +33,152 @@ public class BookingTypeChoiceDialogTest {
 
     @BeforeEach
     void setUp() {
-        repo = new DataRepository();
+        UITheme.apply();
+
+        repo = mock(DataRepository.class);
         auth = mock(AuthService.class);
         booking = mock(BookingService.class);
 
-        user = new User("T", "U", "tester", "pw", LocalDate.of(1990, 1, 1), "t@example.com");
-        repo.addUser(user);
+        user = new User("T", "U", "tester", "pw", java.time.LocalDate.of(1990,1,1), "t@example.com");
         when(auth.isLoggedIn()).thenReturn(true);
         when(auth.getCurrentUser()).thenReturn(user);
 
         cat = new Category("Health");
-        repo.addCategory(cat);
-        repo.addSlot(new TimeSlot(LocalDateTime.now().plusHours(2), 30, cat));
     }
 
     @AfterEach
     void tearDown() {
         for (Window w : Window.getWindows()) {
-            if (w != null) {
-                w.dispose();
-            }
+            if (w != null) w.dispose();
         }
     }
 
     private static void runOnEdtAndWait(Runnable r) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) {
             r.run();
-        } else {
-            final Throwable[] ex = new Throwable[1];
-            SwingUtilities.invokeAndWait(() -> {
-                try {
-                    r.run();
-                } catch (Throwable t) {
-                    ex[0] = t;
-                }
-            });
-            if (ex[0] != null) throw new RuntimeException(ex[0]);
+            return;
         }
+        final Throwable[] ex = new Throwable[1];
+        SwingUtilities.invokeAndWait(() -> {
+            try {
+                r.run();
+            } catch (Throwable t) {
+                ex[0] = t;
+            }
+        });
+        if (ex[0] != null) throw new RuntimeException(ex[0]);
+    }
+
+    private JDialog findDialogByTitle(String title) {
+        for (Window w : Window.getWindows()) {
+            if (w instanceof JDialog && title.equals(((JDialog) w).getTitle())) {
+                return (JDialog) w;
+            }
+        }
+        return null;
+    }
+
+    private JComponent findComponent(Container root, Class<?> cls, java.util.function.Predicate<Component> pred) {
+        for (Component c : root.getComponents()) {
+            if (cls.isInstance(c) && (pred == null || pred.test(c))) return (JComponent) c;
+            if (c instanceof Container) {
+                JComponent r = findComponent((Container) c, cls, pred);
+                if (r != null) return r;
+            }
+        }
+        return null;
     }
 
     @Test
-    void constructor_sets_ui_properties() throws Exception {
-        final BookingTypeChoiceDialog[] dlgRef = new BookingTypeChoiceDialog[1];
+    void constructor_sets_basic_properties_and_buttons_present() throws Exception {
+        when(repo.getSlots()).thenReturn(List.of());
+        final BookingTypeChoiceDialog[] ref = new BookingTypeChoiceDialog[1];
 
-        runOnEdtAndWait(() -> dlgRef[0] = new BookingTypeChoiceDialog(null, cat, repo, auth, booking));
-        BookingTypeChoiceDialog dlg = dlgRef[0];
+        runOnEdtAndWait(() -> ref[0] = new BookingTypeChoiceDialog(null, cat, repo, auth, booking));
+        BookingTypeChoiceDialog dlg = ref[0];
 
         assertNotNull(dlg);
         assertEquals("Choose Booking Type", dlg.getTitle());
         assertTrue(dlg.isModal());
         assertFalse(dlg.isResizable());
         assertEquals(Color.WHITE, dlg.getContentPane().getBackground());
-        assertTrue(dlg.getContentPane().getComponentCount() >= 1);
+
+        boolean foundEmergency = findComponent(dlg.getContentPane(), JButton.class, c -> "Emergency Booking".equals(((JButton) c).getText())) != null;
+        boolean foundNew = findComponent(dlg.getContentPane(), JButton.class, c -> "New Booking".equals(((JButton) c).getText())) != null;
+        boolean foundReview = findComponent(dlg.getContentPane(), JButton.class, c -> "Review Booking".equals(((JButton) c).getText())) != null;
+        boolean foundIndividual = findComponent(dlg.getContentPane(), JButton.class, c -> "Individual Booking".equals(((JButton) c).getText())) != null;
+        boolean foundGroup = findComponent(dlg.getContentPane(), JButton.class, c -> ((JButton) c).getText() != null && ((JButton) c).getText().startsWith("Group")) != null;
+
+        assertTrue(foundEmergency, "Emergency button present");
+        assertTrue(foundNew, "New Booking button present");
+        assertTrue(foundReview, "Review Booking present");
+        assertTrue(foundIndividual, "Individual Booking present");
+        assertTrue(foundGroup, "Group Booking present");
 
         runOnEdtAndWait(dlg::dispose);
     }
 
-    @Test
-    void emergencyDialog_builds_components_and_can_be_cancelled() throws Exception {
-        final BookingTypeChoiceDialog[] dlgRef = new BookingTypeChoiceDialog[1];
+    /*@Test
+    void emergencyQuickDialog_builds_components_and_cancel_closes() throws Exception {
+        TimeSlot s = new TimeSlot(LocalDateTime.now().plusDays(1), 30, cat);
+        s.setAvailable(true);
+        when(repo.getSlots()).thenReturn(List.of(s));
 
-        runOnEdtAndWait(() -> dlgRef[0] = new BookingTypeChoiceDialog(null, cat, repo, auth, booking));
-        BookingTypeChoiceDialog dlg = dlgRef[0];
+        final BookingTypeChoiceDialog[] ref = new BookingTypeChoiceDialog[1];
 
-        Thread t = new Thread(() -> {
-            try {
-                Method m = BookingTypeChoiceDialog.class.getDeclaredMethod("openEmergencyQuickDialog");
-                m.setAccessible(true);
-                m.invoke(dlg);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
+        try (MockedStatic<DialogUtil> dmock = mockStatic(DialogUtil.class);
+             MockedStatic<JOptionPane> jmock = mockStatic(JOptionPane.class)) {
+
+            dmock.when(() -> DialogUtil.show(any(), anyString(), anyString(), any())).then(inv -> null);
+            jmock.when(() -> JOptionPane.showMessageDialog(any(), anyString(), anyString(), anyInt())).then(inv -> null);
+
+            runOnEdtAndWait(() -> ref[0] = new BookingTypeChoiceDialog(null, cat, repo, auth, booking));
+            BookingTypeChoiceDialog dlg = ref[0];
+
+            JButton emergency = (JButton) findComponent(dlg.getContentPane(), JButton.class, c -> "Emergency Booking".equals(((JButton) c).getText()));
+            assertNotNull(emergency, "Emergency button must exist");
+
+            SwingUtilities.invokeLater(() -> emergency.doClick());
+
+            JDialog emerg = null;
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < 4000) {
+                emerg = findDialogByTitle("Emergency - Preferred Time");
+                if (emerg != null && emerg.isShowing()) break;
+                Thread.sleep(50);
             }
-        }, "emg-thread");
-        t.start();
+            assertNotNull(emerg, "Emergency dialog should be shown");
+            assertTrue(emerg.isShowing());
 
-        JDialog emerg = null;
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < 5000) {
-            for (Window w : Window.getWindows()) {
-                if (w instanceof JDialog && "Emergency - Preferred Time".equals(((JDialog) w).getTitle())) {
-                    emerg = (JDialog) w;
-                    if (emerg.isShowing()) break;
-                }
-            }
-            if (emerg != null && emerg.isShowing()) break;
-            Thread.sleep(50);
+            JComboBox<?> combo = (JComboBox<?>) findComponent(emerg.getContentPane(), JComboBox.class, null);
+            assertNotNull(combo, "combo in emergency dialog exists");
+            assertTrue(combo.getItemCount() >= 1, "combo should contain at least the default item");
+
+            JTextArea notes = (JTextArea) findComponent(emerg.getContentPane(), JTextArea.class, null);
+            assertNotNull(notes, "notes text area exists");
+
+            JButton cancel = (JButton) findComponent(emerg.getContentPane(), JButton.class, c -> "Cancel".equals(((JButton) c).getText()));
+            assertNotNull(cancel, "Cancel button exists");
+
+            runOnEdtAndWait(() -> cancel.doClick());
+
+            assertFalse(emerg.isShowing(), "Emergency dialog should be closed after Cancel");
+
+            runOnEdtAndWait(dlg::dispose);
         }
-
-        assertNotNull(emerg, "Emergency dialog must appear");
-        assertTrue(emerg.isShowing());
-
-        JComboBox<?> combo = null;
-        JTextArea textArea = null;
-        JButton sendBtn = null;
-        JButton cancelBtn = null;
-
-        Container root = (Container) emerg.getContentPane();
-        java.util.LinkedList<Component> queue = new java.util.LinkedList<>();
-        queue.add(root);
-        while (!queue.isEmpty()) {
-            Component c = queue.removeFirst();
-            if (c instanceof JComboBox) combo = (JComboBox<?>) c;
-            if (c instanceof JScrollPane) {
-                Component v = ((JScrollPane) c).getViewport().getView();
-                if (v instanceof JTextArea) textArea = (JTextArea) v;
-            }
-            if (c instanceof JButton) {
-                String txt = ((JButton) c).getText();
-                if ("Send Emergency Email".equals(txt)) sendBtn = (JButton) c;
-                if ("Cancel".equals(txt)) cancelBtn = (JButton) c;
-            }
-            if (c instanceof Container) {
-                for (Component cc : ((Container) c).getComponents()) queue.add(cc);
-            }
-        }
-
-        assertNotNull(combo, "Combo box must exist");
-        assertNotNull(textArea, "Notes text area must exist");
-        assertNotNull(sendBtn, "Send button must exist");
-        assertNotNull(cancelBtn, "Cancel button must exist");
-
-        assertTrue(combo.getItemCount() >= 1);
-        Object first = combo.getItemAt(0);
-        assertNotNull(first);
-        assertTrue(first.toString().toLowerCase().contains("no preferred") || first.toString().length() > 0);
-
-        final JButton cancelToClick = cancelBtn;
-        runOnEdtAndWait(() -> cancelToClick.doClick());
-
-        t.join(1000);
-        assertFalse(t.isAlive());
-        assertFalse(emerg.isShowing(), "Emergency dialog should be closed after Cancel");
-
-        runOnEdtAndWait(dlg::dispose);
     }
 
     @Test
-    void disableParticipantSelectorsInContainer_works_on_spinner_and_combo() throws Exception {
-        final BookingTypeChoiceDialog[] dlgRef = new BookingTypeChoiceDialog[1];
-        runOnEdtAndWait(() -> dlgRef[0] = new BookingTypeChoiceDialog(null, cat, repo, auth, booking));
-        BookingTypeChoiceDialog dlg = dlgRef[0];
+    void disableParticipantSelectorsInContainer_disables_and_sets_values() throws Exception {
+        final BookingTypeChoiceDialog[] ref = new BookingTypeChoiceDialog[1];
+        when(repo.getSlots()).thenReturn(List.of());
+        runOnEdtAndWait(() -> ref[0] = new BookingTypeChoiceDialog(null, cat, repo, auth, booking));
+        BookingTypeChoiceDialog dlg = ref[0];
 
         JPanel panel = new JPanel();
         JSpinner spinner = new JSpinner(new SpinnerNumberModel(5, 1, 5, 1));
         panel.add(spinner);
-
-        JComboBox<String> combo = new JComboBox<>(new String[]{"1","2","3","4","5"});
+        JComboBox<String> combo = new JComboBox<>(new String[] {"1", "2", "3", "4", "5"});
         combo.setSelectedIndex(4);
         panel.add(combo);
 
@@ -192,14 +193,12 @@ public class BookingTypeChoiceDialogTest {
         });
 
         runOnEdtAndWait(() -> {
-            assertFalse(spinner.isEnabled(), "Spinner should be disabled");
-            assertEquals(1, ((Number) spinner.getValue()).intValue(), "Spinner value should be set to 1");
-
-            assertFalse(combo.isEnabled(), "Combo should be disabled");
-            Object selected = combo.getSelectedItem();
-            assertTrue("1".equals(selected) || (selected != null && "1".equals(selected.toString())), "Combo selection should be 1");
+            assertFalse(spinner.isEnabled());
+            assertEquals(1, ((Number) spinner.getValue()).intValue());
+            assertFalse(combo.isEnabled());
+            Object sel = combo.getSelectedItem();
+            assertTrue("1".equals(sel) || (sel != null && "1".equals(sel.toString())));
+            dlg.dispose();
         });
-
-        runOnEdtAndWait(dlg::dispose);
-    }
-}*/
+    }*/
+}

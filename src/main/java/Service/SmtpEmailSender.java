@@ -28,9 +28,8 @@ public class SmtpEmailSender implements EmailSender {
     private final boolean performRealSend;
 
     public SmtpEmailSender() {
-        this(System.getenv("EMAIL_USERNAME"), System.getenv("EMAIL_PASSWORD"), isRealSendEnabled());
+        this(System.getenv("EMAIL_USERNAME"), System.getenv("EMAIL_PASSWORD"), true);
     }
-
     public SmtpEmailSender(String username, String password) {
         this(username, password, isRealSendEnabled());
     }
