@@ -1,5 +1,7 @@
 package Test;
 
+import Service.AppointmentTypeService;
+import Service.FakeEmailSender;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.AppointmentType;
@@ -8,64 +10,181 @@ import domain.TimeSlot;
 import domain.User;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
-import Service.AppointmentTypeService;
-import Service.FakeEmailSender;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for AppointmentTypeService#setAppointmentType(...)
+ */
 class AppointmentTypeServiceTest {
 
     @Test
-    void emergency_requiresEmail_and_sendsEmail_when_present() {
+    void emergency_whenConfirmedAndHasEmail_sendsEmailAndReturnsSaved() {
         DataRepository repo = new DataRepository();
-        Category c = new Category("C");
-        repo.addCategory(c);
 
-        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1), 60, c);
+        Category cat = new Category("Conference Hall");
+        repo.addCategory(cat);
+
+        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1), 60, cat);
         repo.addSlot(slot);
 
-        User uWithNoEmail = new User("u", "p");
-        repo.addUser(uWithNoEmail);
+        User user = new User("First", "Last", "jdoe", "pw", null, "jdoe@example.com");
+        repo.addUser(user);
 
-        Appointment a1 = new Appointment(uWithNoEmail, slot, 30, 1);
-        a1.confirm();
-        repo.addAppointment(a1);
-
-        AppointmentTypeService svcNoEmail = new AppointmentTypeService(repo, new FakeEmailSender());
-        String resNoEmail = svcNoEmail.setAppointmentType(
-                a1,
-                AppointmentType.EMERGENCY,
-                null,
-                null,
-                slot.getStartDateTime()    
-        );
-        assertEquals("Emergency selected, but user email is missing.", resNoEmail);
-
-        User u = new User("first", "last", "jane", "pw", null, "jane@example.com");
-        repo.addUser(u);
-        TimeSlot slot2 = new TimeSlot(LocalDateTime.now().plusDays(2), 60, c);
-        repo.addSlot(slot2);
-        Appointment a2 = new Appointment(u, slot2, 30, 1);
-        a2.confirm();
-        repo.addAppointment(a2);
+        Appointment appt = new Appointment(user, slot, 30, 1);
+        appt.confirm();
+        repo.addAppointment(appt);
 
         FakeEmailSender fake = new FakeEmailSender();
         AppointmentTypeService svc = new AppointmentTypeService(repo, fake);
-        String ok = svc.setAppointmentType(
-                a2,
+
+        String res = svc.setAppointmentType(
+                appt,
                 AppointmentType.EMERGENCY,
                 null,
                 null,
-                slot2.getStartDateTime()
+                slot.getStartDateTime()
         );
-        assertEquals("Saved.", ok);
 
-        List<FakeEmailSender.SentEmail> sent = fake.sent;
-        assertEquals(1, sent.size());
-        assertEquals("jane@example.com", sent.get(0).to);
-        assertTrue(sent.get(0).subject.contains("Emergency Appointment"));
+        assertEquals("Saved.", res);
+        assertEquals(AppointmentType.EMERGENCY, appt.getAppointmentType());
+        assertEquals(slot.getStartDateTime(), appt.getEmergencyPreferredSlotStart());
+
+        assertEquals(1, fake.sent.size(), "Expected one email to be sent");
+        FakeEmailSender.SentEmail email = fake.sent.get(0);
+
+        assertEquals("jdoe@example.com", email.to);
+        assertTrue(email.subject.toLowerCase().contains("emergency"));
+        assertTrue(email.body.contains("Reference: #" + appt.getId()));
+        assertTrue(email.body.contains(AppointmentTypeService.COMPANY_EMERGENCY_PHONE));
+    }
+
+    @Test
+    void emergency_missingEmail_returnsMessageAndDoesNotSend() {
+        DataRepository repo = new DataRepository();
+
+        Category cat = new Category("C");
+        repo.addCategory(cat);
+
+        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1), 60, cat);
+        repo.addSlot(slot);
+
+        User user = new User("u", "p");
+        repo.addUser(user);
+
+        Appointment appt = new Appointment(user, slot, 30, 1);
+        appt.confirm();
+        repo.addAppointment(appt);
+
+        FakeEmailSender fake = new FakeEmailSender();
+        AppointmentTypeService svc = new AppointmentTypeService(repo, fake);
+
+        String res = svc.setAppointmentType(
+                appt,
+                AppointmentType.EMERGENCY,
+                null,
+                null,
+                slot.getStartDateTime()
+        );
+
+        assertEquals("Emergency selected, but user email is missing.", res);
+        assertEquals(0, fake.sent.size(), "No email should be sent when user email is missing");
+    }
+
+    @Test
+    void notConfirmed_returnsErrorAndDoesNotSend() {
+        DataRepository repo = new DataRepository();
+
+        Category cat = new Category("C");
+        repo.addCategory(cat);
+
+        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1), 60, cat);
+        repo.addSlot(slot);
+
+        User user = new User("First", "Last", "u1", "pw", null, "u1@example.com");
+        repo.addUser(user);
+
+        Appointment appt = new Appointment(user, slot, 30, 1);
+        repo.addAppointment(appt);
+
+        FakeEmailSender fake = new FakeEmailSender();
+        AppointmentTypeService svc = new AppointmentTypeService(repo, fake);
+
+        String res = svc.setAppointmentType(
+                appt,
+                AppointmentType.EMERGENCY,
+                null,
+                null,
+                slot.getStartDateTime()
+        );
+
+        assertEquals("Only CONFIRMED appointments can be classified.", res);
+        assertEquals(0, fake.sent.size());
+    }
+
+    @Test
+    void review_missingTargetSlot_returnsErrorAndDoesNotSend() {
+        DataRepository repo = new DataRepository();
+
+        Category cat = new Category("C");
+        repo.addCategory(cat);
+
+        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1), 60, cat);
+        repo.addSlot(slot);
+
+        User user = new User("First", "Last", "u1", "pw", null, "u1@example.com");
+        repo.addUser(user);
+
+        Appointment appt = new Appointment(user, slot, 30, 1);
+        appt.confirm();
+        repo.addAppointment(appt);
+
+        FakeEmailSender fake = new FakeEmailSender();
+        AppointmentTypeService svc = new AppointmentTypeService(repo, fake);
+
+        String res = svc.setAppointmentType(
+                appt,
+                AppointmentType.REVIEW,
+                null,
+                null, 
+                null
+        );
+
+        assertEquals("Please select an available slot for Review.", res);
+        assertEquals(0, fake.sent.size(), "Review should not send emails here");
+    }
+
+    @Test
+    void group_withMissingGroupSize_returnsRulesErrorAndDoesNotSend() {
+        DataRepository repo = new DataRepository();
+
+        Category cat = new Category("C");
+        repo.addCategory(cat);
+
+        TimeSlot slot = new TimeSlot(LocalDateTime.now().plusDays(1), 60, cat);
+        repo.addSlot(slot);
+
+        User user = new User("First", "Last", "u1", "pw", null, "u1@example.com");
+        repo.addUser(user);
+
+        Appointment appt = new Appointment(user, slot, 30, 3);
+        appt.confirm();
+        repo.addAppointment(appt);
+
+        FakeEmailSender fake = new FakeEmailSender();
+        AppointmentTypeService svc = new AppointmentTypeService(repo, fake);
+
+        String res = svc.setAppointmentType(
+                appt,
+                AppointmentType.GROUP,
+                null, 
+                null,
+                null
+        );
+
+        assertTrue(res.toLowerCase().contains("group size"), "Expected group-size validation error");
+        assertEquals(0, fake.sent.size());
     }
 }

@@ -8,14 +8,15 @@ import domain.User;
 import persistence.DataRepository;
 import persistence.RepoStorage;
 import presentation.AdminDashboardFrame;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import javax.swing.*;
 import java.awt.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import org.mockito.MockedStatic;
 
 class AdminDashboardFrameTest {
 
@@ -35,7 +36,7 @@ class AdminDashboardFrameTest {
         for (Component c : root.getComponents()) {
             if (c instanceof JButton && text.equals(((JButton) c).getText())) return (JButton) c;
             if (c instanceof Container) {
-                JButton b = findButton((Container)c, text);
+                JButton b = findButton((Container) c, text);
                 if (b != null) return b;
             }
         }
@@ -49,8 +50,20 @@ class AdminDashboardFrameTest {
                 if (t != null && t.startsWith(prefix)) return (JLabel) c;
             }
             if (c instanceof Container) {
-                JLabel l = findStatsLabelByPrefix((Container)c, prefix);
+                JLabel l = findStatsLabelByPrefix((Container) c, prefix);
                 if (l != null) return l;
+            }
+        }
+        return null;
+    }
+
+    private static Window findWindowByTitle(String title) {
+        for (Window w : Window.getWindows()) {
+            if (!w.isDisplayable()) continue;
+            if (w instanceof Frame) {
+                if (title.equals(((Frame) w).getTitle())) return w;
+            } else if (w instanceof Dialog) {
+                if (title.equals(((Dialog) w).getTitle())) return w;
             }
         }
         return null;
@@ -66,41 +79,33 @@ class AdminDashboardFrameTest {
         bookingSvc = mock(BookingService.class);
         repo = new DataRepository();
 
-        repo.addUser(new User("F", "L", "user1", "pw", java.time.LocalDate.of(1995,1,1), "a@b.com"));
+        // user
+        repo.addUser(new User("F", "L", "user1", "pw", java.time.LocalDate.of(1995, 1, 1), "a@b.com"));
 
-        if(hasAddProvider(repo)) {
-            repo.addProvider(
-                new Provider(
-                    "provider1", "pw", "Provider One",
-                    "0799123456", "prov1@b.com", "Amman"
-                )
-            );
-        } else {
-            repo.getProviders().add(
-                new Provider(
-                    "provider1", "pw", "Provider One",
-                    "0799123456", "prov1@b.com", "Amman"
-                )
-            );
-        }
+        // provider (addProvider موجود عندك، فمش محتاج fallback)
+        repo.addProvider(new Provider(
+                "provider1", "pw", "Provider One",
+                "0799123456", "prov1@b.com", "Amman"
+        ));
 
-        System.out.println("DEBUG providers after setup: " + repo.getProviders().size());
-
+        // slot + appointment (مو ضروري للاحصائيات بس خليه)
         var slot = new domain.TimeSlot(java.time.LocalDateTime.now(), 60, new domain.Category("cat1"));
         repo.addSlot(slot);
         repo.addAppointment(new domain.Appointment(
                 repo.getUsers().get(0),
                 repo.getSlots().get(0),
-                60, 1));
+                60, 1
+        ));
     }
 
-    boolean hasAddProvider(DataRepository repo) {
-        try {
-            repo.getClass().getMethod("addProvider", Provider.class);
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
-        }
+    @AfterEach
+    void tearDown() throws Exception {
+        // اغلق أي نوافذ مفتوحة لتفادي تداخل الاختبارات
+        runOnEdt(() -> {
+            for (Window w : Window.getWindows()) {
+                if (w != null && w.isDisplayable()) w.dispose();
+            }
+        });
     }
 
     @Test
@@ -111,16 +116,24 @@ class AdminDashboardFrameTest {
 
         runOnEdt(() -> {
             JLabel users = findStatsLabelByPrefix(frame.getContentPane(), "Users count:");
-            assertNotNull(users); assertTrue(users.getText().endsWith("2"));
+            assertNotNull(users);
+            // users list includes provider too -> 2
+            assertTrue(users.getText().endsWith("2"));
+
             JLabel providers = findStatsLabelByPrefix(frame.getContentPane(), "Providers count:");
-            assertNotNull(providers); assertTrue(providers.getText().endsWith("1"));
+            assertNotNull(providers);
+            assertTrue(providers.getText().endsWith("1"));
+
             JLabel slots = findStatsLabelByPrefix(frame.getContentPane(), "Slots count:");
-            assertNotNull(slots); assertTrue(slots.getText().endsWith("1"));
+            assertNotNull(slots);
+            assertTrue(slots.getText().endsWith("1"));
+
             JLabel appts = findStatsLabelByPrefix(frame.getContentPane(), "Appointments count:");
-            assertNotNull(appts); assertTrue(appts.getText().endsWith("1"));
+            assertNotNull(appts);
+            assertTrue(appts.getText().endsWith("1"));
         });
 
-        runOnEdt(() -> frame.dispose());
+        runOnEdt(frame::dispose);
     }
 
     @Test
@@ -136,48 +149,40 @@ class AdminDashboardFrameTest {
         JButton requestsBtn = findButton(frame.getContentPane(), "Requests");
         assertNotNull(requestsBtn);
 
-        runOnEdt(() -> requestsBtn.doClick());
+        runOnEdt(requestsBtn::doClick);
 
-        runOnEdt(() -> frame.dispose());
+        // تحقق أنه تم فتح نافذة AdminRequestsFrame (عنوانها "Approval Requests")
+        runOnEdt(() -> {
+            Window w = findWindowByTitle("Approval Requests");
+            assertNotNull(w, "Expected Approval Requests window to open");
+        });
+
+        runOnEdt(frame::dispose);
     }
 
     @Test
-    void logout_calls_logout_and_closes() throws Exception {
+    void logout_calls_logout_and_does_not_crash() throws Exception {
         Administrator adminUser = new Administrator("admin", "pw");
         when(auth.isLoggedIn()).thenReturn(true);
         when(auth.getCurrentUser()).thenReturn(adminUser);
 
-        final AdminDashboardFrame[] ref = new AdminDashboardFrame[1];
-        runOnEdt(() -> ref[0] = new AdminDashboardFrame(auth, bookingSvc, repo));
-        AdminDashboardFrame frame = ref[0];
+        // امنع RepoStorage.save من الكتابة على الدسك
+        try (MockedStatic<RepoStorage> repoStorage = mockStatic(RepoStorage.class)) {
+            repoStorage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
 
-        JButton logoutBtn = findButton(frame.getContentPane(), "Logout");
-        assertNotNull(logoutBtn);
+            final AdminDashboardFrame[] ref = new AdminDashboardFrame[1];
+            runOnEdt(() -> ref[0] = new AdminDashboardFrame(auth, bookingSvc, repo));
+            AdminDashboardFrame frame = ref[0];
 
-        runOnEdt(() -> logoutBtn.doClick());
+            JButton logoutBtn = findButton(frame.getContentPane(), "Logout");
+            assertNotNull(logoutBtn);
 
-        verify(auth, atLeastOnce()).logout();
+            runOnEdt(logoutBtn::doClick);
+
+            verify(auth, atLeastOnce()).logout();
+
+            // اختياري: تأكد أن نافذة الداشبورد انغلقت
+            runOnEdt(() -> assertFalse(frame.isDisplayable(), "Dashboard frame should be disposed after logout"));
+        }
     }
-
-   /* @Test
-    void non_admin_cannot_open_requests_or_manage() throws Exception {
-        User regUser = new User("F", "L", "notadmin", "pw", java.time.LocalDate.of(1995,1,1), "x@b.com");
-        when(auth.isLoggedIn()).thenReturn(true);
-        when(auth.getCurrentUser()).thenReturn(regUser);
-
-        final AdminDashboardFrame[] ref = new AdminDashboardFrame[1];
-        runOnEdt(() -> ref[0] = new AdminDashboardFrame(auth, bookingSvc, repo));
-        AdminDashboardFrame frame = ref[0];
-
-        JButton requests = findButton(frame.getContentPane(), "Requests");
-        JButton manage = findButton(frame.getContentPane(), "Manage Reservations");
-
-        assertNotNull(requests);
-        assertNotNull(manage);
-
-        runOnEdt(requests::doClick);
-        runOnEdt(manage::doClick);
-
-        runOnEdt(frame::dispose);
-    }*/
 }
