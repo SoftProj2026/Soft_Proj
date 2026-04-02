@@ -79,16 +79,13 @@ class AdminDashboardFrameTest {
         bookingSvc = mock(BookingService.class);
         repo = new DataRepository();
 
-        // user
         repo.addUser(new User("F", "L", "user1", "pw", java.time.LocalDate.of(1995, 1, 1), "a@b.com"));
 
-        // provider (addProvider موجود عندك، فمش محتاج fallback)
         repo.addProvider(new Provider(
                 "provider1", "pw", "Provider One",
                 "0799123456", "prov1@b.com", "Amman"
         ));
 
-        // slot + appointment (مو ضروري للاحصائيات بس خليه)
         var slot = new domain.TimeSlot(java.time.LocalDateTime.now(), 60, new domain.Category("cat1"));
         repo.addSlot(slot);
         repo.addAppointment(new domain.Appointment(
@@ -100,7 +97,6 @@ class AdminDashboardFrameTest {
 
     @AfterEach
     void tearDown() throws Exception {
-        // اغلق أي نوافذ مفتوحة لتفادي تداخل الاختبارات
         runOnEdt(() -> {
             for (Window w : Window.getWindows()) {
                 if (w != null && w.isDisplayable()) w.dispose();
@@ -117,7 +113,6 @@ class AdminDashboardFrameTest {
         runOnEdt(() -> {
             JLabel users = findStatsLabelByPrefix(frame.getContentPane(), "Users count:");
             assertNotNull(users);
-            // users list includes provider too -> 2
             assertTrue(users.getText().endsWith("2"));
 
             JLabel providers = findStatsLabelByPrefix(frame.getContentPane(), "Providers count:");
@@ -151,7 +146,6 @@ class AdminDashboardFrameTest {
 
         runOnEdt(requestsBtn::doClick);
 
-        // تحقق أنه تم فتح نافذة AdminRequestsFrame (عنوانها "Approval Requests")
         runOnEdt(() -> {
             Window w = findWindowByTitle("Approval Requests");
             assertNotNull(w, "Expected Approval Requests window to open");
@@ -166,7 +160,6 @@ class AdminDashboardFrameTest {
         when(auth.isLoggedIn()).thenReturn(true);
         when(auth.getCurrentUser()).thenReturn(adminUser);
 
-        // امنع RepoStorage.save من الكتابة على الدسك
         try (MockedStatic<RepoStorage> repoStorage = mockStatic(RepoStorage.class)) {
             repoStorage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
 
@@ -181,7 +174,6 @@ class AdminDashboardFrameTest {
 
             verify(auth, atLeastOnce()).logout();
 
-            // اختياري: تأكد أن نافذة الداشبورد انغلقت
             runOnEdt(() -> assertFalse(frame.isDisplayable(), "Dashboard frame should be disposed after logout"));
         }
     }
