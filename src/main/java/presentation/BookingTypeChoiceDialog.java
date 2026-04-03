@@ -1,10 +1,11 @@
 package presentation;
 
+import Service.AiBookingAssistantService;
 import Service.AuthService;
+import Service.BookingResult;
 import Service.BookingService;
 import Service.EmailSender;
 import Service.SmtpEmailSender;
-import domain.AppointmentType;
 import domain.Category;
 import domain.TimeSlot;
 import persistence.DataRepository;
@@ -21,56 +22,18 @@ import java.util.List;
  * <p>The dialog allows choosing a booking type (Emergency, New, Review, Individual, Group).
  * Emergency opens a small quick dialog that sends an immediate notification email
  * (no appointment is created). Other types open {@code UnifiedBookingFrame}.</p>
- *
- * @author remaa
- * @version 1.0
  */
 public class BookingTypeChoiceDialog extends JDialog {
 
-    /**
-     * Authentication service used to obtain current user info.
-     */
     private final AuthService auth;
-
-    /**
-     * Booking service used for booking related operations.
-     */
     private final BookingService booking;
-
-    /**
-     * Repository providing application data (slots, categories, appointments).
-     */
     private final DataRepository repo;
-
-    /**
-     * Category for which booking types are selected.
-     */
     private final Category category;
 
-    /**
-     * Company email address used as destination for emergency notifications.
-     */
     private static final String COMPANY_EMAIL = "remaajomaa842@gmail.com";
-
-    /**
-     * Company emergency phone number printed in the emergency email body.
-     */
     private static final String COMPANY_EMERGENCY_PHONE = "059-507-9549";
-
-    /**
-     * Fallback user email used when authenticated user email is not available.
-     */
     private static final String DEFAULT_USER_EMAIL = "remaajomaa70@gmail.com";
 
-    /**
-     * Create the booking type choice dialog.
-     *
-     * @param parent   parent frame for modality and positioning
-     * @param category category to create bookings for
-     * @param repo     repository instance providing data
-     * @param auth     authentication service instance
-     * @param booking  booking service instance
-     */
     public BookingTypeChoiceDialog(JFrame parent,
                                    Category category,
                                    DataRepository repo,
@@ -84,11 +47,16 @@ public class BookingTypeChoiceDialog extends JDialog {
         this.category = category;
 
         setLayout(new BorderLayout(10, 10));
-        setSize(460, 360);
+        setSize(520, 440); 
         setResizable(false);
         setLocationRelativeTo(parent);
 
-        JLabel header = new JLabel("<html><div style='text-align:center'>Select Booking Type for:<br><b>" + escapeHtml(category.getName()) + "</b></div></html>", SwingConstants.CENTER);
+        JLabel header = new JLabel(
+                "<html><div style='text-align:center'>Select Booking Type for:<br><b>"
+                        + escapeHtml(category.getName())
+                        + "</b></div></html>",
+                SwingConstants.CENTER
+        );
         header.setFont(new Font("Segoe UI", Font.BOLD, 16));
         header.setBorder(BorderFactory.createEmptyBorder(14, 8, 8, 8));
         add(header, BorderLayout.NORTH);
@@ -133,11 +101,15 @@ public class BookingTypeChoiceDialog extends JDialog {
             ub.setVisible(true);
         });
 
+        JButton aiBtn = styledButton("AI Booking (Suggest 5 slots + Send Request)", new Color(88, 28, 135));
+        aiBtn.addActionListener(e -> openAiSuggestDialog());
+
         buttonsPanel.add(emergencyBtn);
         buttonsPanel.add(newBookingBtn);
         buttonsPanel.add(reviewBtn);
         buttonsPanel.add(individualBtn);
         buttonsPanel.add(groupBtn);
+        buttonsPanel.add(aiBtn);
 
         add(buttonsPanel, BorderLayout.CENTER);
 
@@ -152,14 +124,132 @@ public class BookingTypeChoiceDialog extends JDialog {
     }
 
     /**
-     * Recursively search the container for participant selectors (JSpinner or JComboBox),
-     * set their value to {@code participantCount} and disable them.
-     *
-     * @param c                root container to search
-     * @param participantCount value to set (1 for individual)
-     * @param min              minimum allowed value (1)
-     * @param max              maximum allowed value (5)
+     * NEW: AI dialog flow:
+     * 1) Ensure logged in
+     * 2) Ask participants + duration
+     * 3) Ask AI for top 5 mutual slots
+     * 4) Let user pick one
+     * 5) Submit booking request for approval (Category Admin -> Big Admin)
      */
+    private void openAiSuggestDialog() {
+        if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) {
+            JOptionPane.showMessageDialog(this, "You must login first.");
+            return;
+        }
+
+        Integer participants = promptIntInRange(
+                "AI Booking - Participants",
+                "Enter participants (1 - 5):",
+                1, 5,
+                1
+        );
+        if (participants == null) return;
+
+        Integer duration = promptIntInRange(
+                "AI Booking - Duration",
+                "Enter duration in minutes:",
+                1, 60,
+                30
+        );
+        if (duration == null) return;
+
+        AiBookingAssistantService ai = new AiBookingAssistantService(repo);
+
+        List<TimeSlot> suggestions = ai.suggestTopMutualSlots(auth.getCurrentUser(), category, 5);
+        if (suggestions.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "AI could not find any suitable mutual slot for this category.",
+                    "AI Booking",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        String[] options = new String[suggestions.size()];
+        for (int i = 0; i < suggestions.size(); i++) {
+            TimeSlot s = suggestions.get(i);
+            String start = (s.getStartDateTime() != null) ? s.getStartDateTime().format(fmt) : "N/A";
+            String end = (s.getEndDateTime() != null) ? s.getEndDateTime().format(fmt) : "N/A";
+            options[i] = (i + 1) + ") " + start + " → " + end;
+        }
+
+        String choice = (String) JOptionPane.showInputDialog(
+                this,
+                "AI suggested the following 5 slots. Please pick one:",
+                "AI Booking - Choose Slot",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (choice == null) return;
+
+        int idx = 0;
+        try {
+            int paren = choice.indexOf(')');
+            if (paren > 0) {
+                idx = Integer.parseInt(choice.substring(0, paren).trim()) - 1;
+            }
+        } catch (Exception ignored) {
+        }
+        if (idx < 0 || idx >= suggestions.size()) idx = 0;
+
+        TimeSlot selectedSlot = suggestions.get(idx);
+
+        BookingResult res = ai.sendRequestForSlot(
+                auth.getCurrentUser(),
+                selectedSlot,
+                duration,
+                participants
+        );
+
+        JOptionPane.showMessageDialog(
+                this,
+                res.getMessage(),
+                res.isSuccess() ? "AI Booking" : "AI Booking Failed",
+                res.isSuccess() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE
+        );
+
+        if (res.isSuccess()) {
+            dispose();
+        }
+    }
+
+    /**
+     * Prompt integer input in range.
+     */
+    private Integer promptIntInRange(String title, String message, int min, int max, int defaultValue) {
+        while (true) {
+            String input = JOptionPane.showInputDialog(this, message, String.valueOf(defaultValue));
+            if (input == null) return null;
+
+            input = input.trim();
+            if (input.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Value cannot be empty.");
+                continue;
+            }
+
+            int val;
+            try {
+                val = Integer.parseInt(input);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid number.");
+                continue;
+            }
+
+            if (val < min || val > max) {
+                JOptionPane.showMessageDialog(this, "Value must be between " + min + " and " + max + ".");
+                continue;
+            }
+
+            return val;
+        }
+    }
+
+
     private void disableParticipantSelectorsInContainer(Container c, int participantCount, int min, int max) {
         if (c == null) return;
         for (Component comp : c.getComponents()) {
@@ -211,11 +301,6 @@ public class BookingTypeChoiceDialog extends JDialog {
         }
     }
 
-    /**
-     * Open a small modal dialog to select a preferred emergency time (optional) and send an emergency email.
-     *
-     * <p>No appointment is created by this flow; it only sends notifications to the user and company.</p>
-     */
     private void openEmergencyQuickDialog() {
         JDialog dlg = new JDialog(this, "Emergency - Preferred Time", true);
         dlg.setLayout(new BorderLayout(8, 8));
@@ -322,12 +407,6 @@ public class BookingTypeChoiceDialog extends JDialog {
         dlg.setVisible(true);
     }
 
-    /**
-     * Create an EmailSender. Attempts to construct {@link SmtpEmailSender} and falls back to
-     * an internal console printing implementation if that fails.
-     *
-     * @return an {@link EmailSender} instance
-     */
     private EmailSender createEmailSender() {
         try {
             return new SmtpEmailSender();
@@ -336,13 +415,6 @@ public class BookingTypeChoiceDialog extends JDialog {
         }
     }
 
-    /**
-     * Create a styled JButton used in this dialog.
-     *
-     * @param text button label text
-     * @param bg   background color for the button
-     * @return constructed JButton
-     */
     private JButton styledButton(String text, Color bg) {
         JButton b = new JButton(text);
         b.setBackground(bg);
@@ -353,32 +425,12 @@ public class BookingTypeChoiceDialog extends JDialog {
         return b;
     }
 
-    /**
-     * Escape HTML sensitive characters to avoid injection in the header label.
-     *
-     * @param s input string
-     * @return escaped string suitable for use inside HTML label
-     */
     private String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
-    /**
-     * Fallback email sender that prints email fields to the console.
-     *
-     * @author remaa
-     * @version 1.0
-     */
     private static class ConsoleEmailSender implements EmailSender {
-        /**
-         * Print email details to System.out for testing purposes.
-         *
-         * @param fromIgnored logical sender address (ignored for printing)
-         * @param to          recipient email address
-         * @param subject     email subject line
-         * @param body        email body text
-         */
         @Override
         public void send(String fromIgnored, String to, String subject, String body) {
             System.out.println("=== ConsoleEmailSender ===");

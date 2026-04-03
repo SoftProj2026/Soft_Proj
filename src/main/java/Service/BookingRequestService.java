@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 
 /**
  * Service responsible for creating booking requests and enforcing booking rules.
- * Only one active booking or request per user+category (confirmed + pending) is allowed.
+ *
+ * <p>Enforces the MAIN + EMERGENCY limit per user+category:
+ * a user can have at most 2 active items (CONFIRMED + PENDING) in the same category.</p>
  *
  * @author Qussaialaw
  * @version 1.0
@@ -70,7 +72,8 @@ public class BookingRequestService {
      * - No past slots.
      * - Must be available.
      * - Duration in range.
-     * - One active item per user+category.
+     * - Participants in range.
+     * - MAIN + EMERGENCY limit: maximum 2 active items (confirmed + pending) per user+category.
      *
      * @param requester the user making the request
      * @param slot the time slot to book
@@ -120,11 +123,11 @@ public class BookingRequestService {
         long confirmed = repo.countConfirmedForUserCategory(username, categoryName);
         long pending = repo.countPendingRequestsForUserCategory(username, categoryName);
 
-        if (confirmed + pending >= 1) {
+        if (confirmed + pending >= 2) {
             return new BookingResult(
                     false,
-                    "Not allowed: you already have an active booking/request in this category. " +
-                            "Please wait for approval or cancel the existing booking."
+                    "Not allowed: you already reached the limit (MAIN + EMERGENCY) for this category.\n" +
+                            "Max allowed active items (confirmed + pending) per category is 2."
             );
         }
 
