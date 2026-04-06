@@ -11,16 +11,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * AI-like assistant that suggests mutual slots and submits booking requests.
- * This does NOT call real ChatGPT; it uses rule-based smart suggestions.
- *
- * Workflow:
- * - suggest best mutual slots for user + category
- * - user picks one
- * - submit booking request (slot is held)
- * - request enters normal approval pipeline (Category Admin -> Big Admin)
- */
+
+
 public class AiBookingAssistantService {
 
     private final DataRepository repo;
@@ -33,11 +25,7 @@ public class AiBookingAssistantService {
         this.suggester = new SmartSlotSuggestionService(repo);
     }
 
-    /**
-     * NEW (for UI): Suggest top mutual slots (e.g., 5) so user can pick one.
-     *
-     * NOTE: We return a modifiable list to avoid UnsupportedOperationException.
-     */
+    
     public List<TimeSlot> suggestTopMutualSlots(User user, Category category, int limit) {
         if (user == null || category == null) return Collections.emptyList();
         if (limit <= 0) limit = 1;
@@ -52,9 +40,7 @@ public class AiBookingAssistantService {
         return choices;
     }
 
-    /**
-     * NEW (for UI): Send booking request for a specific chosen slot.
-     */
+    
     public BookingResult sendRequestForSlot(User user, TimeSlot selectedSlot, int duration, int participants) {
         if (user == null) return new BookingResult(false, "Invalid user.");
         if (selectedSlot == null) return new BookingResult(false, "Please select a slot.");
@@ -67,9 +53,7 @@ public class AiBookingAssistantService {
         return requestService.submitRequest(user, selectedSlot, duration, participants);
     }
 
-    /**
-     * Existing behavior (kept): picks ONE best slot and sends request.
-     */
+    
     public BookingResult aiPickAndSendRequest(User user, Category category, int duration, int participants) {
         if (user == null) return new BookingResult(false, "Invalid user.");
         if (category == null) return new BookingResult(false, "Please select a category.");
