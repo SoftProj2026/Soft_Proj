@@ -33,26 +33,31 @@ import java.util.Set;
  */
 public class Main {
 
-    /**
-     * Starts the application.
-     *
-     * <p>Startup flow:</p>
-     * <ul>
-     *   <li>Apply the UI theme.</li>
-     *   <li>Load repository data from disk (or create a new repository if not found).</li>
-     *   <li>Purge removed categories from persisted data (to keep saved data consistent with new requirements).</li>
-     *   <li>If the repository looks empty, seed initial accounts, categories, and time slots.</li>
-     *   <li>Create core services and open the login window.</li>
-     * </ul>
-     *
-     * @param args command-line arguments (not used)
-     */
+   
     public static void main(String[] args) {
         UITheme.apply();
 
         DataRepository repo = RepoStorage.loadOrNew();
 
         purgeRemovedCategories(repo);
+
+        if (repo.getCategories() == null || repo.getCategories().isEmpty()
+                || (repo.getCategories().size() == 1
+                && repo.getCategories().get(0) != null
+                && "Keep This".equalsIgnoreCase(repo.getCategories().get(0).getName()))) {
+
+            repo.getCategories().clear();
+
+            List<Category> categories = buildCategories();
+            for (Category c : categories) {
+                repo.addCategory(c);
+            }
+
+            seedCategoryAdmins(repo, categories);
+            seedTimeSlots(repo, categories, 7);
+
+            RepoStorage.save(repo);
+        }
 
         boolean looksEmpty = repo.getUsers().isEmpty()
                 && repo.getProviders().isEmpty()
