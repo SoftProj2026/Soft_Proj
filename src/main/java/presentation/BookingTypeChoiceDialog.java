@@ -11,18 +11,14 @@ import domain.TimeSlot;
 import persistence.DataRepository;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Dialog shown after the user clicks a category on the main dashboard.
- *
- * <p>The dialog allows choosing a booking type (Emergency, New, Review, Individual, Group).
- * Emergency opens a small quick dialog that sends an immediate notification email
- * (no appointment is created). Other types open {@code UnifiedBookingFrame}.</p>
- */
 public class BookingTypeChoiceDialog extends JDialog {
 
     private final AuthService auth;
@@ -33,6 +29,10 @@ public class BookingTypeChoiceDialog extends JDialog {
     private static final String COMPANY_EMAIL = "remaajomaa842@gmail.com";
     private static final String COMPANY_EMERGENCY_PHONE = "059-507-9549";
     private static final String DEFAULT_USER_EMAIL = "remaajomaa70@gmail.com";
+
+    private static final Color BTN_COLOR = UITheme.PRIMARY_DARK;
+    private static final Color BTN_HOVER = new Color(25, 95, 190);
+    private static final Color BG = Color.WHITE;
 
     public BookingTypeChoiceDialog(JFrame parent,
                                    Category category,
@@ -46,62 +46,83 @@ public class BookingTypeChoiceDialog extends JDialog {
         this.repo = repo;
         this.category = category;
 
-        setLayout(new BorderLayout(10, 10));
-        setSize(520, 440); 
+        setLayout(new BorderLayout(12, 12));
+        setSize(680, 560);
         setResizable(false);
         setLocationRelativeTo(parent);
 
-        JLabel header = new JLabel(
-                "<html><div style='text-align:center'>Select Booking Type for:<br><b>"
-                        + escapeHtml(category.getName())
-                        + "</b></div></html>",
-                SwingConstants.CENTER
-        );
-        header.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        header.setBorder(BorderFactory.createEmptyBorder(14, 8, 8, 8));
-        add(header, BorderLayout.NORTH);
+        getContentPane().setBackground(BG);
+
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildButtonsPanel(), BorderLayout.CENTER);
+        add(buildBottomBar(), BorderLayout.SOUTH);
+    }
+
+    private JPanel buildHeader() {
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBackground(BG);
+        header.setBorder(new EmptyBorder(18, 22, 8, 22));
+
+        JLabel title = new JLabel("Choose Booking Type", SwingConstants.CENTER);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+
+        JLabel sub = new JLabel("Category: " + escapeHtml(category.getName()), SwingConstants.CENTER);
+        sub.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        sub.setForeground(UITheme.MUTED);
+
+        header.add(title);
+        header.add(Box.createVerticalStrut(6));
+        header.add(sub);
+
+        return header;
+    }
+
+    private JPanel buildButtonsPanel() {
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setBackground(BG);
+        wrap.setBorder(new EmptyBorder(10, 22, 10, 22));
 
         JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new GridLayout(0, 1, 10, 10));
-        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(12, 18, 12, 18));
-        buttonsPanel.setBackground(Color.WHITE);
+        buttonsPanel.setBackground(BG);
+        buttonsPanel.setLayout(new GridLayout(0, 1, 12, 12));
 
-        JButton emergencyBtn = styledButton("Emergency Booking", new Color(220, 48, 56));
+        JButton emergencyBtn = bigPrimaryButton("Emergency Booking");
         emergencyBtn.addActionListener(e -> openEmergencyQuickDialog());
 
-        JButton newBookingBtn = styledButton("New Booking", new Color(32, 136, 203));
+        JButton newBookingBtn = bigPrimaryButton("New Booking");
         newBookingBtn.addActionListener(e -> {
-            this.dispose();
+            dispose();
             UnifiedBookingFrame ub = new UnifiedBookingFrame(auth, booking, repo, category);
             ub.setVisible(true);
         });
 
-        JButton reviewBtn = styledButton("Review Booking", new Color(90, 184, 23));
+        JButton reviewBtn = bigPrimaryButton("Review Booking");
         reviewBtn.addActionListener(e -> {
-            this.dispose();
+            dispose();
             UnifiedBookingFrame ub = new UnifiedBookingFrame(auth, booking, repo, category);
             ub.setVisible(true);
         });
 
-        JButton individualBtn = styledButton("Individual Booking", new Color(110, 118, 237));
+        JButton individualBtn = bigPrimaryButton("Individual Booking");
         individualBtn.addActionListener(e -> {
-            this.dispose();
+            dispose();
             UnifiedBookingFrame ub = new UnifiedBookingFrame(auth, booking, repo, category);
-
             ub.setForceIndividual(true);
             ub.setForcedParticipantCount(1);
-
             ub.setVisible(true);
         });
 
-        JButton groupBtn = styledButton("Group Booking (1–5 participants)", new Color(244, 166, 39));
+        JButton groupBtn = bigPrimaryButton("Group Booking (1–5 participants)");
         groupBtn.addActionListener(e -> {
-            this.dispose();
+            dispose();
             UnifiedBookingFrame ub = new UnifiedBookingFrame(auth, booking, repo, category);
             ub.setVisible(true);
         });
 
-        JButton aiBtn = styledButton("AI Booking (Suggest 5 slots + Send Request)", new Color(88, 28, 135));
+        JButton aiBtn = bigPrimaryButton("AI Booking (Suggest 5 slots + Send Request)");
         aiBtn.addActionListener(e -> openAiSuggestDialog());
 
         buttonsPanel.add(emergencyBtn);
@@ -111,26 +132,94 @@ public class BookingTypeChoiceDialog extends JDialog {
         buttonsPanel.add(groupBtn);
         buttonsPanel.add(aiBtn);
 
-        add(buttonsPanel, BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(buttonsPanel);
+        scroll.setBorder(null);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.getViewport().setBackground(BG);
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottom.setBackground(Color.WHITE);
-        JButton close = new JButton("Close");
-        close.addActionListener(e -> dispose());
-        bottom.add(close);
-        add(bottom, BorderLayout.SOUTH);
-
-        getContentPane().setBackground(Color.WHITE);
+        wrap.add(scroll, BorderLayout.CENTER);
+        return wrap;
     }
 
-    /**
-     * NEW: AI dialog flow:
-     * 1) Ensure logged in
-     * 2) Ask participants + duration
-     * 3) Ask AI for top 5 mutual slots
-     * 4) Let user pick one
-     * 5) Submit booking request for approval (Category Admin -> Big Admin)
-     */
+    private JPanel buildBottomBar() {
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        bottom.setBackground(BG);
+        bottom.setBorder(new EmptyBorder(0, 16, 16, 16));
+
+        JButton close = UITheme.secondaryButton("Close");
+        close.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        close.addActionListener(e -> dispose());
+
+        bottom.add(close);
+        return bottom;
+    }
+
+    private JButton bigPrimaryButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        b.setForeground(Color.WHITE);
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        b.setBorder(new EmptyBorder(16, 18, 16, 18));
+        b.setOpaque(false);
+        b.setContentAreaFilled(false);
+        b.setUI(new RoundedButtonUI(18, BTN_COLOR, BTN_HOVER));
+
+        b.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                b.putClientProperty("hover", true);
+                b.repaint();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                b.putClientProperty("hover", false);
+                b.repaint();
+            }
+        });
+
+        return b;
+    }
+
+    private static class RoundedButtonUI extends javax.swing.plaf.basic.BasicButtonUI {
+
+        private final int radius;
+        private final Color normal;
+        private final Color hover;
+
+        RoundedButtonUI(int radius, Color normal, Color hover) {
+            this.radius = radius;
+            this.normal = normal;
+            this.hover = hover;
+        }
+
+        @Override
+        public void paint(Graphics g, JComponent c) {
+            AbstractButton b = (AbstractButton) c;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            boolean isHover = Boolean.TRUE.equals(b.getClientProperty("hover"));
+            Color bg = isHover ? hover : normal;
+
+            int w = b.getWidth();
+            int h = b.getHeight();
+
+            g2.setColor(new Color(0, 0, 0, 25));
+            g2.fillRoundRect(2, 3, w - 4, h - 4, radius, radius);
+
+            g2.setColor(bg);
+            g2.fillRoundRect(0, 0, w - 1, h - 1, radius, radius);
+
+            g2.setColor(new Color(255, 255, 255, 50));
+            g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
+
+            g2.dispose();
+            super.paint(g, c);
+        }
+    }
+
     private void openAiSuggestDialog() {
         if (auth == null || !auth.isLoggedIn() || auth.getCurrentUser() == null) {
             JOptionPane.showMessageDialog(this, "You must login first.");
@@ -190,9 +279,7 @@ public class BookingTypeChoiceDialog extends JDialog {
         int idx = 0;
         try {
             int paren = choice.indexOf(')');
-            if (paren > 0) {
-                idx = Integer.parseInt(choice.substring(0, paren).trim()) - 1;
-            }
+            if (paren > 0) idx = Integer.parseInt(choice.substring(0, paren).trim()) - 1;
         } catch (Exception ignored) {
         }
         if (idx < 0 || idx >= suggestions.size()) idx = 0;
@@ -213,14 +300,9 @@ public class BookingTypeChoiceDialog extends JDialog {
                 res.isSuccess() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE
         );
 
-        if (res.isSuccess()) {
-            dispose();
-        }
+        if (res.isSuccess()) dispose();
     }
 
-    /**
-     * Prompt integer input in range.
-     */
     private Integer promptIntInRange(String title, String message, int min, int max, int defaultValue) {
         while (true) {
             String input = JOptionPane.showInputDialog(this, message, String.valueOf(defaultValue));
@@ -249,72 +331,22 @@ public class BookingTypeChoiceDialog extends JDialog {
         }
     }
 
-
-    private void disableParticipantSelectorsInContainer(Container c, int participantCount, int min, int max) {
-        if (c == null) return;
-        for (Component comp : c.getComponents()) {
-            if (comp instanceof JSpinner) {
-                try {
-                    JSpinner spinner = (JSpinner) comp;
-                    spinner.setModel(new SpinnerNumberModel(participantCount, min, max, 1));
-                    spinner.setValue(participantCount);
-                    spinner.setEnabled(false);
-                    spinner.setToolTipText("Individual booking — participants fixed to 1");
-                } catch (Exception ignored) {
-                }
-            } else if (comp instanceof JComboBox) {
-                try {
-                    @SuppressWarnings("rawtypes")
-                    JComboBox combo = (JComboBox) comp;
-                    boolean integerLike = false;
-                    for (int i = 0; i < combo.getItemCount(); i++) {
-                        Object item = combo.getItemAt(i);
-                        if (item instanceof Integer) { integerLike = true; break; }
-                        if (item instanceof String) {
-                            String s = ((String) item).trim();
-                            if (s.matches("\\d+")) { integerLike = true; break; }
-                        }
-                    }
-                    if (integerLike) {
-                        boolean setDone = false;
-                        for (int i = 0; i < combo.getItemCount(); i++) {
-                            Object item = combo.getItemAt(i);
-                            if ((item instanceof Integer && ((Integer) item) == participantCount)
-                                    || (item instanceof String && ((String) item).trim().equals(String.valueOf(participantCount)))) {
-                                combo.setSelectedIndex(i);
-                                setDone = true;
-                                break;
-                            }
-                        }
-                        if (!setDone && combo.getItemCount() > 0) {
-                            combo.setSelectedIndex(0);
-                        }
-                        combo.setEnabled(false);
-                        combo.setToolTipText("Individual booking — participants fixed to 1");
-                    }
-                } catch (Exception ignored) {
-                }
-            }
-            if (comp instanceof Container) {
-                disableParticipantSelectorsInContainer((Container) comp, participantCount, min, max);
-            }
-        }
-    }
-
     private void openEmergencyQuickDialog() {
         JDialog dlg = new JDialog(this, "Emergency - Preferred Time", true);
         dlg.setLayout(new BorderLayout(8, 8));
-        dlg.setSize(420, 300);
+        dlg.setSize(520, 340);
         dlg.setLocationRelativeTo(this);
 
         JLabel lbl = new JLabel("<html><b>Select preferred emergency time (optional)</b></html>");
-        lbl.setBorder(BorderFactory.createEmptyBorder(8, 8, 0, 8));
+        lbl.setBorder(BorderFactory.createEmptyBorder(10, 12, 0, 12));
         dlg.add(lbl, BorderLayout.NORTH);
 
-        JPanel center = new JPanel(new BorderLayout(6, 6));
-        center.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        JPanel center = new JPanel(new BorderLayout(8, 8));
+        center.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
         JComboBox<String> cb = new JComboBox<>();
         cb.addItem("No preferred time");
+        cb.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         List<TimeSlot> slots = repo.getSlots();
@@ -327,13 +359,12 @@ public class BookingTypeChoiceDialog extends JDialog {
             if (!s.getStartDateTime().isAfter(java.time.LocalDateTime.now())) continue;
             choices.add(s);
         }
-        for (TimeSlot t : choices) {
-            cb.addItem(t.getStartDateTime().format(fmt));
-        }
+        for (TimeSlot t : choices) cb.addItem(t.getStartDateTime().format(fmt));
 
         center.add(cb, BorderLayout.NORTH);
 
         JTextArea note = new JTextArea(5, 30);
+        note.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         note.setLineWrap(true);
         note.setWrapStyleWord(true);
         note.setBorder(BorderFactory.createTitledBorder("Additional note (optional)"));
@@ -342,8 +373,8 @@ public class BookingTypeChoiceDialog extends JDialog {
         dlg.add(center, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton send = new JButton("Send Emergency Email");
-        JButton cancel = new JButton("Cancel");
+        JButton send = UITheme.primaryButton("Send Emergency Email");
+        JButton cancel = UITheme.secondaryButton("Cancel");
         actions.add(cancel);
         actions.add(send);
         dlg.add(actions, BorderLayout.SOUTH);
@@ -355,9 +386,7 @@ public class BookingTypeChoiceDialog extends JDialog {
             try {
                 if (auth != null && auth.getCurrentUser() != null) {
                     String uEmail = auth.getCurrentUser().getEmail();
-                    if (uEmail != null && !uEmail.trim().isEmpty()) {
-                        userEmail = uEmail;
-                    }
+                    if (uEmail != null && !uEmail.trim().isEmpty()) userEmail = uEmail;
                 }
             } catch (Exception ex) {
             }
@@ -413,16 +442,6 @@ public class BookingTypeChoiceDialog extends JDialog {
         } catch (Throwable t) {
             return new ConsoleEmailSender();
         }
-    }
-
-    private JButton styledButton(String text, Color bg) {
-        JButton b = new JButton(text);
-        b.setBackground(bg);
-        b.setForeground(Color.WHITE);
-        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        b.setFocusPainted(false);
-        b.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        return b;
     }
 
     private String escapeHtml(String s) {
