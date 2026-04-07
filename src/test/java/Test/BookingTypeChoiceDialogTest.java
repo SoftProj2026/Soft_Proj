@@ -88,7 +88,6 @@ public class BookingTypeChoiceDialogTest {
         }
         return null;
     }
-
     @Test
     void constructor_sets_basic_properties_and_buttons_present() throws Exception {
         when(repo.getSlots()).thenReturn(List.of());
