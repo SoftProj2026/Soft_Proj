@@ -44,3 +44,31 @@ domain/AppointmentType.java (enum; single source of truth)
 Service/AppointmentTypeRules.java (rule factory / polymorphic rule objects)
 Service.AppointmentTypeService and Service.BookingRequestService (apply rules polymorphically)
 UI: presentation components consult AppointmentType when enabling/disabling fields or deciding prompts
+__________________________________________________________________
+US5.5 — AI Booking (Suggest mutual slots + send booking request)
+Story: As a user, I want the system to suggest the best available mutual time slots using AI logic so I can book faster without manually browsing all times.
+
+Acceptance criteria:
+-From the booking type dialog, the user can choose "AI Booking".
+- The user enters participants (1–5) and duration (1–60).
+- The system suggests up to 5 mutual slots in the same category that satisfy:
+  - Slot is in the future.
+  - Company slot is available (TimeSlot.isAvailable()).
+  - Slot is not break-blocked (12:00–13:00) using BlockedSlotsRule.
+  - The user has no overlap with confirmed appointments.
+- The user selects one suggested slot.
+- The system submits a booking request (PENDING_CATEGORY_ADMIN) and holds the slot for approval.
+- If no suitable slots exist, the system shows a clear warning and does not crash.
+
+Implemented in (where to look):
+- presentation/BookingTypeChoiceDialog.java
+  - Button: "AI Booking (Suggest 5 slots + Send Request)"
+  - Flow: openAiSuggestDialog()
+- Service/AiBookingAssistantService.java
+  - suggestTopMutualSlots(user, category, limit)
+  - sendRequestForSlot(user, selectedSlot, duration, participants)
+- Service/SmartSlotSuggestionService.java
+  - suggest(user, category, limit) (ranking + mutual constraints)
+- Service/BlockedSlotsRule.java (break blocking rule)
+- Service/BookingRequestService.java
+  - submitRequest(...) (holds slot + creates BookingRequest workflow)
