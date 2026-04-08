@@ -7,6 +7,7 @@ import domain.Administrator;
 import domain.Category;
 import domain.Provider;
 import domain.TimeSlot;
+import domain.User;
 import persistence.DataRepository;
 import persistence.RepoStorage;
 import presentation.LoginFrame;
@@ -33,11 +34,12 @@ import java.util.Set;
  */
 public class Main {
 
-   
     public static void main(String[] args) {
         UITheme.apply();
 
         DataRepository repo = RepoStorage.loadOrNew();
+
+        ensureBigAdminAndProviderExist(repo);
 
         purgeRemovedCategories(repo);
 
@@ -99,6 +101,52 @@ public class Main {
         javax.swing.SwingUtilities.invokeLater(() ->
                 new LoginFrame(authService, bookingService, repo).setVisible(true)
         );
+    }
+
+    /**
+     * Ensures that the big-admin account ("admin") and the default company provider ("qrbooking")
+     * exist in the repository. This fixes cases where old saved data is not empty but missing
+     * the admin user, causing QR admin login to fail with:
+     * "Admin account not found in repository."
+     *
+     * @param repo repository to patch if missing required accounts
+     */
+    private static void ensureBigAdminAndProviderExist(DataRepository repo) {
+        if (repo == null) return;
+
+        boolean hasAdmin = false;
+        for (User u : repo.getUsers()) {
+            if (u != null && u.getUsername() != null && u.getUsername().equalsIgnoreCase("admin")) {
+                hasAdmin = true;
+                break;
+            }
+        }
+
+        if (!hasAdmin) {
+            repo.addUser(new Administrator("admin", "Admin@123"));
+        }
+
+        boolean hasProvider = false;
+        for (Provider p : repo.getProviders()) {
+            if (p != null && p.getUsername() != null && p.getUsername().equalsIgnoreCase("qrbooking")) {
+                hasProvider = true;
+                break;
+            }
+        }
+
+        if (!hasProvider) {
+            repo.addProvider(new Provider(
+                    "qrbooking",
+                    "Comp@1234",
+                    "QR Booking",
+                    "",
+                    "remaajomaa842@gmail.com",
+                    ""
+            ));
+        }
+
+        // Save immediately so next run is consistent
+        RepoStorage.save(repo);
     }
 
     /**
