@@ -96,43 +96,14 @@ public class MyBookingsFrame extends JFrame {
         table.setRowHeight(24);
 
         installRowRenderer();
-        installOpenOptionsOnSingleClick();
+
+        installOpenOptionsOnDoubleClick();
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
         scroll.getViewport().setBackground(UITheme.BG);
         add(scroll, BorderLayout.CENTER);
-        add(scroll, BorderLayout.CENTER);
-     // ... يمكنك وضع هنا
 
-     table.addMouseListener(new MouseAdapter() {
-         @Override
-         public void mouseClicked(MouseEvent e) {
-             if (e.getClickCount() == 2) {
-                 int row = table.getSelectedRow();
-                 if (row < 0 || row >= visibleItems.size()) return;
-
-                 RowItem item = visibleItems.get(row);
-                 if (item.getKind() == RowItem.Kind.APPOINTMENT && item.getAppointment() != null) {
-                     Appointment selected = item.getAppointment();
-                     if (selected.getStatus() == AppointmentStatus.CONFIRMED) {
-                         AppointmentTypeService typeService = new AppointmentTypeService(repo, new SmtpEmailSender());
-                         AppointmentOptionsFrame f =
-                             new AppointmentOptionsFrame(MyBookingsFrame.this, repo, selected, typeService);
-
-                         f.addWindowListener(new java.awt.event.WindowAdapter() {
-                             @Override
-                             public void windowClosed(java.awt.event.WindowEvent e) {
-                                 loadMyBookings();
-                             }
-                         });
-
-                         f.setVisible(true);
-                     }
-                 }
-             }
-         }
-     });
         add(buildActions(), BorderLayout.SOUTH);
 
         loadMyBookings();
@@ -147,7 +118,7 @@ public class MyBookingsFrame extends JFrame {
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
         header.add(title, BorderLayout.NORTH);
 
-        JLabel subtitle = new JLabel("View your appointments and requests. Click a CONFIRMED appointment to set options.");
+        JLabel subtitle = new JLabel("View your appointments and requests. Double-click a CONFIRMED appointment to set options.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         subtitle.setForeground(new Color(90, 100, 115));
         header.add(subtitle, BorderLayout.SOUTH);
@@ -232,7 +203,6 @@ public class MyBookingsFrame extends JFrame {
                     c.setForeground(Color.BLACK);
                 }
 
-                // Status column index = 6
                 if (!isSelected && column == 6 && row >= 0 && row < visibleItems.size()) {
                     RowItem item = visibleItems.get(row);
 
@@ -271,34 +241,61 @@ public class MyBookingsFrame extends JFrame {
         }
     }
 
-    private void installOpenOptionsOnSingleClick() {
+     void installOpenOptionsOnDoubleClick() {
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() != 1) return;
+                if (e.getClickCount() != 2 || !SwingUtilities.isLeftMouseButton(e)) return;
 
-                int row = table.getSelectedRow();
+                int row = table.rowAtPoint(e.getPoint());
                 if (row < 0 || row >= visibleItems.size()) return;
 
+                table.setRowSelectionInterval(row, row);
+
                 RowItem item = visibleItems.get(row);
-                if (item.getKind() != RowItem.Kind.APPOINTMENT || item.getAppointment() == null) return;
+                if (item.getKind() != RowItem.Kind.APPOINTMENT || item.getAppointment() == null) {
+                    JOptionPane.showMessageDialog(MyBookingsFrame.this,
+                            "This row is not an appointment.\nYou can only set options for CONFIRMED appointments.");
+                    return;
+                }
 
                 Appointment selected = item.getAppointment();
-                if (selected.getStatus() != AppointmentStatus.CONFIRMED) return;
 
-                AppointmentTypeService typeService = new AppointmentTypeService(repo, new SmtpEmailSender());
+                if (selected.getStatus() != AppointmentStatus.CONFIRMED) {
+                    JOptionPane.showMessageDialog(MyBookingsFrame.this,
+                            "This booking is not CONFIRMED.\nOnly CONFIRMED bookings have options.");
+                    return;
+                }
 
-                AppointmentOptionsFrame f =
-                        new AppointmentOptionsFrame(MyBookingsFrame.this, repo, selected, typeService);
+                Object[] options = {"Cancel Booking", "Modify Booking", "More Options", "Close"};
+                int choice = JOptionPane.showOptionDialog(
+                        MyBookingsFrame.this,
+                        "Choose an action for the selected CONFIRMED booking:",
+                        "Booking Options",
+                        JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        options,
+                        options[0]
+                );
 
-                f.addWindowListener(new java.awt.event.WindowAdapter() {
-                    @Override
-                    public void windowClosed(java.awt.event.WindowEvent e) {
-                        loadMyBookings();
-                    }
-                });
+                if (choice == 0) {
+                    cancelSelected();
+                } else if (choice == 1) {
+                    modifySelected();
+                } else if (choice == 2) {
+                    AppointmentTypeService typeService = new AppointmentTypeService(repo, new SmtpEmailSender());
+                    AppointmentOptionsFrame f = new AppointmentOptionsFrame(MyBookingsFrame.this, repo, selected, typeService);
 
-                f.setVisible(true);
+                    f.addWindowListener(new java.awt.event.WindowAdapter() {
+                        @Override
+                        public void windowClosed(java.awt.event.WindowEvent e) {
+                            loadMyBookings();
+                        }
+                    });
+
+                    f.setVisible(true);
+                }
             }
         });
     }
@@ -338,7 +335,6 @@ public class MyBookingsFrame extends JFrame {
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-        // Requests first
         for (BookingRequest r : repo.getBookingRequests()) {
             if (r == null || r.getRequester() == null || r.getRequester().getUsername() == null) continue;
             if (!r.getRequester().getUsername().equalsIgnoreCase(username)) continue;
@@ -380,7 +376,6 @@ public class MyBookingsFrame extends JFrame {
             });
         }
 
-        
         for (Appointment a : repo.getAppointments()) {
             if (a == null || a.getUser() == null || a.getUser().getUsername() == null) continue;
             if (!a.getUser().getUsername().equalsIgnoreCase(username)) continue;

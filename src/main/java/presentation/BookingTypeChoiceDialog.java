@@ -99,12 +99,12 @@ public class BookingTypeChoiceDialog extends JDialog {
             ub.setVisible(true);
         });
 
-        JButton reviewBtn = bigPrimaryButton("Review Booking");
+       /* JButton reviewBtn = bigPrimaryButton("Review Booking");
         reviewBtn.addActionListener(e -> {
             dispose();
             UnifiedBookingFrame ub = new UnifiedBookingFrame(auth, booking, repo, category);
             ub.setVisible(true);
-        });
+        });*/
 
         JButton individualBtn = bigPrimaryButton("Individual Booking");
         individualBtn.addActionListener(e -> {
@@ -127,7 +127,7 @@ public class BookingTypeChoiceDialog extends JDialog {
 
         buttonsPanel.add(emergencyBtn);
         buttonsPanel.add(newBookingBtn);
-        buttonsPanel.add(reviewBtn);
+       // buttonsPanel.add(reviewBtn);
         buttonsPanel.add(individualBtn);
         buttonsPanel.add(groupBtn);
         buttonsPanel.add(aiBtn);
