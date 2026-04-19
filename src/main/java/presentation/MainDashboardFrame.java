@@ -103,6 +103,11 @@ public class MainDashboardFrame extends JFrame {
                 new MyBookingsFrame(auth, repo).setVisible(true)
         );
 
+        JButton profileBtn = new JButton("My Profile");
+        profileBtn.addActionListener(e ->
+                new UserProfileFrame(auth, repo).setVisible(true)
+        );
+
         JButton logoutBtn = new JButton("Logout");
         logoutBtn.addActionListener(e -> {
             RepoStorage.save(repo);
@@ -113,6 +118,7 @@ public class MainDashboardFrame extends JFrame {
 
         bottom.add(contactBtn);
         bottom.add(myBookingsBtn);
+        bottom.add(profileBtn);
         bottom.add(logoutBtn);
 
         add(bottom, BorderLayout.SOUTH);
