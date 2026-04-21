@@ -1,0 +1,280 @@
+@startuml
+title Soft_Proj - Full Class Diagram (Layered with attributes & methods)
+
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+' ===== DOMAIN =====
+package domain {
+  class User {
+    - id: String
+    - firstName: String
+    - lastName: String
+    - email: String
+    - passwordHash: String
+    - createdAt: LocalDateTime
+    --
+    + getId(): String
+    + getFullName(): String
+    + checkPassword(raw: String): boolean
+  }
+
+  class Administrator {
+    - adminLevel: int
+    --
+    + isSuperAdmin(): boolean
+  }
+
+  class Provider {
+    - providerId: String
+    - services: List<Category>
+    --
+    + listAvailableSlots(): List<TimeSlot>
+  }
+
+  class Category {
+    - id: String
+    - name: String
+    - description: String
+    --
+    + getName(): String
+  }
+
+  class TimeSlot {
+    - start: LocalDateTime
+    - durationMinutes: int
+    - category: Category
+    - booked: boolean
+    - held: boolean
+    --
+    + isAvailable(): boolean
+    + book(): void
+    + cancel(): void
+    + hold(): void
+    + overlaps(other: TimeSlot): boolean
+  }
+
+  class Appointment {
+    - id: String
+    - user: User
+    - slot: TimeSlot
+    - duration: int
+    - participants: int
+    - status: AppointmentStatus
+    - createdAt: LocalDateTime
+    - confirmedAt: LocalDateTime
+    - cancelledAt: LocalDateTime
+    - appointmentType: AppointmentType
+    - groupSize: Integer
+    --
+    + confirm(): void
+    + cancel(): void
+    + complete(): void
+    + setAppointmentType(t: AppointmentType): void
+  }
+
+  class BookingRequest {
+    - id: String
+    - user: User
+    - requestedSlotStart: LocalDateTime
+    - duration: int
+    - status: BookingRequestStatus
+    - createdAt: LocalDateTime
+    --
+    + submit(): BookingResult
+    + cancel(): void
+  }
+
+  class ContactRequest {
+    - id: String
+    - user: User
+    - message: String
+    - createdAt: LocalDateTime
+    --
+    + send(): void
+  }
+
+  class AuditEvent {
+    - id: String
+    - type: String
+    - message: String
+    - date: LocalDateTime
+    --
+    + toString(): String
+  }
+
+  enum AppointmentStatus
+  enum AppointmentType
+  enum BookingRequestStatus
+}
+
+Administrator --|> User
+Provider --|> User
+
+Category "1" <-- "0..*" TimeSlot : belongs to
+User "1" <-- "0..*" Appointment : has
+TimeSlot "1" <-- "0..*" Appointment : uses
+
+User "1" <-- "0..*" BookingRequest : creates
+TimeSlot "1" <-- "0..*" BookingRequest : targets
+
+Appointment --> AppointmentStatus
+Appointment --> AppointmentType
+BookingRequest --> BookingRequestStatus
+
+package persistence {
+  class DataRepository {
+    - users: List<User>
+    - categories: List<Category>
+    - slots: List<TimeSlot>
+    - appointments: List<Appointment>
+    - requests: List<BookingRequest>
+    --
+    + addUser(u: User): void
+    + addCategory(c: Category): void
+    + addSlot(s: TimeSlot): void
+    + addAppointment(a: Appointment): void
+    + addRequest(r: BookingRequest): void
+    + findAvailableSlots(cat: Category, from: LocalDateTime): List<TimeSlot>
+  }
+
+  class RepoStorage {
+    - filePath: Path
+    --
+    + save(repo: DataRepository): void
+    + load(): DataRepository
+  }
+
+  package "persistence.dto" {
+    class RepoSnapshot
+    class UserDTO
+    class CategoryDTO
+    class TimeSlotDTO
+    class AppointmentDTO
+    class BookingRequestDTO
+  }
+}
+
+DataRepository o-- User
+DataRepository o-- Category
+DataRepository o-- TimeSlot
+DataRepository o-- Appointment
+DataRepository o-- BookingRequest
+
+RepoStorage ..> DataRepository : save/load
+RepoStorage ..> RepoSnapshot
+RepoSnapshot o-- UserDTO
+RepoSnapshot o-- CategoryDTO
+RepoSnapshot o-- TimeSlotDTO
+RepoSnapshot o-- AppointmentDTO
+RepoSnapshot o-- BookingRequestDTO
+
+package Service {
+  class AuthService {
+    - repo: DataRepository
+    - currentUser: User
+    --
+    + login(username: String, password: String): boolean
+    + logout(): void
+    + isLoggedIn(): boolean
+    + getCurrentUser(): User
+  }
+
+  class BookingService {
+    - repo: DataRepository
+    --
+    + submitRequest(u: User, slot: TimeSlot, duration: int, participants: int): BookingResult
+    + approveRequest(reqId: String): boolean
+    + cancelAppointment(appId: String): boolean
+    + suggestSlots(user: User, cat: Category, limit: int): List<TimeSlot>
+  }
+
+  class AppointmentTypeService {
+    - repo: DataRepository
+    - emailSender: EmailSender
+    --
+    + createType(t: AppointmentType): void
+    + notifyParticipants(a: Appointment): void
+  }
+
+  class AdditionalAppointmentService {
+    - repo: DataRepository
+    --
+    + addExtraAppointment(...): boolean
+  }
+
+  class SmartSlotSuggestionService {
+    - repo: DataRepository
+    --
+    + suggest(user: User, cat: Category, limit: int): List<TimeSlot>
+  }
+
+  class BookingRequestService {
+    - repo: DataRepository
+    --
+    + submitRequest(...): BookingResult
+    + getPendingRequests(): List<BookingRequest>
+  }
+
+  interface EmailSender {
+    + send(emailTo: String, subject: String, body: String): boolean
+  }
+  class FakeEmailSender {
+    --
+    + send(...): boolean
+  }
+}
+
+FakeEmailSender ..|> EmailSender
+
+AuthService --> DataRepository
+BookingService --> DataRepository
+AppointmentTypeService --> DataRepository
+AppointmentTypeService --> EmailSender
+AdditionalAppointmentService --> DataRepository
+SmartSlotSuggestionService --> DataRepository
+BookingRequestService --> DataRepository
+
+AuthService --> User
+BookingService --> TimeSlot
+BookingService --> Appointment
+SmartSlotSuggestionService --> Category
+SmartSlotSuggestionService --> TimeSlot
+BookingRequestService --> BookingRequest
+
+package presentation {
+  class LoginFrame {
+    - auth: AuthService
+    --
+    + show(): void
+    + doLogin(): void
+  }
+  class AdminDashboardFrame {
+    - auth: AuthService
+    - booking: BookingService
+    --
+    + show(): void
+    + refresh(): void
+  }
+  class BookingTypeChoiceDialog {
+    - bookingRequestService: BookingRequestService
+    --
+    + open(): void
+    + sendRequest(): void
+  }
+  class UnifiedBookingFrame {
+    - bookingService: BookingService
+    --
+    + open(): void
+    + submit(): void
+  }
+}
+
+LoginFrame ..> AuthService
+AdminDashboardFrame ..> AuthService
+AdminDashboardFrame ..> BookingService
+BookingTypeChoiceDialog ..> BookingRequestService
+UnifiedBookingFrame ..> BookingService
+
+@enduml
