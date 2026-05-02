@@ -1,5 +1,4 @@
 name: SonarQube
-
 on:
   push:
     branches:
@@ -24,13 +23,6 @@ jobs:
           java-version: 17
           distribution: 'zulu'
 
-      - name: Cache SonarQube packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
@@ -41,4 +33,4 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B clean verify -DskipTests org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=SoftProj2026_Soft_Proj -Dsonar.organization=softproj2026 -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+        run: mvn -B clean verify -DskipTests sonar:sonar -Dsonar.projectKey=SoftProj2026_Soft_Proj -Dsonar.organization=softproj2026 -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=$SONAR_TOKEN
