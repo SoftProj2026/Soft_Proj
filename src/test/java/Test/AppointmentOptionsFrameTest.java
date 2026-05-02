@@ -32,12 +32,24 @@ public class AppointmentOptionsFrameTest {
     private Category cat;
 
     private static void runOnEdtAndWait(Runnable r) throws Exception {
-        if (SwingUtilities.isEventDispatchThread()) { r.run(); return; }
+        if (SwingUtilities.isEventDispatchThread()) {
+            r.run();
+            return;
+        }
+
         final Throwable[] t = new Throwable[1];
+
         SwingUtilities.invokeAndWait(() -> {
-            try { r.run(); } catch (Throwable e) { t[0] = e; }
+            try {
+                r.run();
+            } catch (Throwable e) {
+                t[0] = e;
+            }
         });
-        if (t[0] != null) throw new RuntimeException(t[0]);
+
+        if (t[0] != null) {
+            throw new RuntimeException(t[0]);
+        }
     }
 
     @BeforeEach
@@ -47,7 +59,15 @@ public class AppointmentOptionsFrameTest {
         repo = mock(DataRepository.class);
         typeService = mock(AppointmentTypeService.class);
 
-        user = new User("T", "U", "tester", "pw", java.time.LocalDate.of(1990,1,1), "t@example.com");
+        user = new User(
+                "T",
+                "U",
+                "tester",
+                "pw",
+                java.time.LocalDate.of(1990, 1, 1),
+                "t@example.com"
+        );
+
         cat = new Category("Consult");
 
         TimeSlot originalSlot = new TimeSlot(LocalDateTime.now().minusDays(1), 60, cat);
@@ -58,63 +78,85 @@ public class AppointmentOptionsFrameTest {
     @AfterEach
     void tearDown() {
         for (Window w : Window.getWindows()) {
-            if (w != null) w.dispose();
+            if (w != null) {
+                w.dispose();
+            }
         }
     }
 
     private static JComboBox<?> findCombo(Container root) {
         for (Component c : root.getComponents()) {
-            if (c instanceof JComboBox) return (JComboBox<?>) c;
+            if (c instanceof JComboBox) {
+                return (JComboBox<?>) c;
+            }
+
             if (c instanceof Container) {
                 JComboBox<?> r = findCombo((Container) c);
-                if (r != null) return r;
+                if (r != null) {
+                    return r;
+                }
             }
         }
+
         return null;
     }
 
     private static JButton findButton(Container root, String text) {
         for (Component c : root.getComponents()) {
-            if (c instanceof JButton && text.equals(((JButton) c).getText())) return (JButton) c;
+            if (c instanceof JButton && text.equals(((JButton) c).getText())) {
+                return (JButton) c;
+            }
+
             if (c instanceof Container) {
                 JButton r = findButton((Container) c, text);
-                if (r != null) return r;
+                if (r != null) {
+                    return r;
+                }
             }
         }
+
         return null;
     }
 
     /**
      * Finds the duration spinner by looking for a spinner whose model max is >= 30 and <= 240,
-     * and whose initial value is commonly 30 (as in AppointmentOptionsFrame).
-     * This avoids accidentally grabbing participants spinner (1..5).
+     * and whose initial value is commonly 30, as in AppointmentOptionsFrame.
+     * This avoids accidentally grabbing participants spinner, which is usually 1..5.
      */
     private static JSpinner findDurationSpinner(Container root) {
         for (Component c : root.getComponents()) {
             if (c instanceof JSpinner sp) {
                 SpinnerModel m = sp.getModel();
+
                 if (m instanceof SpinnerNumberModel nm) {
                     Number min = (Number) nm.getMinimum();
                     Number max = (Number) nm.getMaximum();
                     Number val = (Number) nm.getNumber();
 
-                    // participants عادة 1..5، duration عادة 1..60 و default 30
                     boolean looksLikeDuration =
                             min.intValue() <= 1 &&
                             max.intValue() >= 30 &&
                             max.intValue() <= 300 &&
                             val.intValue() >= 1;
 
-                    boolean looksLikeParticipants = (min.intValue() == 1 && max.intValue() == 5);
+                    boolean looksLikeParticipants =
+                            min.intValue() == 1 &&
+                            max.intValue() == 5;
 
-                    if (looksLikeDuration && !looksLikeParticipants) return sp;
+                    if (looksLikeDuration && !looksLikeParticipants) {
+                        return sp;
+                    }
                 }
             }
+
             if (c instanceof Container cc) {
                 JSpinner r = findDurationSpinner(cc);
-                if (r != null) return r;
+                if (r != null) {
+                    return r;
+                }
             }
         }
+
         return null;
     }
 
@@ -126,7 +168,7 @@ public class AppointmentOptionsFrameTest {
 
     @Test
     void loadAvailableSlots_populates_combo_with_matching_future_slots() throws Exception {
-        TimeSlot s1 = new TimeSlot(LocalDateTime.now().plusDays(1), 30, cat); // available by default
+        TimeSlot s1 = new TimeSlot(LocalDateTime.now().plusDays(1), 30, cat);
         TimeSlot s2 = new TimeSlot(LocalDateTime.now().plusDays(2), 30, new Category("Other"));
 
         when(repo.getSlots()).thenReturn(List.of(s1, s2));
@@ -171,7 +213,7 @@ public class AppointmentOptionsFrameTest {
             JSpinner durationSpinner = findDurationSpinner(frame.getContentPane());
             assertNotNull(durationSpinner, "duration spinner must be found");
 
-            int actualMax = (int) ((SpinnerNumberModel) durationSpinner.getModel()).getMaximum();
+            int actualMax = ((Number) ((SpinnerNumberModel) durationSpinner.getModel()).getMaximum()).intValue();
 
             assertEquals(45, actualMax);
 
@@ -202,7 +244,8 @@ public class AppointmentOptionsFrameTest {
             assertNotNull(save);
             runOnEdtAndWait(save::doClick);
 
-            verify(mockAdditionalService, never()).createNewAppointment(any(), any(), anyInt(), anyInt(), any(), any(), any());
+            verify(mockAdditionalService, never())
+                    .createNewAppointment(any(), any(), anyInt(), anyInt(), any(), any(), any());
 
             runOnEdtAndWait(frame::dispose);
         }
@@ -229,7 +272,8 @@ public class AppointmentOptionsFrameTest {
             assertNotNull(save);
             runOnEdtAndWait(save::doClick);
 
-            verify(mockAdditionalService, never()).createNewAppointment(any(), any(), anyInt(), anyInt(), any(), any(), any());
+            verify(mockAdditionalService, never())
+                    .createNewAppointment(any(), any(), anyInt(), anyInt(), any(), any(), any());
 
             runOnEdtAndWait(frame::dispose);
         }
@@ -246,6 +290,7 @@ public class AppointmentOptionsFrameTest {
              MockedStatic<AppointmentTypeRules> rules = mockStatic(AppointmentTypeRules.class)) {
 
             d.when(() -> DialogUtil.show(any(), anyString(), anyString(), any())).then(inv -> null);
+
             rules.when(() -> AppointmentTypeRules.validate(any(), anyInt(), anyInt(), any()))
                     .thenReturn("Bad: too long");
 
@@ -267,7 +312,8 @@ public class AppointmentOptionsFrameTest {
             assertNotNull(save);
             runOnEdtAndWait(save::doClick);
 
-            verify(mockAdditionalService, never()).createNewAppointment(any(), any(), anyInt(), anyInt(), any(), any(), any());
+            verify(mockAdditionalService, never())
+                    .createNewAppointment(any(), any(), anyInt(), anyInt(), any(), any(), any());
 
             runOnEdtAndWait(frame::dispose);
         }
@@ -279,9 +325,16 @@ public class AppointmentOptionsFrameTest {
         when(repo.getSlots()).thenReturn(List.of(s));
 
         AdditionalAppointmentService mockAdditionalService = mock(AdditionalAppointmentService.class);
+
         when(mockAdditionalService.createNewAppointment(
-                any(User.class), any(TimeSlot.class), anyInt(), anyInt(), any(AppointmentType.class), any(), any()))
-                .thenReturn("Saved.");
+                any(User.class),
+                any(TimeSlot.class),
+                anyInt(),
+                anyInt(),
+                any(AppointmentType.class),
+                any(),
+                any()
+        )).thenReturn("Saved.");
 
         try (MockedStatic<DialogUtil> d = mockStatic(DialogUtil.class)) {
             d.when(() -> DialogUtil.show(any(), anyString(), anyString(), any())).then(inv -> null);
@@ -305,7 +358,15 @@ public class AppointmentOptionsFrameTest {
             runOnEdtAndWait(save::doClick);
 
             verify(mockAdditionalService, timeout(2000).atLeastOnce())
-                    .createNewAppointment(any(User.class), any(TimeSlot.class), anyInt(), anyInt(), any(AppointmentType.class), any(), any());
+                    .createNewAppointment(
+                            any(User.class),
+                            any(TimeSlot.class),
+                            anyInt(),
+                            anyInt(),
+                            any(AppointmentType.class),
+                            any(),
+                            any()
+                    );
 
             runOnEdtAndWait(() -> assertFalse(frame.isDisplayable()));
 
