@@ -20,8 +20,9 @@
     <maven.surefire.version>3.2.5</maven.surefire.version>
     <assertj.version>3.24.2</assertj.version>
     <jacoco.version>0.8.10</jacoco.version>
-  </properties>
+      <sonar.organization>softproj2026</sonar.organization>
 
+  </properties>
   <dependencies>
 
     <dependency>

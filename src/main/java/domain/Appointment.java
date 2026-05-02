@@ -238,13 +238,16 @@ public class Appointment {
     public void setAppointmentType(AppointmentType appointmentType) {
         this.appointmentType = appointmentType;
 
-        if (appointmentType != AppointmentType.GROUP) {
+        if (appointmentType != AppointmentType.GROUP) 
+        {
             this.groupSize = null;
         }
-        if (appointmentType != AppointmentType.REVIEW) {
+        if (appointmentType != AppointmentType.REVIEW) 
+        {
             this.reviewTargetSlotStart = null;
         }
-        if (appointmentType != AppointmentType.EMERGENCY) {
+        if (appointmentType != AppointmentType.EMERGENCY) 
+        {
             this.emergencyPreferredSlotStart = null;
         }
     }

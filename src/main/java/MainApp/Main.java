@@ -47,9 +47,7 @@ public class Main {
                 || (repo.getCategories().size() == 1
                 && repo.getCategories().get(0) != null
                 && "Keep This".equalsIgnoreCase(repo.getCategories().get(0).getName()))) {
-
             repo.getCategories().clear();
-
             List<Category> categories = buildCategories();
             for (Category c : categories) {
                 repo.addCategory(c);
@@ -60,7 +58,6 @@ public class Main {
 
             RepoStorage.save(repo);
         }
-
         boolean looksEmpty = repo.getUsers().isEmpty()
                 && repo.getProviders().isEmpty()
                 && repo.getCategories().isEmpty()
