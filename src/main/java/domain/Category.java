@@ -26,7 +26,7 @@ public class Category {
      */
     public Category(String name) {
         this.name = name;
-        this.category = null;
+        this. parentCategory = null;
     }
 
     /**
@@ -35,7 +35,7 @@ public class Category {
      * @return related category (may be {@code null})
      */
     public Category getCategory() {
-        return category;
+        return parentCategory;
     }
 
     /**
