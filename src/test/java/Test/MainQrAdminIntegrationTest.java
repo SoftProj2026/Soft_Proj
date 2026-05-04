@@ -102,7 +102,7 @@ public class MainQrAdminIntegrationTest {
     void main_qrAdminLogin_opensAdminDashboard() throws Exception {
         System.setProperty("user.home", tmpHome.toString());
 
-        runOnEdtAndWait(() -> MainApp.Main.main(new String[0]));
+        runOnEdtAndWait(() -> mainapp.Main.main(new String[0]));
 
         Window loginWin = waitForWindowByTitle("Login", 4000);
         assertNotNull(loginWin, "Login window should appear after Main.main()");
