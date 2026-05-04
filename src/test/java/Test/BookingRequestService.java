@@ -1,11 +1,11 @@
 package Test;
 
-import Service.BookingRequestService;
-import Service.BookingResult;
 import domain.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
+import service.BookingRequestService;
+import service.BookingResult;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

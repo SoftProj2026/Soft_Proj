@@ -1,7 +1,5 @@
 package Test;
 
-import Service.AppointmentTypeService;
-import Service.FakeEmailSender;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.AppointmentType;
@@ -10,6 +8,8 @@ import domain.TimeSlot;
 import domain.User;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
+import service.AppointmentTypeService;
+import service.FakeEmailSender;
 
 import java.time.LocalDateTime;
 

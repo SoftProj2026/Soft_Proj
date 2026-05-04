@@ -1,9 +1,10 @@
 package Test;
 
-import Service.BookingService;
-import Service.BookingResult;
 import domain.*;
 import persistence.DataRepository;
+import service.BookingResult;
+import service.BookingService;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

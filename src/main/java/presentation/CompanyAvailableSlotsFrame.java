@@ -1,9 +1,9 @@
 package presentation;
 
-import Service.BlockedSlotsRule;
 import domain.Category;
 import domain.TimeSlot;
 import persistence.DataRepository;
+import service.BlockedSlotsRule;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

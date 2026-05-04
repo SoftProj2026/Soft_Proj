@@ -1,10 +1,9 @@
 package Test;
 
-import Service.MinimumNoticeRule;
-
 import domain.Appointment;
 import domain.TimeSlot;
 import domain.User;
+import service.MinimumNoticeRule;
 import domain.Category;
 import org.junit.jupiter.api.Test;
 

@@ -1,8 +1,5 @@
 package mainapp;
 
-import Service.AuthService;
-import Service.BookingRequestService;
-import Service.BookingService;
 import domain.Administrator;
 import domain.Category;
 import domain.Provider;
@@ -12,6 +9,9 @@ import persistence.DataRepository;
 import persistence.RepoStorage;
 import presentation.LoginFrame;
 import presentation.UITheme;
+import service.AuthService;
+import service.BookingRequestService;
+import service.BookingService;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

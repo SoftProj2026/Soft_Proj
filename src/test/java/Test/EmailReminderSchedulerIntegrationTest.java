@@ -1,17 +1,16 @@
 package Test;
 
-import Service.FakeEmailSender;
-
-import Service.EmailReminderScheduler;
-import Service.AuthService;
-import Service.BookingEmailReminderService;
-
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.Category;
 import domain.TimeSlot;
 import domain.User;
 import persistence.DataRepository;
+import service.AuthService;
+import service.BookingEmailReminderService;
+import service.EmailReminderScheduler;
+import service.FakeEmailSender;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

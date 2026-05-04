@@ -1,9 +1,9 @@
 package Test;
 
-import Service.ParticipantLimitRule;
 import domain.Appointment;
 import domain.TimeSlot;
 import domain.User;
+import service.ParticipantLimitRule;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,10 +1,10 @@
 package Test;
 
-import Service.UniqueStartTimeRule;
-
 import domain.*;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
+import service.UniqueStartTimeRule;
+
 import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 

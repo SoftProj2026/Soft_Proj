@@ -1,9 +1,10 @@
 package Test;
 
-import Service.SmtpEmailSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import service.SmtpEmailSender;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -1,6 +1,5 @@
 package Test;
 
-import Service.AuthService;
 import domain.ContactRequest;
 import domain.Provider;
 import org.junit.jupiter.api.AfterEach;
@@ -8,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
 import presentation.ProviderInboxFrame;
+import service.AuthService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;

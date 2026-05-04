@@ -8,7 +8,8 @@ import domain.TimeSlot;
 import domain.User;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
-import Service.AdditionalAppointmentService;
+import service.AdditionalAppointmentService;
+
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;

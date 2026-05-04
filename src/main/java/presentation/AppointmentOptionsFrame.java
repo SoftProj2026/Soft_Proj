@@ -1,13 +1,13 @@
 package presentation;
 
-import Service.AdditionalAppointmentService;
-import Service.AppointmentTypeRules;
-import Service.AppointmentTypeService;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.AppointmentType;
 import domain.TimeSlot;
 import persistence.DataRepository;
+import service.AdditionalAppointmentService;
+import service.AppointmentTypeRules;
+import service.AppointmentTypeService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

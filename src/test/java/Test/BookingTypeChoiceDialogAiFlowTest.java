@@ -1,9 +1,5 @@
 package Test;
 
-import Service.AiBookingAssistantService;
-import Service.AuthService;
-import Service.BookingResult;
-import Service.BookingService;
 import domain.Category;
 import domain.TimeSlot;
 import domain.User;
@@ -15,6 +11,10 @@ import org.mockito.MockedStatic;
 import persistence.DataRepository;
 import presentation.BookingTypeChoiceDialog;
 import presentation.UITheme;
+import service.AiBookingAssistantService;
+import service.AuthService;
+import service.BookingResult;
+import service.BookingService;
 
 import javax.swing.*;
 import java.awt.*;

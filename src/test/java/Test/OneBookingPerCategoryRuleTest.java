@@ -1,8 +1,8 @@
 package Test;
-import Service.OneBookingPerCategoryRule;
-
 import domain.*;
 import persistence.DataRepository;
+import service.OneBookingPerCategoryRule;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

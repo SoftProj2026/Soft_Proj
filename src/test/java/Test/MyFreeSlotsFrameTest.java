@@ -1,6 +1,5 @@
 package Test;
 
-import Service.AuthService;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.Category;
@@ -11,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
 import presentation.MyFreeSlotsFrame;
+import service.AuthService;
 
 import javax.swing.*;
 import java.awt.*;

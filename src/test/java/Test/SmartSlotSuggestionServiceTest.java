@@ -1,10 +1,10 @@
 package Test;
 
-import Service.SmartSlotSuggestionService;
 import domain.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
+import service.SmartSlotSuggestionService;
 
 import java.time.LocalDateTime;
 import java.util.List;

@@ -1,11 +1,12 @@
 package Test;
 
-import Service.ScheduleService;
-import Service.AuthService;
 import domain.TimeSlot;
 import domain.Category;
 import domain.User;
 import persistence.DataRepository;
+import service.AuthService;
+import service.ScheduleService;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

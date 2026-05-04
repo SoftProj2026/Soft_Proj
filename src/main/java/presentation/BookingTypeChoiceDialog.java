@@ -1,14 +1,14 @@
 package presentation;
 
-import Service.AiBookingAssistantService;
-import Service.AuthService;
-import Service.BookingResult;
-import Service.BookingService;
-import Service.EmailSender;
-import Service.SmtpEmailSender;
 import domain.Category;
 import domain.TimeSlot;
 import persistence.DataRepository;
+import service.AiBookingAssistantService;
+import service.AuthService;
+import service.BookingResult;
+import service.BookingService;
+import service.EmailSender;
+import service.SmtpEmailSender;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

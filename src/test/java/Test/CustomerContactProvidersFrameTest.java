@@ -1,6 +1,5 @@
 package Test;
 
-import Service.AuthService;
 import domain.ContactRequest;
 import domain.Provider;
 import domain.User;
@@ -13,6 +12,7 @@ import persistence.DataRepository;
 import presentation.CustomerContactProvidersFrame;
 import presentation.DialogUtil;
 import presentation.UITheme;
+import service.AuthService;
 
 import javax.swing.*;
 import java.awt.*;

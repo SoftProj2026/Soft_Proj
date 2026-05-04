@@ -1,9 +1,9 @@
 package presentation;
 
-import Service.AuthService;
 import domain.ContactRequest;
 import domain.Provider;
 import persistence.DataRepository;
+import service.AuthService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

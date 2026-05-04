@@ -1,14 +1,14 @@
 package presentation;
 
-import Service.AuthService;
-import Service.BookingResult;
-import Service.BookingService;
-import Service.BlockedSlotsRule;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.Category;
 import domain.TimeSlot;
 import persistence.DataRepository;
+import service.AuthService;
+import service.BlockedSlotsRule;
+import service.BookingResult;
+import service.BookingService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

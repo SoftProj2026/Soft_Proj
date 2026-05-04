@@ -1,7 +1,8 @@
 package Test;
 
-import Service.FakeEmailSender;
 import org.junit.jupiter.api.Test;
+
+import service.FakeEmailSender;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -1,11 +1,11 @@
 package presentation;
 
-import Service.AuthService;
-import Service.EmailSender;
-import Service.SmtpEmailSender;
 import domain.ContactRequest;
 import domain.Provider;
 import persistence.DataRepository;
+import service.AuthService;
+import service.EmailSender;
+import service.SmtpEmailSender;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

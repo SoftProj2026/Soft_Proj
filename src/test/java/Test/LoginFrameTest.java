@@ -1,11 +1,12 @@
 package Test;
 
-import Service.AuthService;
-import Service.BookingRequestService;
-import Service.BookingService;
 import domain.*;
 import persistence.DataRepository;
 import presentation.LoginFrame;
+import service.AuthService;
+import service.BookingRequestService;
+import service.BookingService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;

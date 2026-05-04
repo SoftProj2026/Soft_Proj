@@ -1,10 +1,10 @@
 package presentation;
 
-import Service.AuthService;
-import Service.BookingService;
 import domain.Category;
 import persistence.DataRepository;
 import persistence.RepoStorage;
+import service.AuthService;
+import service.BookingService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

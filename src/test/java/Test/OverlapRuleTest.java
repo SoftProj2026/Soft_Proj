@@ -1,8 +1,9 @@
 package Test;
 
-import Service.OverlapRule;
 import domain.*;
 import persistence.DataRepository;
+import service.OverlapRule;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

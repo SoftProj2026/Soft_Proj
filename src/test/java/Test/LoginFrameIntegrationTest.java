@@ -1,7 +1,5 @@
 package Test;
 
-import Service.AuthService;
-import Service.BookingService;
 import domain.Administrator;
 import domain.Category;
 import domain.User;
@@ -9,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import persistence.DataRepository;
 import presentation.LoginFrame;
+import service.AuthService;
+import service.BookingService;
 
 import javax.swing.*;
 import java.awt.*;

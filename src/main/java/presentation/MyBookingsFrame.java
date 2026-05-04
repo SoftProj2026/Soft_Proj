@@ -1,14 +1,14 @@
 package presentation;
 
-import Service.AppointmentTypeService;
-import Service.AuthService;
-import Service.SmtpEmailSender;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.BookingRequest;
 import domain.BookingRequestStatus;
 import domain.TimeSlot;
 import persistence.DataRepository;
+import service.AppointmentTypeService;
+import service.AuthService;
+import service.SmtpEmailSender;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

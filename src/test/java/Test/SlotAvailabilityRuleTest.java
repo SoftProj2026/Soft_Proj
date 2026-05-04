@@ -1,8 +1,8 @@
 package Test;
 
-import Service.SlotAvailabilityRule;
-
 import domain.*;
+import service.SlotAvailabilityRule;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

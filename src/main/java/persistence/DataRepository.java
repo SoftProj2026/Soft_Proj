@@ -1,8 +1,5 @@
 package persistence;
 
-import Service.AppointmentTypeRules;
-import Service.EmailSender;
-import Service.SmtpEmailSender;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.AppointmentType;
@@ -14,6 +11,9 @@ import domain.ContactRequest;
 import domain.Provider;
 import domain.TimeSlot;
 import domain.User;
+import service.AppointmentTypeRules;
+import service.EmailSender;
+import service.SmtpEmailSender;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

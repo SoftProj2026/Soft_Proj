@@ -1,13 +1,14 @@
 package Test;
 
-import Service.AuthService;
-import Service.BookingService;
 import domain.Administrator;
 import domain.Provider;
 import domain.User;
 import persistence.DataRepository;
 import persistence.RepoStorage;
 import presentation.AdminDashboardFrame;
+import service.AuthService;
+import service.BookingService;
+
 import org.junit.jupiter.api.*;
 
 import javax.swing.*;

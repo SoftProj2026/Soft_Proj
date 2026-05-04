@@ -1,10 +1,10 @@
 package Test;
 
-import Service.AuthService;
-import Service.BookingService;
 import domain.*;
 import persistence.DataRepository;
 import presentation.UnifiedBookingFrame;
+import service.AuthService;
+import service.BookingService;
 import presentation.UITheme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

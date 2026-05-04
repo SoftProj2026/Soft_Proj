@@ -1,8 +1,10 @@
 package Test;
 
 import domain.AppointmentType;
+import service.AppointmentTypeRules;
+
 import org.junit.jupiter.api.Test;
-import Service.AppointmentTypeRules;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class AppointmentTypeRulesTest {

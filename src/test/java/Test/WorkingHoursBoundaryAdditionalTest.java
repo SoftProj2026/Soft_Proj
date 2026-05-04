@@ -1,7 +1,8 @@
 package Test;
 
-import Service.WorkingHoursRule;
 import domain.*;
+import service.WorkingHoursRule;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

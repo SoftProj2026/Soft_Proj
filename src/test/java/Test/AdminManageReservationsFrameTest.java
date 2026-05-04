@@ -1,6 +1,5 @@
 package Test;
 
-import Service.AuthService;
 import domain.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +10,7 @@ import persistence.DataRepository;
 import presentation.AdminManageReservationsFrame;
 import presentation.DialogUtil;
 import presentation.UITheme;
+import service.AuthService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;

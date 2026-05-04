@@ -4,9 +4,10 @@ package Test;
 import domain.Appointment;
 import domain.TimeSlot;
 import domain.User;
+import service.NotInPastRule;
 import domain.Category;
 import org.junit.jupiter.api.Test;
-import Service.NotInPastRule;
+
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;

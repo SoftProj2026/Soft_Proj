@@ -1,10 +1,10 @@
 package Test;
 
-import Service.AuthService;
 import domain.*;
 import org.junit.jupiter.api.*;
 import persistence.DataRepository;
 import presentation.MyBookingsFrame;
+import service.AuthService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;

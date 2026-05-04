@@ -1,8 +1,8 @@
 package Test;
 
-import Service.DurationRule;
-
 import domain.*;
+import service.DurationRule;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

@@ -1,17 +1,17 @@
 package presentation;
 
-import Service.AuthService;
-import Service.BookingEmailReminderService;
-import Service.BookingRequestService;
-import Service.BookingService;
-import Service.EmailReminderScheduler;
-import Service.EmailSender;
-import Service.SmtpEmailSender;
 import domain.Administrator;
 import domain.Category;
 import domain.Provider;
 import persistence.DataRepository;
 import persistence.RepoStorage;
+import service.AuthService;
+import service.BookingEmailReminderService;
+import service.BookingRequestService;
+import service.BookingService;
+import service.EmailReminderScheduler;
+import service.EmailSender;
+import service.SmtpEmailSender;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

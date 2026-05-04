@@ -1,8 +1,5 @@
 package Test;
 
-import Service.AdditionalAppointmentService;
-import Service.AppointmentTypeService;
-import Service.AppointmentTypeRules;
 import domain.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +9,9 @@ import persistence.DataRepository;
 import presentation.AppointmentOptionsFrame;
 import presentation.DialogUtil;
 import presentation.UITheme;
+import service.AdditionalAppointmentService;
+import service.AppointmentTypeRules;
+import service.AppointmentTypeService;
 
 import javax.swing.*;
 import java.awt.*;

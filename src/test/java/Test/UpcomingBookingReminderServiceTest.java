@@ -4,7 +4,7 @@ import domain.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
-import Service.UpcomingBookingReminderService;
+import service.UpcomingBookingReminderService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

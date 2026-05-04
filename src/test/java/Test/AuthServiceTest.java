@@ -1,7 +1,7 @@
 package Test;
 
-import Service.AuthService;
 import persistence.DataRepository;
+import service.AuthService;
 import domain.User;
 import domain.Administrator;
 

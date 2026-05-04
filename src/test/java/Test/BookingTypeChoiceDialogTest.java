@@ -1,7 +1,5 @@
 package Test;
 
-import Service.AuthService;
-import Service.BookingService;
 import domain.Category;
 import domain.TimeSlot;
 import domain.User;
@@ -13,6 +11,8 @@ import persistence.DataRepository;
 import presentation.BookingTypeChoiceDialog;
 import presentation.DialogUtil;
 import presentation.UITheme;
+import service.AuthService;
+import service.BookingService;
 
 import javax.swing.*;
 import java.awt.*;

@@ -1,11 +1,11 @@
 package presentation;
 
-import Service.AuthService;
 import domain.Administrator;
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.TimeSlot;
 import persistence.DataRepository;
+import service.AuthService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;

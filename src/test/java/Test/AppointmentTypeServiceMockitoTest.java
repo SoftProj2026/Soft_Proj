@@ -1,8 +1,5 @@
 package Test;
 
-import Service.FakeEmailSender;
-import Service.EmailSender;
-import Service.AppointmentTypeService;
 import domain.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,6 +9,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import persistence.DataRepository;
+import service.AppointmentTypeService;
+import service.EmailSender;
+import service.FakeEmailSender;
 
 import java.time.LocalDateTime;
 

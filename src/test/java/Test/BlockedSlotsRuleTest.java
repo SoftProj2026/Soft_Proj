@@ -1,10 +1,11 @@
 package Test;
 
-import Service.BlockedSlotsRule;
 import domain.Appointment;
 import domain.Category;
 import domain.TimeSlot;
 import domain.User;
+import service.BlockedSlotsRule;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

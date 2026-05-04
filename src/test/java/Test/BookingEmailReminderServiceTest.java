@@ -1,9 +1,10 @@
 package Test;
 
-import Service.BookingEmailReminderService;
-import Service.FakeEmailSender;
 import domain.*;
 import persistence.DataRepository;
+import service.BookingEmailReminderService;
+import service.FakeEmailSender;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
