@@ -18,8 +18,7 @@ public class Category {
     /**
      * Optional parent or related category reference (may be {@code null}).
      */
-    private Category category;
-
+    private Category parentCategory;
     /**
      * Creates a new category with the given name.
      *
