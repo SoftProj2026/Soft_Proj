@@ -1,4 +1,4 @@
-package MainApp;
+package mainapp;
 
 import Service.AuthService;
 import Service.BookingRequestService;
