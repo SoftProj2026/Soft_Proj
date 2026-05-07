@@ -34,10 +34,15 @@
 
         <jacoco.version>0.8.10</jacoco.version>
 
+        <!-- Sonar -->
         <sonar.organization>softproj2026</sonar.organization>
-<sonar.organization>softproj2026</sonar.organization>
-<sonar.projectKey>SoftProj2026_Soft_Proj</sonar.projectKey>
-<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.projectKey>softproj2026_Soft_proj</sonar.projectKey>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+
+        <sonar.coverage.jacoco.xmlReportPaths>
+            target/site/jacoco/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
+
         <sonar.coverage.exclusions>
             **/presentation/**,
             **/*GUI.java
@@ -111,6 +116,7 @@
 
         <plugins>
 
+            <!-- Compiler -->
             <plugin>
 
                 <groupId>org.apache.maven.plugins</groupId>
@@ -127,6 +133,7 @@
 
             </plugin>
 
+            <!-- Surefire -->
             <plugin>
 
                 <groupId>org.apache.maven.plugins</groupId>
@@ -151,6 +158,7 @@
 
             </plugin>
 
+            <!-- JaCoCo -->
             <plugin>
 
                 <groupId>org.jacoco</groupId>
@@ -177,7 +185,7 @@
 
                         <id>report</id>
 
-                        <phase>test</phase>
+                        <phase>verify</phase>
 
                         <goals>
 
