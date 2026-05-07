@@ -4,7 +4,9 @@ import presentation.SignUpFrame;
 import service.AuthService;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -23,6 +25,14 @@ import static org.mockito.Mockito.*;
  * Tests access private UI fields/methods via reflection and runs interactions on the EDT.
  */
 class SignUpFrameTest {
+
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
 
     private static interface RunnableWithException {
         void run() throws Exception;
