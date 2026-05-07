@@ -1,16 +1,19 @@
 package Test;
 
+
+
+import java.time.LocalDateTime;
+
+import org.junit.jupiter.api.Test;
+
 import domain.Appointment;
 import domain.AppointmentStatus;
 import domain.AppointmentType;
 import domain.Category;
 import domain.TimeSlot;
 import domain.User;
-import org.junit.jupiter.api.Test;
 import persistence.DataRepository;
 import service.AdditionalAppointmentService;
-
-import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -1,10 +1,16 @@
 package Test;
 
-import domain.*;
-import persistence.DataRepository;
-import presentation.AdminActivityFrame;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import domain.Appointment;
+import domain.AuditEvent;
+import domain.Category;
+import domain.ContactRequest;
+import domain.TimeSlot;
+import domain.User;
+import persistence.DataRepository;
+import presentation.AdminActivityFrame;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -27,6 +33,7 @@ class AdminActivityFrameTest {
             "Skipping GUI tests in CI headless mode"
         );
     }
+    
     private DataRepository repo;
     private AdminActivityFrame frame;
 
