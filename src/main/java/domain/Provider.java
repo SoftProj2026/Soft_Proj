@@ -81,6 +81,7 @@ public class Provider extends User {
      *
      * @return email address
      */
+    @Override
     public String getEmail() {
         return email;
     }
