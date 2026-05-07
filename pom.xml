@@ -18,21 +18,26 @@
 
         <junit.version>5.10.2</junit.version>
         <mockito.version>5.11.0</mockito.version>
+
         <jakarta.mail.version>2.0.1</jakarta.mail.version>
         <jakarta.activation.version>2.0.1</jakarta.activation.version>
+
         <jackson.version>2.17.2</jackson.version>
+
         <dotenv.version>3.0.0</dotenv.version>
+
         <assertj.version>3.24.2</assertj.version>
 
         <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+
         <maven.surefire.version>3.2.5</maven.surefire.version>
-        <jacoco.version>0.8.11</jacoco.version>
+
+        <jacoco.version>0.8.10</jacoco.version>
 
         <sonar.organization>softproj2026</sonar.organization>
-        <sonar.projectKey>softproj2026_Soft_proj</sonar.projectKey>
-        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-
-        <!-- استثناء ملفات الـ GUI -->
+<sonar.organization>softproj2026</sonar.organization>
+<sonar.projectKey>SoftProj2026_Soft_Proj</sonar.projectKey>
+<sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.coverage.exclusions>
             **/presentation/**,
             **/*GUI.java
@@ -42,7 +47,6 @@
 
     <dependencies>
 
-        <!-- JUnit -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -50,7 +54,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Mockito -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -65,7 +68,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- AssertJ -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -73,28 +75,24 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Dotenv -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
             <version>${dotenv.version}</version>
         </dependency>
 
-        <!-- Jakarta Mail -->
         <dependency>
             <groupId>com.sun.mail</groupId>
             <artifactId>jakarta.mail</artifactId>
             <version>${jakarta.mail.version}</version>
         </dependency>
 
-        <!-- Jakarta Activation -->
         <dependency>
             <groupId>com.sun.activation</groupId>
             <artifactId>jakarta.activation</artifactId>
             <version>${jakarta.activation.version}</version>
         </dependency>
 
-        <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -113,21 +111,28 @@
 
         <plugins>
 
-            <!-- Compiler -->
             <plugin>
+
                 <groupId>org.apache.maven.plugins</groupId>
+
                 <artifactId>maven-compiler-plugin</artifactId>
+
                 <version>${maven.compiler.plugin.version}</version>
 
                 <configuration>
+
                     <release>${maven.compiler.release}</release>
+
                 </configuration>
+
             </plugin>
 
-            <!-- JUnit -->
             <plugin>
+
                 <groupId>org.apache.maven.plugins</groupId>
+
                 <artifactId>maven-surefire-plugin</artifactId>
+
                 <version>${maven.surefire.version}</version>
 
                 <configuration>
@@ -135,47 +140,59 @@
                     <useModulePath>false</useModulePath>
 
                     <includes>
+
                         <include>**/*Test.java</include>
+
                         <include>**/*_Test.java</include>
+
                     </includes>
 
                 </configuration>
+
             </plugin>
 
-            <!-- JaCoCo -->
             <plugin>
 
                 <groupId>org.jacoco</groupId>
+
                 <artifactId>jacoco-maven-plugin</artifactId>
+
                 <version>${jacoco.version}</version>
 
                 <executions>
 
-                    <!-- تشغيل الـ coverage -->
                     <execution>
 
                         <id>prepare-agent</id>
+
                         <goals>
+
                             <goal>prepare-agent</goal>
+
                         </goals>
 
                     </execution>
 
-                    <!-- توليد التقرير -->
                     <execution>
 
                         <id>report</id>
+
                         <phase>test</phase>
 
                         <goals>
+
                             <goal>report</goal>
+
                         </goals>
 
                         <configuration>
 
                             <excludes>
+
                                 <exclude>**/presentation/**</exclude>
+
                                 <exclude>**/*GUI.java</exclude>
+
                             </excludes>
 
                         </configuration>
