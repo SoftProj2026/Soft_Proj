@@ -19,9 +19,16 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 public class ProviderInboxFrameTest {
-
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
     private DataRepository repo;
     private AuthService auth;
     private Provider provider;

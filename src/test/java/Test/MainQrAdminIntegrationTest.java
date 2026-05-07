@@ -9,9 +9,16 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 public class MainQrAdminIntegrationTest {
-
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
     @TempDir
     Path tmpHome;
 

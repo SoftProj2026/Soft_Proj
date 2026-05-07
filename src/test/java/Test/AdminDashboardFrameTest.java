@@ -18,9 +18,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.mockito.MockedStatic;
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 class AdminDashboardFrameTest {
-
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
     private static void runOnEdt(Runnable r) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) {
             r.run();
