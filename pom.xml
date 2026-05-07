@@ -9,29 +9,23 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <maven.compiler.release>17</maven.compiler.release>
-
-        <junit.version>5.10.2</junit.version>
-        <mockito.version>5.11.0</mockito.version>
-        <jakarta.mail.version>2.0.1</jakarta.mail.version>
-        <jakarta.activation.version>2.0.1</jakarta.activation.version>
-        <jackson.version>2.17.2</jackson.version>
-        <dotenv.version>3.0.0</dotenv.version>
-        <assertj.version>3.24.2</assertj.version>
-
-        <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
-        <maven.surefire.version>3.2.5</maven.surefire.version>
-        <jacoco.version>0.8.11</jacoco.version>
-
-        <sonar.organization>softproj2026</sonar.organization>
-            <sonar.organization>softproj2026</sonar.organization>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+    <junit.version>5.10.2</junit.version>
+    <mockito.version>5.11.0</mockito.version>
+    <jakarta.mail.version>2.0.1</jakarta.mail.version>
+    <jakarta.activation.version>2.0.1</jakarta.activation.version>
+    <jackson.version>2.17.2</jackson.version>
+    <dotenv.version>3.0.0</dotenv.version>
+    <assertj.version>3.24.2</assertj.version>
+    <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+    <maven.surefire.version>3.2.5</maven.surefire.version>
+    <jacoco.version>0.8.11</jacoco.version>
+    <sonar.organization>softproj2026</sonar.organization>
     <sonar.projectKey>softproj2026_Soft_proj</sonar.projectKey>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     <sonar.coverage.exclusions>src/main/java/soft_proj/presentation/**/*</sonar.coverage.exclusions>
-
-    </properties>
+</properties>
 
     <dependencies>
 
