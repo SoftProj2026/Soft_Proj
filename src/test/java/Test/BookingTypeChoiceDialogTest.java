@@ -1,5 +1,7 @@
 package Test;
 
+import service.AuthService;
+import service.BookingService;
 import domain.Category;
 import domain.TimeSlot;
 import domain.User;
@@ -11,8 +13,6 @@ import persistence.DataRepository;
 import presentation.BookingTypeChoiceDialog;
 import presentation.DialogUtil;
 import presentation.UITheme;
-import service.AuthService;
-import service.BookingService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,16 +22,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Assumptions;
+
 public class BookingTypeChoiceDialogTest {
-    @BeforeAll
-    static void skipIfHeadless() {
-        Assumptions.assumeFalse(
-            java.awt.GraphicsEnvironment.isHeadless(),
-            "Skipping GUI tests in CI headless mode"
-        );
-    }
+
     private DataRepository repo;
     private AuthService auth;
     private BookingService booking;

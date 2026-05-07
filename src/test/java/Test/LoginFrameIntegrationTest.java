@@ -82,17 +82,22 @@ class LoginFrameIntegrationTest {
         JButton login = findButton(frame.getContentPane(), "Log In");
         assertNotNull(login);
 
-        runOnEdt(() -> qrAdmin.setSelected(true));
-        runOnEdt(() -> qrAdmin.doClick()); 
+        runOnEdt(() -> qrAdmin.doClick());
+        JPasswordField tempPassField =
+                (JPasswordField) SwingUtilities.getAncestorOfClass(JPasswordField.class, frame.getFocusOwner());
 
-        JPasswordField anyPassField = findFirst(frame.getContentPane(), JPasswordField.class);
-        assertNotNull(anyPassField);
+        if (tempPassField == null) {
+            tempPassField = findFirst(frame.getContentPane(), JPasswordField.class);
+        }
+
+        assertNotNull(tempPassField);
+
+        final JPasswordField anyPassField = tempPassField;
 
         runOnEdt(() -> {
             anyPassField.setText("WRONG");
             login.doClick();
-        });
-        verify(auth, never()).loginAsAdmin();
+        });        verify(auth, never()).loginAsAdmin();
 
         when(auth.loginAsAdmin()).thenReturn(true);
         runOnEdt(() -> {

@@ -39,7 +39,7 @@ class MainIntegrationTest {
     void main_bootstrap_helpers_integration_should_seed_and_purge_correctly(@TempDir Path tmpHome) throws Exception {
         System.setProperty("user.home", tmpHome.toString());
 
-        Class<?> mainClass = Class.forName("mainApp.Main");
+        Class<?> mainClass = Class.forName("mainapp.Main");
 
         @SuppressWarnings("unchecked")
         List<Category> categories = (List<Category>) invokePrivateStatic(

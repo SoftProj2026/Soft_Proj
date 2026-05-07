@@ -24,7 +24,7 @@ class MainTest {
     }
     @Test
     void buildCategories_and_seedCategoryAdmins_adds_admin_users_for_each_category() throws Exception {
-        Class<?> mainClass = Class.forName("mainApp.Main");
+        Class<?> mainClass = Class.forName("mainapp.Main");
 
         Method buildCategories = mainClass.getDeclaredMethod("buildCategories");
         buildCategories.setAccessible(true);
@@ -40,7 +40,7 @@ class MainTest {
         seedCategoryAdmins.setAccessible(true);
         seedCategoryAdmins.invoke(null, repo, categories);
 
-        Class<?> brsClass = Class.forName("Service.BookingRequestService");
+        Class<?> brsClass = Class.forName("service.BookingRequestService");
         Method catAdminName = brsClass.getDeclaredMethod("categoryAdminUsername", Category.class);
 
         for (Category c : categories) {
@@ -56,7 +56,7 @@ class MainTest {
 
     @Test
     void seedTimeSlots_generates_slots_for_days_skipping_friday() throws Exception {
-        Class<?> mainClass = Class.forName("mainApp.Main");
+        Class<?> mainClass = Class.forName("mainapp.Main");
 
         Method buildCategories = mainClass.getDeclaredMethod("buildCategories");
         buildCategories.setAccessible(true);
@@ -88,7 +88,7 @@ class MainTest {
 
     @Test
     void purgeRemovedCategories_handles_null_repo_and_noop_when_nothing_removed() throws Exception {
-        Class<?> mainClass = Class.forName("mainApp.Main");
+        Class<?> mainClass = Class.forName("mainapp.Main");
         Method purge = mainClass.getDeclaredMethod("purgeRemovedCategories", DataRepository.class);
         purge.setAccessible(true);
 
@@ -106,7 +106,7 @@ class MainTest {
 
     @Test
     void purgeRemovedCategories_removes_matched_categories() throws Exception {
-        Class<?> mainClass = Class.forName("mainApp.Main");
+        Class<?> mainClass = Class.forName("mainapp.Main");
         Method purge = mainClass.getDeclaredMethod("purgeRemovedCategories", DataRepository.class);
         purge.setAccessible(true);
 

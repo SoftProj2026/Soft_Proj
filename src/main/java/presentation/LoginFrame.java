@@ -538,8 +538,10 @@ public class LoginFrame extends JFrame {
                 }
 
                 RepoStorage.save(repo);
-                new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
-                dispose();
+                if (!java.awt.GraphicsEnvironment.isHeadless()) {
+                    new AdminDashboardFrame(authService, bookingService, repo).setVisible(true);
+                    dispose();
+                }
                 return;
             }
 
@@ -572,8 +574,10 @@ public class LoginFrame extends JFrame {
 
             if (authService.getCurrentUser() instanceof Provider) {
                 RepoStorage.save(repo);
-                new ProviderInboxFrame(authService, repo).setVisible(true);
-                dispose();
+                if (!java.awt.GraphicsEnvironment.isHeadless()) {
+                    new ProviderInboxFrame(authService, repo).setVisible(true);
+                    dispose();
+                }
                 return;
             }
 
@@ -594,8 +598,10 @@ public class LoginFrame extends JFrame {
             emailScheduler.start();
 
             RepoStorage.save(repo);
-            new MainDashboardFrame(authService, bookingService, repo).setVisible(true);
-            dispose();
+            if (!java.awt.GraphicsEnvironment.isHeadless()) {
+                new MainDashboardFrame(authService, bookingService, repo).setVisible(true);
+                dispose();
+            }
 
         } catch (Exception ex) {
             ex.printStackTrace();
