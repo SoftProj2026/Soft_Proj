@@ -48,7 +48,6 @@ class MainDashboardFrameTest {
 
         repo = new DataRepository();
 
-        // Add some categories
         repo.addCategory(new Category("CatA"));
         repo.addCategory(new Category("CatB"));
         repo.addCategory(new Category("CatC"));
@@ -93,13 +92,11 @@ class MainDashboardFrameTest {
         SwingUtilities.invokeAndWait(() -> {
             List<String> catNames = List.of("CatA", "CatB", "CatC");
 
-            // Ensure each category name exists as a button
             for (String name : catNames) {
                 assertTrue(hasButton(frame.getContentPane(), name),
                         "Expected category button for: " + name);
             }
 
-            // And total category buttons count == categories count
             long count = countButtonsWithTextIn(frame.getContentPane(), catNames);
             assertEquals(catNames.size(), count,
                     "Expected exactly one button per category");
