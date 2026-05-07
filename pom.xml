@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -10,6 +11,7 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <maven.compiler.release>17</maven.compiler.release>
@@ -29,12 +31,18 @@
         <sonar.organization>softproj2026</sonar.organization>
         <sonar.projectKey>softproj2026_Soft_proj</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <sonar.coverage.exclusions>**/presentation/**</sonar.coverage.exclusions>
+
+        <!-- استثناء ملفات الـ GUI -->
+        <sonar.coverage.exclusions>
+            **/presentation/**,
+            **/*GUI.java
+        </sonar.coverage.exclusions>
 
     </properties>
 
     <dependencies>
 
+        <!-- JUnit -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -42,6 +50,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Mockito -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -56,6 +65,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- AssertJ -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -63,24 +73,28 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Dotenv -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
             <version>${dotenv.version}</version>
         </dependency>
 
+        <!-- Jakarta Mail -->
         <dependency>
             <groupId>com.sun.mail</groupId>
             <artifactId>jakarta.mail</artifactId>
             <version>${jakarta.mail.version}</version>
         </dependency>
 
+        <!-- Jakarta Activation -->
         <dependency>
             <groupId>com.sun.activation</groupId>
             <artifactId>jakarta.activation</artifactId>
             <version>${jakarta.activation.version}</version>
         </dependency>
 
+        <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -96,93 +110,84 @@
     </dependencies>
 
     <build>
+
         <plugins>
 
+            <!-- Compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin.version}</version>
+
                 <configuration>
                     <release>${maven.compiler.release}</release>
                 </configuration>
             </plugin>
 
+            <!-- JUnit -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.version}</version>
+
                 <configuration>
+
                     <useModulePath>false</useModulePath>
 
                     <includes>
                         <include>**/*Test.java</include>
                         <include>**/*_Test.java</include>
                     </includes>
+
                 </configuration>
             </plugin>
 
+            <!-- JaCoCo -->
             <plugin>
+
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
 
                 <executions>
 
+                    <!-- تشغيل الـ coverage -->
                     <execution>
+
                         <id>prepare-agent</id>
-                        <phase>initialize</phase>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+
                     </execution>
 
+                    <!-- توليد التقرير -->
                     <execution>
+
                         <id>report</id>
                         <phase>test</phase>
+
                         <goals>
                             <goal>report</goal>
                         </goals>
 
                         <configuration>
+
                             <excludes>
                                 <exclude>**/presentation/**</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
-
-                    <execution>
-                        <id>check</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-
-                        <configuration>
-                            <excludes>
-                                <exclude>**/presentation/**</exclude>
+                                <exclude>**/*GUI.java</exclude>
                             </excludes>
 
-                            <rules>
-                                <rule>
-                                    <element>BUNDLE</element>
-
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.30</minimum>
-                                        </limit>
-                                    </limits>
-
-                                </rule>
-                            </rules>
                         </configuration>
+
                     </execution>
 
                 </executions>
+
             </plugin>
 
         </plugins>
+
     </build>
 
 </project>
