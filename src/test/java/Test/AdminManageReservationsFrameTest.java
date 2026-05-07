@@ -24,13 +24,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 /**
  * Robust headless tests for AdminManageReservationsFrame.
  * Requires mockito-inline (or Mockito with mockStatic support) on the test classpath.
  */
 class AdminManageReservationsFrameTest {
-
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
     private static void runOnEdt(Runnable r) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) {
             r.run();

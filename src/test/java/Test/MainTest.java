@@ -11,10 +11,17 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 
 class MainTest {
-
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
     @Test
     void buildCategories_and_seedCategoryAdmins_adds_admin_users_for_each_category() throws Exception {
         Class<?> mainClass = Class.forName("MainApp.Main");

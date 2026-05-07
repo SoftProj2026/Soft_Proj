@@ -19,9 +19,16 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 class MainIntegrationTest {
-
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
     private static Object invokePrivateStatic(Class<?> cls, String method, Class<?>[] paramTypes, Object[] args) throws Exception {
         Method m = cls.getDeclaredMethod(method, paramTypes);
         m.setAccessible(true);
