@@ -47,7 +47,10 @@
             **/presentation/**,
             **/*GUI.java
         </sonar.coverage.exclusions>
-
+<sonar.coverage.exclusions>
+    **/presentation/**,
+    **/*GUI.java,
+</sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
