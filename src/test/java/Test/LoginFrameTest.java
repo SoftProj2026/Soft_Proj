@@ -22,7 +22,8 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 /**
  * Tests for presentation.LoginFrame covering QR admin, Category admin and Normal login paths.
  *
@@ -30,7 +31,13 @@ import static org.mockito.Mockito.*;
  * - Uses a temporary user.home so RepoStorage.save writes to a temp location.
  */
 class LoginFrameTest {
-
+    @BeforeAll
+    static void skipIfHeadless() {
+        Assumptions.assumeFalse(
+            java.awt.GraphicsEnvironment.isHeadless(),
+            "Skipping GUI tests in CI headless mode"
+        );
+    }
     private static void runOnEdt(RunnableWithException r) throws Exception {
         Throwable[] err = new Throwable[1];
         if (SwingUtilities.isEventDispatchThread()) {
