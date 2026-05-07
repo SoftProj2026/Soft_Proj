@@ -19,12 +19,19 @@ import java.awt.*;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class BookingTypeChoiceDialogTest {
-
+	 @BeforeAll
+	    static void skipIfHeadless() {
+	        Assumptions.assumeFalse(
+	            java.awt.GraphicsEnvironment.isHeadless(),
+	            "Skipping GUI tests in CI headless mode"
+	        );
+	    }
     private DataRepository repo;
     private AuthService auth;
     private BookingService booking;
