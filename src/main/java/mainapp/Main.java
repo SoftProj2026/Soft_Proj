@@ -41,6 +41,19 @@ public class Main {
 
         DataRepository repo = RepoStorage.loadOrNew();
 
+        bootstrap(repo);
+
+        AuthService auth = new AuthService(repo);
+        BookingService bookingService = new BookingService(repo);
+
+        new LoginFrame(auth, bookingService, repo).setVisible(true);
+    }
+
+    static void bootstrap(DataRepository repo) {
+        if (repo == null) {
+            return;
+        }
+
         ensureBigAdminAndProviderExist(repo);
         purgeRemovedCategories(repo);
 
@@ -93,11 +106,6 @@ public class Main {
             seedTimeSlots(repo, categories, 7);
             RepoStorage.save(repo);
         }
-
-        AuthService auth = new AuthService(repo);
-        BookingService bookingService = new BookingService(repo);
-
-        new LoginFrame(auth, bookingService, repo).setVisible(true);
     }
 
     /**
