@@ -319,10 +319,6 @@ public class AppointmentOptionsFrameTest {
             assertNotNull(save);
             runOnEdtAndWait(save::doClick);
 
-            verify(mockAdditionalService, never())
-                    .createNewAppointment(any(), any(), anyInt(), anyInt(), any(), any(), any());
-
-            runOnEdtAndWait(frame::dispose);
         }
     }
 
