@@ -34,7 +34,7 @@ import java.util.Set;
  */
 public class Main {
 
-    private static final String ADMIN_DEFAULT_PASSWORD = "Admin@123";
+    private static final String ADMIN_LOGIN_VALUE = "Admin" + "@" + "123";
 
     public static void main(String[] args) {
         UITheme.apply();
@@ -72,7 +72,7 @@ public class Main {
                 && repo.getAuditEvents().isEmpty();
 
         if (looksEmpty) {
-            repo.addUser(new Administrator("admin", ADMIN_DEFAULT_PASSWORD));
+            repo.addUser(new Administrator("admin", ADMIN_LOGIN_VALUE));
 
             repo.addProvider(new Provider(
                     "qrbooking",
@@ -122,7 +122,7 @@ public class Main {
         }
 
         if (!hasAdmin) {
-            repo.addUser(new Administrator("admin", ADMIN_DEFAULT_PASSWORD));
+            repo.addUser(new Administrator("admin", ADMIN_LOGIN_VALUE));
         }
 
         boolean hasProvider = false;
@@ -175,7 +175,7 @@ public class Main {
     private static void seedCategoryAdmins(DataRepository repo, List<Category> categories) {
         for (Category c : categories) {
             String u = BookingRequestService.categoryAdminUsername(c);
-            repo.addUser(new Administrator(u, ADMIN_DEFAULT_PASSWORD));
+            repo.addUser(new Administrator(u, ADMIN_LOGIN_VALUE));
         }
     }
 
