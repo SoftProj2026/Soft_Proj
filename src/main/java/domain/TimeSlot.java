@@ -167,12 +167,10 @@ public class TimeSlot {
     }
 
 	public void setAvailable(boolean b) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	public long getDuration() {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 }
