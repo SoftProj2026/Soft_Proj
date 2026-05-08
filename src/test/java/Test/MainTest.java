@@ -1,126 +1,346 @@
 package Test;
 
-import persistence.DataRepository;
 import domain.Category;
+import domain.Provider;
 import domain.User;
-import domain.TimeSlot;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import persistence.DataRepository;
+import persistence.RepoStorage;
+import presentation.LoginFrame;
+import presentation.UITheme;
+import service.AuthService;
+import service.BookingRequestService;
+import service.BookingService;
+
 import java.lang.reflect.Method;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Assumptions;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class MainTest {
-    @BeforeAll
-    static void skipIfHeadless() {
-        Assumptions.assumeFalse(
-            java.awt.GraphicsEnvironment.isHeadless(),
-            "Skipping GUI tests in CI headless mode"
+
+    private static Class<?> mainClass() throws Exception {
+        return Class.forName("mainapp.Main");
+    }
+
+    private static Object invokePrivateStatic(
+            String methodName,
+            Class<?>[] parameterTypes,
+            Object[] args
+    ) throws Exception {
+        Method m = mainClass().getDeclaredMethod(methodName, parameterTypes);
+        m.setAccessible(true);
+        return m.invoke(null, args);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Category> buildCategories() throws Exception {
+        return (List<Category>) invokePrivateStatic(
+                "buildCategories",
+                new Class<?>[]{},
+                new Object[]{}
         );
     }
-    @Test
-    void buildCategories_and_seedCategoryAdmins_adds_admin_users_for_each_category() throws Exception {
-        Class<?> mainClass = Class.forName("mainapp.Main");
 
-        Method buildCategories = mainClass.getDeclaredMethod("buildCategories");
-        buildCategories.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        List<Category> categories = (List<Category>) buildCategories.invoke(null);
+    @Test
+    void buildCategories_returns_expected_application_categories() throws Exception {
+        List<Category> categories = buildCategories();
 
         assertNotNull(categories);
-        assertTrue(categories.size() > 0, "Expected buildCategories() to return at least one category");
+        assertEquals(9, categories.size());
 
+        assertTrue(categories.stream().anyMatch(c -> "Conference Hall".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Training Room".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Wedding Hall".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Birthday Venue".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Photography Studio".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Legal Consultation".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Apartment for rent".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Car for rent".equals(c.getName())));
+        assertTrue(categories.stream().anyMatch(c -> "Meeting with a building contractor".equals(c.getName())));
+    }
+
+    @Test
+    void seedCategoryAdmins_adds_admin_user_for_each_category() throws Exception {
         DataRepository repo = new DataRepository();
+        List<Category> categories = buildCategories();
 
-        Method seedCategoryAdmins = mainClass.getDeclaredMethod("seedCategoryAdmins", DataRepository.class, List.class);
-        seedCategoryAdmins.setAccessible(true);
-        seedCategoryAdmins.invoke(null, repo, categories);
+        invokePrivateStatic(
+                "seedCategoryAdmins",
+                new Class<?>[]{DataRepository.class, List.class},
+                new Object[]{repo, categories}
+        );
 
-        Class<?> brsClass = Class.forName("service.BookingRequestService");
-        Method catAdminName = brsClass.getDeclaredMethod("categoryAdminUsername", Category.class);
+        assertEquals(categories.size(), repo.getUsers().size());
 
         for (Category c : categories) {
-            String expected = String.valueOf(catAdminName.invoke(null, c));
+            String expectedUsername = BookingRequestService.categoryAdminUsername(c);
+
             boolean found = repo.getUsers().stream()
-                    .map(u -> {
-                        try { return u.getUsername(); } catch (Throwable t) { return null; }
-                    })
-                    .anyMatch(un -> expected.equals(un));
-            assertTrue(found, "Expected category-admin user for category: " + c.getName());
+                    .anyMatch(u -> expectedUsername.equals(u.getUsername()));
+
+            assertTrue(found, "Missing category admin for: " + c.getName());
         }
     }
 
     @Test
-    void seedTimeSlots_generates_slots_for_days_skipping_friday() throws Exception {
-        Class<?> mainClass = Class.forName("mainapp.Main");
-
-        Method buildCategories = mainClass.getDeclaredMethod("buildCategories");
-        buildCategories.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        List<Category> categories = (List<Category>) buildCategories.invoke(null);
-
+    void seedTimeSlots_generates_slots_for_non_friday_days_only() throws Exception {
         DataRepository repo = new DataRepository();
-
-        Method seedTimeSlots = mainClass.getDeclaredMethod("seedTimeSlots", DataRepository.class, List.class, int.class);
-        seedTimeSlots.setAccessible(true);
+        List<Category> categories = buildCategories();
 
         int daysAhead = 7;
-        seedTimeSlots.invoke(null, repo, categories, daysAhead);
+
+        invokePrivateStatic(
+                "seedTimeSlots",
+                new Class<?>[]{DataRepository.class, List.class, int.class},
+                new Object[]{repo, categories, daysAhead}
+        );
 
         LocalDate today = LocalDate.now();
         int nonFridays = 0;
-        for (int d = 0; d < daysAhead; d++) {
-            LocalDate date = today.plusDays(d);
-            if (date.getDayOfWeek() != DayOfWeek.FRIDAY) nonFridays++;
+
+        for (int i = 0; i < daysAhead; i++) {
+            if (today.plusDays(i).getDayOfWeek() != DayOfWeek.FRIDAY) {
+                nonFridays++;
+            }
         }
 
-        int categoriesCount = categories.size();
-        int slotsPerDayPerCategory = 8; 
-        int expectedSlots = nonFridays * categoriesCount * slotsPerDayPerCategory;
+        int expectedSlots = nonFridays * categories.size() * 8;
 
-        int actual = repo.getSlots().size();
-        assertEquals(expectedSlots, actual, "Expected seedTimeSlots to add the correct number of slots");
+        assertEquals(expectedSlots, repo.getSlots().size());
+
+        repo.getSlots().forEach(slot -> {
+            assertNotNull(slot.getStartDateTime());
+            assertNotNull(slot.getEndDateTime());
+            assertFalse(slot.getStartDateTime().toLocalTime().isBefore(LocalTime.of(9, 0)));
+            assertFalse(slot.getStartDateTime().toLocalTime().isAfter(LocalTime.of(16, 0)));
+            assertEquals(60, java.time.Duration.between(
+                    slot.getStartDateTime(),
+                    slot.getEndDateTime()
+            ).toMinutes());
+            assertNotEquals(DayOfWeek.FRIDAY, slot.getStartDateTime().getDayOfWeek());
+        });
     }
 
     @Test
-    void purgeRemovedCategories_handles_null_repo_and_noop_when_nothing_removed() throws Exception {
-        Class<?> mainClass = Class.forName("mainapp.Main");
-        Method purge = mainClass.getDeclaredMethod("purgeRemovedCategories", DataRepository.class);
-        purge.setAccessible(true);
-
-        purge.invoke(null, new Object[] { null });
-
+    void seedTimeSlots_withZeroDays_addsNoSlots() throws Exception {
         DataRepository repo = new DataRepository();
-        repo.addCategory(new Category("Keep This Category"));
-        int before = repo.getCategories().size();
+        List<Category> categories = buildCategories();
 
-        purge.invoke(null, repo);
-        int after = repo.getCategories().size();
+        invokePrivateStatic(
+                "seedTimeSlots",
+                new Class<?>[]{DataRepository.class, List.class, int.class},
+                new Object[]{repo, categories, 0}
+        );
 
-        assertEquals(before, after, "When no matching categories exist, purgeRemovedCategories should not remove categories");
+        assertTrue(repo.getSlots().isEmpty());
     }
 
     @Test
-    void purgeRemovedCategories_removes_matched_categories() throws Exception {
-        Class<?> mainClass = Class.forName("mainapp.Main");
-        Method purge = mainClass.getDeclaredMethod("purgeRemovedCategories", DataRepository.class);
-        purge.setAccessible(true);
+    void purgeRemovedCategories_handlesNullRepoWithoutThrowing() {
+        assertDoesNotThrow(() -> invokePrivateStatic(
+                "purgeRemovedCategories",
+                new Class<?>[]{DataRepository.class},
+                new Object[]{null}
+        ));
+    }
 
+    @Test
+    void purgeRemovedCategories_removesDoctorAppointmentOnly() throws Exception {
         DataRepository repo = new DataRepository();
+
         repo.addCategory(new Category("Doctor Appointment"));
+        repo.addCategory(new Category("Conference Hall"));
+
+        invokePrivateStatic(
+                "purgeRemovedCategories",
+                new Class<?>[]{DataRepository.class},
+                new Object[]{repo}
+        );
+
+        assertFalse(repo.getCategories().stream()
+                .anyMatch(c -> "Doctor Appointment".equalsIgnoreCase(c.getName())));
+
+        assertTrue(repo.getCategories().stream()
+                .anyMatch(c -> "Conference Hall".equalsIgnoreCase(c.getName())));
+    }
+
+    @Test
+    void ensureBigAdminAndProviderExist_handlesNullRepoWithoutThrowing() {
+        assertDoesNotThrow(() -> invokePrivateStatic(
+                "ensureBigAdminAndProviderExist",
+                new Class<?>[]{DataRepository.class},
+                new Object[]{null}
+        ));
+    }
+
+    @Test
+    void ensureBigAdminAndProviderExist_addsMissingAdminAndProvider() throws Exception {
+        DataRepository repo = new DataRepository();
+
+        try (MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class)) {
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            invokePrivateStatic(
+                    "ensureBigAdminAndProviderExist",
+                    new Class<?>[]{DataRepository.class},
+                    new Object[]{repo}
+            );
+
+            assertTrue(repo.getUsers().stream()
+                    .anyMatch(u -> "admin".equalsIgnoreCase(u.getUsername())));
+
+            assertTrue(repo.getProviders().stream()
+                    .anyMatch(p -> "qrbooking".equalsIgnoreCase(p.getUsername())));
+
+            storage.verify(() -> RepoStorage.save(repo), times(1));
+        }
+    }
+
+    @Test
+    void ensureBigAdminAndProviderExist_doesNotDuplicateExistingAdminOrProvider() throws Exception {
+        DataRepository repo = new DataRepository();
+
+        repo.addUser(new domain.Administrator("admin", "x"));
+        repo.addProvider(new Provider(
+                "qrbooking",
+                "x",
+                "Existing Provider",
+                "",
+                "",
+                ""
+        ));
+
+        try (MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class)) {
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            invokePrivateStatic(
+                    "ensureBigAdminAndProviderExist",
+                    new Class<?>[]{DataRepository.class},
+                    new Object[]{repo}
+            );
+
+            long adminCount = repo.getUsers().stream()
+                    .filter(u -> u != null && "admin".equalsIgnoreCase(u.getUsername()))
+                    .count();
+
+            long providerCount = repo.getProviders().stream()
+                    .filter(p -> p != null && "qrbooking".equalsIgnoreCase(p.getUsername()))
+                    .count();
+
+            assertEquals(1, adminCount);
+            assertEquals(1, providerCount);
+
+            storage.verify(() -> RepoStorage.save(repo), times(1));
+        }
+    }
+
+    @Test
+    void main_whenRepoEmpty_seedsDataAndLaunchesLoginFrame() {
+        DataRepository repo = new DataRepository();
+
+        try (MockedStatic<UITheme> theme = mockStatic(UITheme.class);
+             MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class);
+             MockedConstruction<LoginFrame> loginFrames =
+                     mockConstruction(LoginFrame.class, (mock, context) -> {
+                         doNothing().when(mock).setVisible(anyBoolean());
+                     })) {
+
+            theme.when(UITheme::apply).thenAnswer(inv -> null);
+            storage.when(RepoStorage::loadOrNew).thenReturn(repo);
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            assertDoesNotThrow(() -> mainapp.Main.main(new String[0]));
+
+            assertFalse(repo.getCategories().isEmpty(), "main should seed categories");
+            assertFalse(repo.getSlots().isEmpty(), "main should seed slots");
+            assertTrue(repo.getUsers().stream()
+                    .anyMatch(u -> "admin".equalsIgnoreCase(u.getUsername())));
+            assertTrue(repo.getProviders().stream()
+                    .anyMatch(p -> "qrbooking".equalsIgnoreCase(p.getUsername())));
+
+            assertEquals(1, loginFrames.constructed().size());
+            verify(loginFrames.constructed().get(0), times(1)).setVisible(true);
+
+            theme.verify(UITheme::apply, times(1));
+            storage.verify(RepoStorage::loadOrNew, times(1));
+            storage.verify(() -> RepoStorage.save(any(DataRepository.class)), atLeastOnce());
+        }
+    }
+
+    @Test
+    void main_whenOnlyKeepThisCategory_replacesItWithApplicationCategories() {
+        DataRepository repo = new DataRepository();
         repo.addCategory(new Category("Keep This"));
 
-        assertTrue(repo.getCategories().stream().anyMatch(c -> "Doctor Appointment".equals(c.getName())));
+        try (MockedStatic<UITheme> theme = mockStatic(UITheme.class);
+             MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class);
+             MockedConstruction<LoginFrame> loginFrames =
+                     mockConstruction(LoginFrame.class, (mock, context) -> {
+                         doNothing().when(mock).setVisible(anyBoolean());
+                     })) {
 
-        purge.invoke(null, repo);
+            theme.when(UITheme::apply).thenAnswer(inv -> null);
+            storage.when(RepoStorage::loadOrNew).thenReturn(repo);
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
 
-        boolean stillThere = repo.getCategories().stream().anyMatch(c -> "Doctor Appointment".equals(c.getName()));
-        assertFalse(stillThere, "Expected 'Doctor Appointment' category to be removed by purgeRemovedCategories");
+            assertDoesNotThrow(() -> mainapp.Main.main(new String[0]));
 
-        assertTrue(repo.getCategories().stream().anyMatch(c -> "Keep This".equals(c.getName())));
+            assertFalse(repo.getCategories().stream()
+                    .anyMatch(c -> "Keep This".equalsIgnoreCase(c.getName())));
+
+            assertTrue(repo.getCategories().stream()
+                    .anyMatch(c -> "Conference Hall".equalsIgnoreCase(c.getName())));
+
+            assertFalse(repo.getSlots().isEmpty());
+
+            assertEquals(1, loginFrames.constructed().size());
+            verify(loginFrames.constructed().get(0), times(1)).setVisible(true);
+        }
+    }
+
+    @Test
+    void main_whenRepoAlreadyHasData_doesNotClearExistingCategories() {
+        DataRepository repo = new DataRepository();
+
+        Category custom = new Category("Custom Category");
+        repo.addCategory(custom);
+        repo.addUser(new User("first", "last", "existingUser", "pw", null, "x@y.com"));
+
+        try (MockedStatic<UITheme> theme = mockStatic(UITheme.class);
+             MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class);
+             MockedConstruction<LoginFrame> loginFrames =
+                     mockConstruction(LoginFrame.class, (mock, context) -> {
+                         doNothing().when(mock).setVisible(anyBoolean());
+                     })) {
+
+            theme.when(UITheme::apply).thenAnswer(inv -> null);
+            storage.when(RepoStorage::loadOrNew).thenReturn(repo);
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            assertDoesNotThrow(() -> mainapp.Main.main(new String[0]));
+
+            assertTrue(repo.getCategories().stream()
+                    .anyMatch(c -> "Custom Category".equals(c.getName())));
+
+            assertTrue(repo.getUsers().stream()
+                    .anyMatch(u -> "existingUser".equals(u.getUsername())));
+
+            assertTrue(repo.getUsers().stream()
+                    .anyMatch(u -> "admin".equalsIgnoreCase(u.getUsername())));
+
+            assertTrue(repo.getProviders().stream()
+                    .anyMatch(p -> "qrbooking".equalsIgnoreCase(p.getUsername())));
+
+            assertEquals(1, loginFrames.constructed().size());
+            verify(loginFrames.constructed().get(0), times(1)).setVisible(true);
+        }
     }
 }
