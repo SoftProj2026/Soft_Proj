@@ -34,7 +34,6 @@
 
         <jacoco.version>0.8.10</jacoco.version>
 
-        <!-- Sonar -->
         <sonar.organization>softproj2026</sonar.organization>
         <sonar.projectKey>softproj2026_Soft_proj</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -47,10 +46,7 @@
             **/presentation/**,
             **/*GUI.java
         </sonar.coverage.exclusions>
-<sonar.coverage.exclusions>
-    **/presentation/**,
-    **/*GUI.java,
-</sonar.coverage.exclusions>
+
     </properties>
 
     <dependencies>
@@ -119,30 +115,21 @@
 
         <plugins>
 
-            <!-- Compiler -->
             <plugin>
-
                 <groupId>org.apache.maven.plugins</groupId>
-
                 <artifactId>maven-compiler-plugin</artifactId>
-
                 <version>${maven.compiler.plugin.version}</version>
 
                 <configuration>
-
                     <release>${maven.compiler.release}</release>
-
                 </configuration>
 
             </plugin>
 
-            <!-- Surefire -->
             <plugin>
 
                 <groupId>org.apache.maven.plugins</groupId>
-
                 <artifactId>maven-surefire-plugin</artifactId>
-
                 <version>${maven.surefire.version}</version>
 
                 <configuration>
@@ -150,24 +137,18 @@
                     <useModulePath>false</useModulePath>
 
                     <includes>
-
                         <include>**/*Test.java</include>
-
                         <include>**/*_Test.java</include>
-
                     </includes>
 
                 </configuration>
 
             </plugin>
 
-            <!-- JaCoCo -->
             <plugin>
 
                 <groupId>org.jacoco</groupId>
-
                 <artifactId>jacoco-maven-plugin</artifactId>
-
                 <version>${jacoco.version}</version>
 
                 <executions>
@@ -177,9 +158,7 @@
                         <id>prepare-agent</id>
 
                         <goals>
-
                             <goal>prepare-agent</goal>
-
                         </goals>
 
                     </execution>
@@ -191,19 +170,14 @@
                         <phase>verify</phase>
 
                         <goals>
-
                             <goal>report</goal>
-
                         </goals>
 
                         <configuration>
 
                             <excludes>
-
                                 <exclude>**/presentation/**</exclude>
-
                                 <exclude>**/*GUI.java</exclude>
-
                             </excludes>
 
                         </configuration>
