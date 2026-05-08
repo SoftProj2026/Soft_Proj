@@ -34,30 +34,34 @@ import java.util.Set;
  */
 public class Main {
 
+    private static final String ADMIN_DEFAULT_PASSWORD = "Admin@123";
+
     public static void main(String[] args) {
         UITheme.apply();
 
         DataRepository repo = RepoStorage.loadOrNew();
 
         ensureBigAdminAndProviderExist(repo);
-
         purgeRemovedCategories(repo);
 
         if (repo.getCategories() == null || repo.getCategories().isEmpty()
                 || (repo.getCategories().size() == 1
                 && repo.getCategories().get(0) != null
                 && "Keep This".equalsIgnoreCase(repo.getCategories().get(0).getName()))) {
+
             repo.getCategories().clear();
+
             List<Category> categories = buildCategories();
+
             for (Category c : categories) {
                 repo.addCategory(c);
             }
 
             seedCategoryAdmins(repo, categories);
             seedTimeSlots(repo, categories, 7);
-
             RepoStorage.save(repo);
         }
+
         boolean looksEmpty = repo.getUsers().isEmpty()
                 && repo.getProviders().isEmpty()
                 && repo.getCategories().isEmpty()
@@ -68,7 +72,7 @@ public class Main {
                 && repo.getAuditEvents().isEmpty();
 
         if (looksEmpty) {
-            repo.addUser(new Administrator("admin", "Admin@123"));
+            repo.addUser(new Administrator("admin", ADMIN_DEFAULT_PASSWORD));
 
             repo.addProvider(new Provider(
                     "qrbooking",
@@ -80,52 +84,53 @@ public class Main {
             ));
 
             List<Category> categories = buildCategories();
+
             for (Category c : categories) {
                 repo.addCategory(c);
             }
 
             seedCategoryAdmins(repo, categories);
             seedTimeSlots(repo, categories, 7);
-
             RepoStorage.save(repo);
         }
 
-        AuthService authService = new AuthService(repo);
+        AuthService auth = new AuthService(repo);
         BookingService bookingService = new BookingService(repo);
 
-        new BookingRequestService(repo);
-
-        javax.swing.SwingUtilities.invokeLater(() ->
-                new LoginFrame(authService, bookingService, repo).setVisible(true)
-        );
+        new LoginFrame(auth, bookingService, repo).setVisible(true);
     }
 
     /**
-     * Ensures that the big-admin account ("admin") and the default company provider ("qrbooking")
-     * exist in the repository. This fixes cases where old saved data is not empty but missing
-     * the admin user, causing QR admin login to fail with:
-     * "Admin account not found in repository."
+     * Ensures that the big administrator and default provider exist.
      *
-     * @param repo repository to patch if missing required accounts
+     * @param repo repository to check and update
      */
     private static void ensureBigAdminAndProviderExist(DataRepository repo) {
-        if (repo == null) return;
+        if (repo == null) {
+            return;
+        }
 
         boolean hasAdmin = false;
+
         for (User u : repo.getUsers()) {
-            if (u != null && u.getUsername() != null && u.getUsername().equalsIgnoreCase("admin")) {
+            if (u != null
+                    && u.getUsername() != null
+                    && u.getUsername().equalsIgnoreCase("admin")) {
                 hasAdmin = true;
                 break;
             }
         }
 
         if (!hasAdmin) {
-            repo.addUser(new Administrator("admin", "Admin@123"));
+            repo.addUser(new Administrator("admin", ADMIN_DEFAULT_PASSWORD));
         }
 
         boolean hasProvider = false;
+
         for (Provider p : repo.getProviders()) {
-            if (p != null && p.getUsername() != null && p.getUsername().equalsIgnoreCase("qrbooking")) {
+            if (p != null
+                    && p.getUsername() != null
+                    && p.getUsername().equalsIgnoreCase("qrbooking")) {
                 hasProvider = true;
                 break;
             }
@@ -142,13 +147,11 @@ public class Main {
             ));
         }
 
-        // Save immediately so next run is consistent
         RepoStorage.save(repo);
     }
 
     /**
-     * Purges removed categories from the repository (categories, slots, appointments, requests,
-     * category-admin users, cancel tracking, and audit events).
+     * Removes categories that are no longer supported by the application.
      *
      * @param repo repository to purge
      */
@@ -157,39 +160,22 @@ public class Main {
             return;
         }
 
-        Set<String> toRemove = new HashSet<>();
-        toRemove.add("Doctor Appointment");
-        toRemove.add("Airport Pickup");
-        toRemove.add("Private Tutor");
-        toRemove.add("Driver Service");
-        toRemove.add("Academic Advisor Meeting");
-        toRemove.add("Equipment Rental (Projector, Laptop)");
-        toRemove.add("Shared Workspace");
-        toRemove.add("Event Planner Meeting");
-        toRemove.add("Bus Reservation");
-        toRemove.add("Delivery Vehicle");
-        toRemove.add("Gym Session");
-        toRemove.add("Exam Hall");
-        toRemove.add("Lab Reservation");
-        toRemove.add("Library Study Room");
+        Set<String> removed = new HashSet<>();
+        removed.add("Doctor Appointment");
 
-        int removed = repo.purgeCategories(toRemove);
-        if (removed > 0) {
-            RepoStorage.save(repo);
-        }
+        repo.purgeCategories(removed);
     }
 
     /**
-     * Seeds one administrator account per category using a deterministic username derived from the category name.
+     * Seeds category admin users for all categories.
      *
      * @param repo       repository to insert users into
      * @param categories categories used to derive category-admin usernames
      */
     private static void seedCategoryAdmins(DataRepository repo, List<Category> categories) {
-        String pass = "Admin@123";
         for (Category c : categories) {
             String u = BookingRequestService.categoryAdminUsername(c);
-            repo.addUser(new domain.Administrator(u, pass));
+            repo.addUser(new Administrator(u, ADMIN_DEFAULT_PASSWORD));
         }
     }
 
@@ -203,13 +189,10 @@ public class Main {
 
         categories.add(new Category("Conference Hall"));
         categories.add(new Category("Training Room"));
-
         categories.add(new Category("Wedding Hall"));
         categories.add(new Category("Birthday Venue"));
         categories.add(new Category("Photography Studio"));
-
         categories.add(new Category("Legal Consultation"));
-
         categories.add(new Category("Apartment for rent"));
         categories.add(new Category("Car for rent"));
         categories.add(new Category("Meeting with a building contractor"));
@@ -229,10 +212,8 @@ public class Main {
      */
     private static void seedTimeSlots(DataRepository repo, List<Category> categories, int daysAhead) {
         int durationMinutes = 60;
-
         LocalTime start = LocalTime.of(9, 0);
         LocalTime lastStart = LocalTime.of(16, 0);
-
         LocalDate today = LocalDate.now();
 
         for (int d = 0; d < daysAhead; d++) {

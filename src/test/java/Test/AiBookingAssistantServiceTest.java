@@ -1,6 +1,4 @@
 package Test;
-
-
 import domain.*;
 import persistence.DataRepository;
 import service.AiBookingAssistantService;
