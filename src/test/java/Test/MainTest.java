@@ -1,5 +1,6 @@
 package Test;
 
+import domain.Administrator;
 import domain.Category;
 import domain.Provider;
 import domain.User;
@@ -10,9 +11,7 @@ import persistence.DataRepository;
 import persistence.RepoStorage;
 import presentation.LoginFrame;
 import presentation.UITheme;
-import service.AuthService;
 import service.BookingRequestService;
-import service.BookingService;
 
 import java.lang.reflect.Method;
 import java.time.DayOfWeek;
@@ -35,9 +34,9 @@ class MainTest {
             Class<?>[] parameterTypes,
             Object[] args
     ) throws Exception {
-        Method m = mainClass().getDeclaredMethod(methodName, parameterTypes);
-        m.setAccessible(true);
-        return m.invoke(null, args);
+        Method method = mainClass().getDeclaredMethod(methodName, parameterTypes);
+        method.setAccessible(true);
+        return method.invoke(null, args);
     }
 
     @SuppressWarnings("unchecked")
@@ -119,12 +118,15 @@ class MainTest {
         repo.getSlots().forEach(slot -> {
             assertNotNull(slot.getStartDateTime());
             assertNotNull(slot.getEndDateTime());
+
             assertFalse(slot.getStartDateTime().toLocalTime().isBefore(LocalTime.of(9, 0)));
             assertFalse(slot.getStartDateTime().toLocalTime().isAfter(LocalTime.of(16, 0)));
+
             assertEquals(60, java.time.Duration.between(
                     slot.getStartDateTime(),
                     slot.getEndDateTime()
             ).toMinutes());
+
             assertNotEquals(DayOfWeek.FRIDAY, slot.getStartDateTime().getDayOfWeek());
         });
     }
@@ -173,6 +175,28 @@ class MainTest {
     }
 
     @Test
+    void purgeRemovedCategories_whenNoRemovedCategory_keepsExistingCategories() throws Exception {
+        DataRepository repo = new DataRepository();
+
+        repo.addCategory(new Category("Conference Hall"));
+        repo.addCategory(new Category("Training Room"));
+
+        invokePrivateStatic(
+                "purgeRemovedCategories",
+                new Class<?>[]{DataRepository.class},
+                new Object[]{repo}
+        );
+
+        assertEquals(2, repo.getCategories().size());
+
+        assertTrue(repo.getCategories().stream()
+                .anyMatch(c -> "Conference Hall".equalsIgnoreCase(c.getName())));
+
+        assertTrue(repo.getCategories().stream()
+                .anyMatch(c -> "Training Room".equalsIgnoreCase(c.getName())));
+    }
+
+    @Test
     void ensureBigAdminAndProviderExist_handlesNullRepoWithoutThrowing() {
         assertDoesNotThrow(() -> invokePrivateStatic(
                 "ensureBigAdminAndProviderExist",
@@ -208,7 +232,8 @@ class MainTest {
     void ensureBigAdminAndProviderExist_doesNotDuplicateExistingAdminOrProvider() throws Exception {
         DataRepository repo = new DataRepository();
 
-        repo.addUser(new domain.Administrator("admin", "x"));
+        repo.addUser(new Administrator("admin", "x"));
+
         repo.addProvider(new Provider(
                 "qrbooking",
                 "x",
@@ -243,15 +268,118 @@ class MainTest {
     }
 
     @Test
+    void ensureBigAdminAndProviderExist_whenAdminExistsButProviderMissing_addsOnlyProvider() throws Exception {
+        DataRepository repo = new DataRepository();
+
+        repo.addUser(new Administrator("admin", "x"));
+
+        try (MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class)) {
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            invokePrivateStatic(
+                    "ensureBigAdminAndProviderExist",
+                    new Class<?>[]{DataRepository.class},
+                    new Object[]{repo}
+            );
+
+            long adminCount = repo.getUsers().stream()
+                    .filter(u -> u != null && "admin".equalsIgnoreCase(u.getUsername()))
+                    .count();
+
+            long providerCount = repo.getProviders().stream()
+                    .filter(p -> p != null && "qrbooking".equalsIgnoreCase(p.getUsername()))
+                    .count();
+
+            assertEquals(1, adminCount);
+            assertEquals(1, providerCount);
+
+            storage.verify(() -> RepoStorage.save(repo), times(1));
+        }
+    }
+
+    @Test
+    void ensureBigAdminAndProviderExist_whenProviderExistsButAdminMissing_addsOnlyAdmin() throws Exception {
+        DataRepository repo = new DataRepository();
+
+        repo.addProvider(new Provider(
+                "qrbooking",
+                "x",
+                "QR Booking",
+                "",
+                "",
+                ""
+        ));
+
+        try (MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class)) {
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            invokePrivateStatic(
+                    "ensureBigAdminAndProviderExist",
+                    new Class<?>[]{DataRepository.class},
+                    new Object[]{repo}
+            );
+
+            long adminCount = repo.getUsers().stream()
+                    .filter(u -> u != null && "admin".equalsIgnoreCase(u.getUsername()))
+                    .count();
+
+            long providerCount = repo.getProviders().stream()
+                    .filter(p -> p != null && "qrbooking".equalsIgnoreCase(p.getUsername()))
+                    .count();
+
+            assertEquals(1, adminCount);
+            assertEquals(1, providerCount);
+
+            storage.verify(() -> RepoStorage.save(repo), times(1));
+        }
+    }
+
+    @Test
+    void ensureBigAdminAndProviderExist_ignoresNullAndNullUsernameEntries() throws Exception {
+        DataRepository repo = new DataRepository();
+
+        repo.getUsers().add(null);
+        repo.addUser(new User("F", "L", null, "pw", null, ""));
+
+        repo.getProviders().add(null);
+        repo.addProvider(new Provider(
+                null,
+                "pw",
+                "No Username Provider",
+                "",
+                "",
+                ""
+        ));
+
+        try (MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class)) {
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            invokePrivateStatic(
+                    "ensureBigAdminAndProviderExist",
+                    new Class<?>[]{DataRepository.class},
+                    new Object[]{repo}
+            );
+
+            assertTrue(repo.getUsers().stream()
+                    .anyMatch(u -> u != null && "admin".equalsIgnoreCase(u.getUsername())));
+
+            assertTrue(repo.getProviders().stream()
+                    .anyMatch(p -> p != null && "qrbooking".equalsIgnoreCase(p.getUsername())));
+
+            storage.verify(() -> RepoStorage.save(repo), times(1));
+        }
+    }
+
+    @Test
     void main_whenRepoEmpty_seedsDataAndLaunchesLoginFrame() {
         DataRepository repo = new DataRepository();
 
         try (MockedStatic<UITheme> theme = mockStatic(UITheme.class);
              MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class);
              MockedConstruction<LoginFrame> loginFrames =
-                     mockConstruction(LoginFrame.class, (mock, context) -> {
-                         doNothing().when(mock).setVisible(anyBoolean());
-                     })) {
+                     mockConstruction(LoginFrame.class, (mock, context) ->
+                             doNothing().when(mock).setVisible(anyBoolean())
+                     )) {
 
             theme.when(UITheme::apply).thenAnswer(inv -> null);
             storage.when(RepoStorage::loadOrNew).thenReturn(repo);
@@ -261,8 +389,10 @@ class MainTest {
 
             assertFalse(repo.getCategories().isEmpty(), "main should seed categories");
             assertFalse(repo.getSlots().isEmpty(), "main should seed slots");
+
             assertTrue(repo.getUsers().stream()
                     .anyMatch(u -> "admin".equalsIgnoreCase(u.getUsername())));
+
             assertTrue(repo.getProviders().stream()
                     .anyMatch(p -> "qrbooking".equalsIgnoreCase(p.getUsername())));
 
@@ -278,14 +408,15 @@ class MainTest {
     @Test
     void main_whenOnlyKeepThisCategory_replacesItWithApplicationCategories() {
         DataRepository repo = new DataRepository();
+
         repo.addCategory(new Category("Keep This"));
 
         try (MockedStatic<UITheme> theme = mockStatic(UITheme.class);
              MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class);
              MockedConstruction<LoginFrame> loginFrames =
-                     mockConstruction(LoginFrame.class, (mock, context) -> {
-                         doNothing().when(mock).setVisible(anyBoolean());
-                     })) {
+                     mockConstruction(LoginFrame.class, (mock, context) ->
+                             doNothing().when(mock).setVisible(anyBoolean())
+                     )) {
 
             theme.when(UITheme::apply).thenAnswer(inv -> null);
             storage.when(RepoStorage::loadOrNew).thenReturn(repo);
@@ -317,9 +448,9 @@ class MainTest {
         try (MockedStatic<UITheme> theme = mockStatic(UITheme.class);
              MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class);
              MockedConstruction<LoginFrame> loginFrames =
-                     mockConstruction(LoginFrame.class, (mock, context) -> {
-                         doNothing().when(mock).setVisible(anyBoolean());
-                     })) {
+                     mockConstruction(LoginFrame.class, (mock, context) ->
+                             doNothing().when(mock).setVisible(anyBoolean())
+                     )) {
 
             theme.when(UITheme::apply).thenAnswer(inv -> null);
             storage.when(RepoStorage::loadOrNew).thenReturn(repo);
@@ -338,6 +469,30 @@ class MainTest {
 
             assertTrue(repo.getProviders().stream()
                     .anyMatch(p -> "qrbooking".equalsIgnoreCase(p.getUsername())));
+
+            assertEquals(1, loginFrames.constructed().size());
+            verify(loginFrames.constructed().get(0), times(1)).setVisible(true);
+        }
+    }
+
+    @Test
+    void main_acceptsNonEmptyArgs() {
+        DataRepository repo = new DataRepository();
+
+        repo.addCategory(new Category("Existing Category"));
+
+        try (MockedStatic<UITheme> theme = mockStatic(UITheme.class);
+             MockedStatic<RepoStorage> storage = mockStatic(RepoStorage.class);
+             MockedConstruction<LoginFrame> loginFrames =
+                     mockConstruction(LoginFrame.class, (mock, context) ->
+                             doNothing().when(mock).setVisible(anyBoolean())
+                     )) {
+
+            theme.when(UITheme::apply).thenAnswer(inv -> null);
+            storage.when(RepoStorage::loadOrNew).thenReturn(repo);
+            storage.when(() -> RepoStorage.save(any(DataRepository.class))).thenAnswer(inv -> null);
+
+            assertDoesNotThrow(() -> mainapp.Main.main(new String[]{"anything"}));
 
             assertEquals(1, loginFrames.constructed().size());
             verify(loginFrames.constructed().get(0), times(1)).setVisible(true);
