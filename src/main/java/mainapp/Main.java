@@ -36,11 +36,16 @@ public class Main {
 
     private static final String ADMIN_USERNAME = "admin";
     private static final String PROVIDER_USERNAME = "qrbooking";
-    private static final String DEFAULT_PROVIDER_PASSWORD = "Comp@1234";
+
+    private static final String DEFAULT_PROVIDER_SECRET =
+            System.getenv().getOrDefault("QRBOOKING_PROVIDER_SECRET", "");
+
     private static final String DEFAULT_PROVIDER_DISPLAY_NAME = "QR Booking";
     private static final String DEFAULT_PROVIDER_EMAIL = "remaajomaa842@gmail.com";
 
-    private static final String ADMIN_LOGIN_VALUE = "Admin" + "@" + "123";
+    private static final String ADMIN_LOGIN_VALUE =
+            System.getenv().getOrDefault("QRBOOKING_ADMIN_SECRET", "");
+
     private static final String KEEP_THIS_CATEGORY = "Keep This";
     private static final String REMOVED_CATEGORY_DOCTOR_APPOINTMENT = "Doctor Appointment";
 
@@ -160,7 +165,7 @@ public class Main {
     private static Provider createDefaultProvider() {
         return new Provider(
                 PROVIDER_USERNAME,
-                DEFAULT_PROVIDER_PASSWORD,
+                DEFAULT_PROVIDER_SECRET,
                 DEFAULT_PROVIDER_DISPLAY_NAME,
                 "",
                 DEFAULT_PROVIDER_EMAIL,
