@@ -34,7 +34,15 @@ import java.util.Set;
  */
 public class Main {
 
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String PROVIDER_USERNAME = "qrbooking";
+    private static final String DEFAULT_PROVIDER_PASSWORD = "Comp@1234";
+    private static final String DEFAULT_PROVIDER_DISPLAY_NAME = "QR Booking";
+    private static final String DEFAULT_PROVIDER_EMAIL = "remaajomaa842@gmail.com";
+
     private static final String ADMIN_LOGIN_VALUE = "Admin" + "@" + "123";
+    private static final String KEEP_THIS_CATEGORY = "Keep This";
+    private static final String REMOVED_CATEGORY_DOCTOR_APPOINTMENT = "Doctor Appointment";
 
     public static void main(String[] args) {
         UITheme.apply();
@@ -60,7 +68,7 @@ public class Main {
         if (repo.getCategories() == null || repo.getCategories().isEmpty()
                 || (repo.getCategories().size() == 1
                 && repo.getCategories().get(0) != null
-                && "Keep This".equalsIgnoreCase(repo.getCategories().get(0).getName()))) {
+                && KEEP_THIS_CATEGORY.equalsIgnoreCase(repo.getCategories().get(0).getName()))) {
 
             repo.getCategories().clear();
 
@@ -85,16 +93,9 @@ public class Main {
                 && repo.getAuditEvents().isEmpty();
 
         if (looksEmpty) {
-            repo.addUser(new Administrator("admin", ADMIN_LOGIN_VALUE));
+            repo.addUser(new Administrator(ADMIN_USERNAME, ADMIN_LOGIN_VALUE));
 
-            repo.addProvider(new Provider(
-                    "qrbooking",
-                    "Comp@1234",
-                    "QR Booking",
-                    "",
-                    "remaajomaa842@gmail.com",
-                    ""
-            ));
+            repo.addProvider(createDefaultProvider());
 
             List<Category> categories = buildCategories();
 
@@ -123,14 +124,14 @@ public class Main {
         for (User u : repo.getUsers()) {
             if (u != null
                     && u.getUsername() != null
-                    && u.getUsername().equalsIgnoreCase("admin")) {
+                    && u.getUsername().equalsIgnoreCase(ADMIN_USERNAME)) {
                 hasAdmin = true;
                 break;
             }
         }
 
         if (!hasAdmin) {
-            repo.addUser(new Administrator("admin", ADMIN_LOGIN_VALUE));
+            repo.addUser(new Administrator(ADMIN_USERNAME, ADMIN_LOGIN_VALUE));
         }
 
         boolean hasProvider = false;
@@ -138,24 +139,33 @@ public class Main {
         for (Provider p : repo.getProviders()) {
             if (p != null
                     && p.getUsername() != null
-                    && p.getUsername().equalsIgnoreCase("qrbooking")) {
+                    && p.getUsername().equalsIgnoreCase(PROVIDER_USERNAME)) {
                 hasProvider = true;
                 break;
             }
         }
 
         if (!hasProvider) {
-            repo.addProvider(new Provider(
-                    "qrbooking",
-                    "Comp@1234",
-                    "QR Booking",
-                    "",
-                    "remaajomaa842@gmail.com",
-                    ""
-            ));
+            repo.addProvider(createDefaultProvider());
         }
 
         RepoStorage.save(repo);
+    }
+
+    /**
+     * Creates the default provider account used by the application.
+     *
+     * @return default provider
+     */
+    private static Provider createDefaultProvider() {
+        return new Provider(
+                PROVIDER_USERNAME,
+                DEFAULT_PROVIDER_PASSWORD,
+                DEFAULT_PROVIDER_DISPLAY_NAME,
+                "",
+                DEFAULT_PROVIDER_EMAIL,
+                ""
+        );
     }
 
     /**
@@ -169,7 +179,7 @@ public class Main {
         }
 
         Set<String> removed = new HashSet<>();
-        removed.add("Doctor Appointment");
+        removed.add(REMOVED_CATEGORY_DOCTOR_APPOINTMENT);
 
         repo.purgeCategories(removed);
     }
