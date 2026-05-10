@@ -8,7 +8,7 @@ import java.util.List;
  *
  * <p>This sender does not deliver emails. Instead, it stores each sent email in-memory so tests
  * can assert the number of messages and their contents.</p>
- * @auther Qussai
+ * @author Qussai
  * @version 1.0
  */
 public class FakeEmailSender implements EmailSender {

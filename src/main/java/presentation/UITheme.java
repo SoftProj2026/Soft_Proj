@@ -6,9 +6,9 @@ import java.awt.*;
 /**
  * Central place for UI theme constants and helpers.
  * <p>
- * Provides default colors, fonts, and methods to apply consistent Look & Feel.
+ * Provides default colors, fonts, and methods to apply consistent Look &amp; Feel.
  * Call {@link #apply()} once early in application startup to set the preferred
- * Look & Feel and shared UI defaults.
+ * Look &amp; Feel and shared UI defaults.
  * </p>
  * @author remaa
  * @version 1.0
@@ -36,10 +36,10 @@ public final class UITheme {
     public static final Color MUTED = new Color(110, 120, 135);
 
     /**
-     * Applies UI defaults (Nimbus Look & Feel if available, fonts, table styles, etc.).
+     * Applies UI defaults (Nimbus Look &amp;Feel if available, fonts, table styles, etc.).
      * <p>
      * This method is safe to call multiple times. If Nimbus is not available,
-     * the platform default Look & Feel will remain active.
+     * the platform default Look &amp; Feel will remain active.
      * </p>
      */
     public static void apply() {

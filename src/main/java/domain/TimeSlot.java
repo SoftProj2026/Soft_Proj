@@ -1,5 +1,6 @@
 package domain;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
@@ -118,6 +119,7 @@ public class TimeSlot {
         if (booked) {
             return;
         }
+
         this.held = true;
         this.heldRequestId = requestId;
     }
@@ -166,11 +168,32 @@ public class TimeSlot {
         return endDateTime;
     }
 
-	public void setAvailable(boolean b) {
-		
-	}
+    /**
+     * Updates the availability of this slot.
+     *
+     * <p>If {@code true}, the slot becomes available by clearing booked and held states.
+     * If {@code false}, the slot is marked as booked/unavailable.</p>
+     *
+     * @param available {@code true} to make the slot available, {@code false} to mark it unavailable
+     */
+    public void setAvailable(boolean available) {
+        if (available) {
+            this.booked = false;
+            this.held = false;
+            this.heldRequestId = null;
+        } else {
+            this.booked = true;
+            this.held = false;
+            this.heldRequestId = null;
+        }
+    }
 
-	public long getDuration() {
-		return 0;
-	}
+    /**
+     * Returns the duration of this slot in minutes.
+     *
+     * @return duration in minutes
+     */
+    public long getDuration() {
+        return Duration.between(startDateTime, endDateTime).toMinutes();
+    }
 }

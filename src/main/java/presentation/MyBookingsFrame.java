@@ -33,9 +33,8 @@ import java.util.List;
  *   <li>Adds header (title + subtitle)</li>
  *   <li>Fixes formatting/line breaks (no "one-line" messy code)</li>
  * </ul>
- * </p>
  *
- * @author Qussaialaw & remaa
+ * @author Qussaialaw &amp; remaa
  * @version 1.0
  */
 public class MyBookingsFrame extends JFrame {

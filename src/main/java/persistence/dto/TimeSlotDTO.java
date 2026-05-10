@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  *   <li>{@link #held} to indicate the slot is temporarily held (reserved) for a booking request</li>
  *   <li>{@link #heldRequestId} to identify the request holding the slot (when {@code held == true})</li>
  * </ul>
- * </p>
+ 
  *
  * @author Qussaialaw
  * @version 1.0

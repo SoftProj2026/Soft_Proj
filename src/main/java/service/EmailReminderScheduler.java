@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>To avoid spamming, the scheduler tracks already-reminded appointment IDs in-memory and will not send
  * multiple reminders for the same appointment during the same application run.</p>
- * @auther Qussai
+ * @author Qussai
  * @version 1.0
  */
 public class EmailReminderScheduler {

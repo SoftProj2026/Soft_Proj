@@ -29,7 +29,7 @@ import java.util.Locale;
  * <p>Provides UI to pick a mutual slot and submit a booking request. Ensures
  * only one active (pending + confirmed) item per (user, category).</p>
  *
- * @author remaa & Qussai
+ * @author remaa &amp; Qussai
  * @version 1.0
  */
 public class UnifiedBookingFrame extends JFrame {

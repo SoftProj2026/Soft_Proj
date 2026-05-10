@@ -29,7 +29,7 @@ import java.util.Set;
  * purging removed categories from existing saved data, seeding initial data on first run, and launching
  * the Swing login window.</p>
  *
- * @author Qussaialaw & s12219530-cpu (remaa)
+ * @author Qussaialaw &amp; s12219530-cpu (remaa)
  * @version 1.0
  */
 public class Main {

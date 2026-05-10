@@ -22,7 +22,7 @@ import java.util.List;
  * Frame for selecting and creating an additional appointment based on the original one, with various appointment type options.
  * When saving, creates a NEW appointment in a selected available slot rather than modifying the original.
  *
- * @author Qussaialaw & remaa
+ * @author Qussaialaw &amp; remaa
  * @version 1.0
  */
 public class AppointmentOptionsFrame extends JFrame {

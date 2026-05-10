@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 /**
  * Restricts the number of confirmed appointments a user can book per day.
- * @auther remaa
+ * @author remaa
  * @version 1.0
  */
 public class DailyBookingLimitRule implements BookingRuleStrategy {

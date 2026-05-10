@@ -35,7 +35,7 @@ import java.util.prefs.Preferences;
  *
  * <p>The "Keep Me Logged In" option stores the username using {@link Preferences} so the username can be pre-filled
  * on the next application run.</p>
- * @author Qussaialaw & remaa
+ * @author Qussaialaw &amp; remaa
  * @version 1.0
  */
 public class LoginFrame extends JFrame {

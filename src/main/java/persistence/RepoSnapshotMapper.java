@@ -37,8 +37,6 @@ public final class RepoSnapshotMapper {
      *   <li>Cancellation usage map (user + category)</li>
      *   <li>Next ID counter values computed from the maximum existing IDs</li>
      * </ul>
-     * </p>
-     *
      * @param repo the source repository to snapshot
      * @return a snapshot representing the current repository state
      */

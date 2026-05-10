@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  *   <li>Time slot is represented by {@link #slotStart} and {@link #categoryName}</li>
  *   <li>Status is stored as a string (typically the enum {@code name()})</li>
  * </ul>
- * </p>
+ 
  *
  * @author remaa
  * @version 1.0
